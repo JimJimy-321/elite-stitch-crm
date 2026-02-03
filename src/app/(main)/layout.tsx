@@ -4,15 +4,29 @@ import React, { useState } from 'react';
 import { Sidebar } from '@/shared/components/layout/Sidebar';
 import { Search, Bell, User, ChevronDown, Sparkles } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
-  // Simulación de sesión - En producción vendría de Supabase Auth
-  const userRole: 'superadmin' | 'owner' | 'manager' = 'superadmin'; // Cambiado a superadmin para validar flujo inicial
+  const { user } = useAuthStore();
+
+  // Proteger ruta
+  useEffect(() => {
+    if (!user) {
+      router.push('/login');
+    }
+  }, [user, router]);
+
+  if (!user) return null;
+
+  const userRole = user.role;
 
   return (
     <div className="flex bg-background min-h-screen text-foreground transition-colors duration-300">

@@ -3,6 +3,9 @@
 import React, { useState } from 'react';
 import { Sidebar } from '@/shared/components/layout/Sidebar';
 import { Shield, Bell, User } from 'lucide-react';
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function AdminLayout({
     children,
@@ -10,6 +13,16 @@ export default function AdminLayout({
     children: React.ReactNode;
 }) {
     const [collapsed, setCollapsed] = useState(false);
+    const { user } = useAuthStore();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!user || user.role !== 'superadmin') {
+            router.push('/login');
+        }
+    }, [user, router]);
+
+    if (!user || user.role !== 'superadmin') return null;
 
     return (
         <div className="flex bg-background-light dark:bg-background-dark min-h-screen text-foreground transition-colors duration-300">
@@ -28,10 +41,12 @@ export default function AdminLayout({
                         </button>
                         <div className="flex items-center gap-3">
                             <div className="text-right">
-                                <p className="text-sm font-bold leading-none mb-1">Super Admin</p>
-                                <span className="text-[10px] text-accent font-bold uppercase tracking-widest">Root Access</span>
+                                <p className="text-sm font-bold leading-none mb-1">{user?.name}</p>
+                                <span className="text-[10px] text-accent font-bold uppercase tracking-widest">{user?.role}</span>
                             </div>
-                            <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center border border-accent/30 font-bold">SA</div>
+                            <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center border border-accent/30 font-bold">
+                                {user?.name?.substring(0, 2).toUpperCase()}
+                            </div>
                         </div>
                     </div>
                 </header>

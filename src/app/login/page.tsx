@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Scissors, Mail, Lock, Eye, EyeOff, ArrowRight, Github } from 'lucide-react';
+import { useAuthStore, UserRole } from '@/features/auth/store/authStore';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -11,17 +12,34 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
+    const { setUser } = useAuthStore();
+
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
 
         // Simulación de login con redirección basada en rol
         setTimeout(() => {
+            let role: UserRole = 'manager';
+            let redirectPath = '/dashboard';
+
             if (email.includes('admin')) {
-                router.push('/admin');
-            } else {
-                router.push('/dashboard');
+                role = 'superadmin';
+                redirectPath = '/admin';
+            } else if (email.includes('owner')) {
+                role = 'owner';
+                redirectPath = '/dashboard';
             }
+
+            const mockUser = {
+                id: '1',
+                name: email.split('@')[0],
+                email: email,
+                role: role
+            };
+
+            setUser(mockUser);
+            router.push(redirectPath);
             setIsLoading(false);
         }, 1500);
     };

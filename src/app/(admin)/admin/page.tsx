@@ -9,32 +9,32 @@ export default function AdminDashboardPage() {
         <div className="space-y-8 animate-fade-in">
             <div className="flex flex-col gap-2">
                 <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
-                    <div className="p-2 bg-primary/10 rounded-xl border border-primary/20">
-                        <Shield className="text-primary" size={28} />
+                    <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
+                        <Shield className="text-indigo-600" size={28} />
                     </div>
                     Infraestructura Global
                 </h1>
-                <p className="text-muted-foreground text-sm">Estado consolidado del ecosistema SastrePro SaaS.</p>
+                <p className="text-muted-foreground text-sm font-medium">Estado consolidado del ecosistema SastrePro SaaS.</p>
             </div>
 
             {/* Global Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard label="Dueños Activos" value="128" icon={Users} color="indigo" />
-                <StatCard label="Bots WhatsApp Online" value="342" icon={Smartphone} color="emerald" />
-                <StatCard label="MRR Total" value="$182,400" icon={Zap} color="cyan" />
-                <StatCard label="Uptime Sistema" value="99.99%" icon={Globe} color="amber" />
+                <StatCard label="Dueños Activos" value="128" icon={Users} color="indigo" border="border-indigo-500" />
+                <StatCard label="Bots WhatsApp Online" value="342" icon={Smartphone} color="emerald" border="border-emerald-500" />
+                <StatCard label="MRR Total" value="$182,400" icon={Zap} color="orange" border="border-orange-500" />
+                <StatCard label="Uptime Sistema" value="99.99%" icon={Globe} color="amber" border="border-amber-500" />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 {/* Recent Activity */}
-                <div className="xl:col-span-2 glass-card overflow-hidden">
-                    <div className="p-6 border-b border-border flex justify-between items-center bg-card/50">
-                        <h3 className="font-bold text-foreground flex items-center gap-2">
-                            <Activity size={18} className="text-primary" />
+                <div className="xl:col-span-2 glass-card overflow-hidden shadow-2xl border-none">
+                    <div className="p-8 border-b border-border flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
+                        <h3 className="font-black text-foreground uppercase text-[11px] tracking-[0.2em] flex items-center gap-2">
+                            <Activity size={18} className="text-indigo-600" />
                             Log de Operaciones Globales
                         </h3>
                     </div>
-                    <div className="divide-y divide-border">
+                    <div className="divide-y divide-border bg-card">
                         <ActivityItem type="new_owner" text="Nuevo dueño registrado: 'Sastrería El Corte'" time="Hace 12 min" />
                         <ActivityItem type="payment" text="Pago recibido: Suscripción Plan Pro (#8492)" time="Hace 45 min" />
                         <ActivityItem type="whatsapp" text="API WhatsApp reconectada - Sede Norte" time="Hace 1 hora" />
@@ -43,9 +43,9 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* Infrastructure Health */}
-                <div className="glass-card p-8">
-                    <h3 className="font-bold mb-6 text-foreground flex items-center gap-2">
-                        <Server size={18} className="text-primary" />
+                <div className="glass-card p-8 border-none shadow-2xl bg-gradient-to-b from-card to-background">
+                    <h3 className="font-black text-foreground uppercase text-[11px] tracking-[0.2em] mb-8 flex items-center gap-2">
+                        <Server size={18} className="text-indigo-600" />
                         Salud de Servicios
                     </h3>
                     <div className="space-y-6">
@@ -54,7 +54,7 @@ export default function AdminDashboardPage() {
                         <HealthItem icon={Globe2} label="CRM Main Engine" status="Heavy Load" score={72} warning />
                         <HealthItem icon={Smartphone} label="WhatsApp Gateway" status="Normal" score={95} />
                     </div>
-                    <button className="w-full mt-8 py-3 bg-secondary border border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:bg-primary hover:text-white hover:border-primary transition-all flex items-center justify-center gap-2">
+                    <button className="w-full mt-10 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all flex items-center justify-center gap-2 shadow-sm">
                         Ver Monitor Pro
                         <ArrowUpRight size={14} />
                     </button>
@@ -64,16 +64,16 @@ export default function AdminDashboardPage() {
     );
 }
 
-function StatCard({ label, value, icon: Icon, color }: any) {
+function StatCard({ label, value, icon: Icon, color, border }: any) {
     const colors: any = {
-        indigo: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
-        emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-        cyan: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20",
-        amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+        indigo: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/10",
+        emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/10",
+        orange: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/10",
+        amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/10",
     };
 
     return (
-        <div className="glass-card p-6 flex items-center gap-4 hover:scale-[1.02] transition-transform">
+        <div className={cn("glass-card p-6 flex items-center gap-4 hover:scale-[1.02] transition-all border-l-4 shadow-lg", border)}>
             <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center border", colors[color])}>
                 <Icon size={24} />
             </div>

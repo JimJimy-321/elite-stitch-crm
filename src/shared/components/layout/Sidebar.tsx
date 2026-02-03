@@ -77,16 +77,16 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
         )}>
             {/* Header */}
             <div className="p-6 flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/20 group hover:rotate-12 transition-transform">
+                <div className="w-11 h-11 bg-primary rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xl shadow-primary/20 group hover:rotate-6 transition-all border border-primary/10">
                     <Scissors className="text-white w-6 h-6" />
                 </div>
                 {!collapsed && (
                     <div className="flex flex-col animate-in fade-in slide-in-from-left-2 duration-300">
-                        <span className="font-black text-xl tracking-tight text-foreground leading-none">
+                        <span className="font-black text-2xl tracking-tighter text-foreground leading-none">
                             SastrePro
                         </span>
                         <div className="flex items-center gap-1.5 mt-1.5">
-                            <span className="text-[9px] text-primary font-black uppercase tracking-[0.2em] bg-primary/10 px-1.5 py-0.5 rounded">
+                            <span className="text-[9px] text-primary font-black uppercase tracking-[0.2em] bg-primary/10 px-1.5 py-0.5 rounded border border-primary/10">
                                 {role}
                             </span>
                         </div>

@@ -22,25 +22,25 @@ export default function MarketingPage() {
         <div className="space-y-8 animate-fade-in max-w-6xl">
             <div className="flex flex-col gap-2">
                 <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
-                    <div className="p-2 bg-primary/10 rounded-xl border border-primary/20">
-                        <Megaphone className="text-primary" size={28} />
+                    <div className="p-2 bg-orange-500/10 rounded-xl border border-orange-500/20">
+                        <Megaphone className="text-orange-500" size={28} />
                     </div>
                     Campañas de WhatsApp
                 </h1>
-                <p className="text-muted-foreground text-sm">Envía promociones y avisos a toda tu base de clientes automáticamente con IA.</p>
+                <p className="text-muted-foreground text-sm font-medium">Envía promociones y avisos a toda tu base de clientes automáticamente con IA.</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Composer */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="glass-card p-1">
-                        <div className="p-8 space-y-6">
+                    <div className="glass-card p-1 shadow-2xl border-none">
+                        <div className="p-8 space-y-6 bg-card rounded-[1.25rem]">
                             <div className="flex justify-between items-center">
-                                <h3 className="font-bold text-lg flex items-center gap-2 text-foreground">
-                                    <MessageSquare size={18} className="text-primary" />
+                                <h3 className="font-black text-lg flex items-center gap-2 text-foreground tracking-tight">
+                                    <MessageSquare size={18} className="text-orange-500" />
                                     Nueva Campaña Masiva
                                 </h3>
-                                <span className="text-[10px] font-black uppercase text-primary bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20 tracking-widest">
+                                <span className="text-[10px] font-black uppercase text-orange-600 bg-orange-500/10 px-3 py-1.5 rounded-full border border-orange-500/20 tracking-widest">
                                     842 Clientes Seleccionados
                                 </span>
                             </div>
@@ -52,9 +52,9 @@ export default function MarketingPage() {
                                         value={msg}
                                         onChange={(e) => setMsg(e.target.value)}
                                         placeholder="Hola {{nombre}}, tenemos una promoción exclusiva para ti..."
-                                        className="w-full h-48 bg-secondary/50 border border-border rounded-2xl p-6 text-sm text-foreground placeholder:text-muted-foreground/50 resize-none focus:ring-4 focus:ring-primary/10 focus:border-primary/30 outline-none transition-all shadow-inner font-medium"
+                                        className="w-full h-48 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-sm text-foreground placeholder:text-muted-foreground/30 resize-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500/30 outline-none transition-all shadow-inner font-medium"
                                     />
-                                    <button className="absolute bottom-4 right-4 p-2 bg-primary text-white rounded-xl shadow-lg shadow-primary/30 hover:scale-110 active:scale-95 transition-all group-hover:opacity-100 opacity-80 border border-white/20">
+                                    <button className="absolute bottom-4 right-4 p-2 bg-orange-500 text-white rounded-xl shadow-lg shadow-orange-500/30 hover:scale-110 active:scale-95 transition-all group-hover:opacity-100 opacity-80 border border-white/20">
                                         <Wand2 size={16} />
                                     </button>
                                 </div>
@@ -67,12 +67,12 @@ export default function MarketingPage() {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <button className="flex items-center justify-center gap-2 py-3.5 bg-secondary text-foreground rounded-xl border border-border hover:bg-card hover:border-primary/30 transition-all font-bold text-xs uppercase tracking-widest">
-                                        <ImageIcon size={16} className="text-primary" />
+                                    <button className="flex items-center justify-center gap-2 py-4 bg-slate-50 text-foreground rounded-2xl border border-slate-200 hover:bg-white hover:border-orange-500/30 transition-all font-bold text-xs uppercase tracking-widest shadow-sm">
+                                        <ImageIcon size={16} className="text-orange-500" />
                                         Adjuntar Imagen
                                     </button>
-                                    <button className="flex items-center justify-center gap-2 py-3.5 bg-secondary text-foreground rounded-xl border border-border hover:bg-card hover:border-primary/30 transition-all font-bold text-xs uppercase tracking-widest">
-                                        <Clock size={16} className="text-primary" />
+                                    <button className="flex items-center justify-center gap-2 py-4 bg-slate-50 text-foreground rounded-2xl border border-slate-200 hover:bg-white hover:border-orange-500/30 transition-all font-bold text-xs uppercase tracking-widest shadow-sm">
+                                        <Clock size={16} className="text-orange-500" />
                                         Programar Envío
                                     </button>
                                 </div>
@@ -81,8 +81,10 @@ export default function MarketingPage() {
                                     onClick={handleSend}
                                     disabled={sending || !msg}
                                     className={cn(
-                                        "w-full btn-primary py-4 text-[13px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl transition-all relative overflow-hidden",
-                                        (!msg || sending) && "opacity-50 cursor-not-allowed grayscale"
+                                        "w-full py-5 rounded-[1.25rem] text-[13px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl transition-all relative overflow-hidden",
+                                        (!msg || sending)
+                                            ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                            : "bg-orange-500 text-white hover:bg-orange-600 shadow-orange-500/20 active:scale-[0.98]"
                                     )}
                                 >
                                     {sending ? (
@@ -93,7 +95,7 @@ export default function MarketingPage() {
                                         </span>
                                     ) : (
                                         <>
-                                            <Send size={16} />
+                                            <Send size={16} className="-rotate-12" />
                                             Lanzar Campaña Ahora
                                         </>
                                     )}
@@ -105,15 +107,15 @@ export default function MarketingPage() {
 
                 {/* Audience & AI Tips */}
                 <div className="space-y-6">
-                    <div className="glass-card p-6 border-l-4 border-l-primary bg-primary/5">
+                    <div className="glass-card p-6 border-l-4 border-l-orange-500 bg-orange-500/5 shadow-lg">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-primary/10 rounded-lg">
-                                <Sparkles className="text-primary" size={18} />
+                            <div className="p-2 bg-orange-500/10 rounded-lg">
+                                <Sparkles className="text-orange-500" size={18} />
                             </div>
                             <h3 className="font-black text-xs uppercase tracking-widest text-foreground">Sastre AI Optimizer</h3>
                         </div>
                         <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
-                            Tu audiencia actual responde mejor los <span className="text-primary font-black">Martes a las 11:00 AM</span>.
+                            Tu audiencia actual responde mejor los <span className="text-orange-600 font-black">Martes a las 11:00 AM</span>.
                             Usar el nombre del cliente aumenta el CTR en un <span className="text-emerald-500 font-bold">24%</span> según tus logs históricos.
                         </p>
                     </div>

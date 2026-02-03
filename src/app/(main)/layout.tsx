@@ -78,7 +78,7 @@ export default function DashboardLayout({
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-secondary/30">
+        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-secondary/70 shadow-inner">
           <div className="max-w-[1600px] mx-auto">
             {children}
           </div>

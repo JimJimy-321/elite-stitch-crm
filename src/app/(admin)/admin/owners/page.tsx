@@ -69,7 +69,7 @@ export default function AdminOwnersPage() {
 
             <div className="glass-card border-none shadow-2xl bg-card overflow-hidden">
                 <div className="p-8 border-b border-slate-100 flex flex-col md:flex-row gap-6 items-center justify-between bg-card">
-                    <div className="flex items-center gap-4 bg-slate-50 px-5 py-3.5 rounded-[1.25rem] border border-slate-100 flex-1 max-w-md focus-within:ring-4 focus-within:ring-orange-500/10 focus-within:border-orange-500/30 transition-all shadow-inner">
+                    <div className="flex items-center gap-4 bg-orange-50 px-5 py-3.5 rounded-[1.25rem] border border-orange-200 flex-1 max-w-md focus-within:ring-4 focus-within:ring-orange-500/10 focus-within:border-orange-500/30 transition-all shadow-inner">
                         <Search className="text-slate-400" size={18} />
                         <input
                             placeholder="Buscar por nombre, email o empresa..."
@@ -77,7 +77,7 @@ export default function AdminOwnersPage() {
                         />
                     </div>
                     <div className="flex items-center gap-3">
-                        <button className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 text-slate-400 hover:text-orange-500 hover:bg-white transition-all shadow-sm">
+                        <button className="p-3.5 bg-orange-100 rounded-xl border border-orange-200 text-orange-700 hover:text-orange-600 hover:bg-orange-200 transition-all shadow-sm">
                             <Filter size={20} />
                         </button>
                     </div>
@@ -86,7 +86,7 @@ export default function AdminOwnersPage() {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="bg-slate-50/50 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100">
+                            <tr className="bg-orange-50/30 text-[10px] font-black uppercase tracking-[0.2em] text-orange-800 border-b border-orange-100">
                                 <th className="px-8 py-5">Cliente / Organization</th>
                                 <th className="px-8 py-5">Membresía</th>
                                 <th className="px-8 py-5">Sucursales</th>

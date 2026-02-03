@@ -45,7 +45,7 @@ export default function IngestionPage() {
 
             <div className={cn(
                 "glass-card p-16 border-dashed border-2 flex flex-col items-center justify-center text-center transition-all duration-500 rounded-[3rem] bg-card/50",
-                status === 'idle' ? "border-slate-200 dark:border-slate-800 hover:border-orange-500/50 hover:bg-orange-500/[0.02] cursor-pointer shadow-xl" : "border-orange-500/20 shadow-2xl"
+                status === 'idle' ? "border-orange-200 hover:border-orange-500/50 hover:bg-orange-500/[0.02] cursor-pointer shadow-xl" : "border-orange-500/20 shadow-2xl"
             )} onClick={() => status === 'idle' && simulateIngestion()}>
 
                 {status === 'idle' && (

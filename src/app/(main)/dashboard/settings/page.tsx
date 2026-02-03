@@ -70,7 +70,7 @@ function SettingsGroup({ icon: Icon, title, description, badge }: any) {
     return (
         <div className="glass-card p-1 group cursor-pointer overflow-hidden transition-all duration-300 hover:scale-[1.01] border-none shadow-xl bg-card">
             <div className="p-8 flex items-center gap-10 bg-card hover:bg-slate-50/50 transition-colors">
-                <div className="p-5 bg-slate-50 dark:bg-slate-900 rounded-[1.5rem] border border-slate-100 text-slate-400 group-hover:text-orange-600 group-hover:bg-orange-50 group-hover:border-orange-200 transition-all shadow-inner">
+                <div className="p-5 bg-orange-50 rounded-[1.5rem] border border-orange-100 text-orange-600 group-hover:text-orange-700 group-hover:bg-orange-100 group-hover:border-orange-200 transition-all shadow-inner">
                     <Icon size={32} />
                 </div>
                 <div className="flex-1">

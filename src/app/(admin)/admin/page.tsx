@@ -28,7 +28,7 @@ export default function AdminDashboardPage() {
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 {/* Recent Activity */}
                 <div className="xl:col-span-2 glass-card overflow-hidden shadow-2xl border-none">
-                    <div className="p-8 border-b border-border flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
+                    <div className="p-8 border-b border-border flex justify-between items-center bg-orange-50/50">
                         <h3 className="font-black text-foreground uppercase text-[11px] tracking-[0.2em] flex items-center gap-2">
                             <Activity size={18} className="text-indigo-600" />
                             Log de Operaciones Globales
@@ -54,7 +54,7 @@ export default function AdminDashboardPage() {
                         <HealthItem icon={Globe2} label="CRM Main Engine" status="Heavy Load" score={72} warning />
                         <HealthItem icon={Smartphone} label="WhatsApp Gateway" status="Normal" score={95} />
                     </div>
-                    <button className="w-full mt-10 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all flex items-center justify-center gap-2 shadow-sm">
+                    <button className="w-full mt-10 py-4 bg-orange-100 border border-orange-200 rounded-2xl text-[10px] font-black uppercase tracking-widest text-orange-800 hover:bg-orange-600 hover:text-white hover:border-orange-600 transition-all flex items-center justify-center gap-2 shadow-sm">
                         Ver Monitor Pro
                         <ArrowUpRight size={14} />
                     </button>

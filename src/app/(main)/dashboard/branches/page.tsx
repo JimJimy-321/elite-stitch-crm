@@ -36,7 +36,7 @@ export default function BranchesPage() {
                         <div className="p-8 space-y-8">
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-5">
-                                    <div className="w-16 h-16 bg-slate-50 dark:bg-slate-900 rounded-[1.5rem] flex items-center justify-center border border-slate-100 group-hover:border-orange-500/30 transition-all shadow-inner">
+                                    <div className="w-16 h-16 bg-orange-50 rounded-[1.5rem] flex items-center justify-center border border-orange-200 group-hover:border-orange-300 transition-all shadow-inner">
                                         <Store className="text-slate-400 group-hover:text-orange-500 transition-colors" size={28} />
                                     </div>
                                     <div>
@@ -87,10 +87,10 @@ export default function BranchesPage() {
                             </div>
 
                             <div className="flex gap-3">
-                                <button className="flex-1 bg-slate-50 hover:bg-orange-500 dark:hover:bg-orange-600 text-slate-600 hover:text-white border border-slate-200 hover:border-orange-500 px-4 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm">
+                                <button className="flex-1 bg-orange-100 hover:bg-orange-500 text-orange-800 hover:text-white border border-orange-200 hover:border-orange-500 px-4 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm">
                                     Ver Monitor Detallado
                                 </button>
-                                <button className="bg-slate-50 hover:bg-white border border-slate-200 px-5 py-4 rounded-2xl text-slate-400 hover:text-orange-500 transition-all shadow-sm">
+                                <button className="bg-orange-100 hover:bg-orange-200 border border-orange-200 px-5 py-4 rounded-2xl text-orange-700 hover:text-orange-600 transition-all shadow-sm">
                                     <Smartphone size={20} />
                                 </button>
                             </div>

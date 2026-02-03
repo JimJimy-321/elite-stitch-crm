@@ -66,7 +66,7 @@ export default function IntelligencePage() {
 
                     {/* Automation Logs */}
                     <div className="glass-card border-none shadow-xl">
-                        <div className="p-8 border-b border-border flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
+                        <div className="p-8 border-b border-border flex items-center justify-between bg-orange-50/50">
                             <h3 className="font-black text-foreground uppercase text-[11px] tracking-[0.2em] flex items-center gap-2">
                                 <Activity className="text-orange-500" size={16} />
                                 Workflows de Automatización (n8n)

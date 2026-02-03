@@ -37,7 +37,7 @@ export default function SaaSParametersPage() {
                         <Save size={16} />
                         Guardar Configuración
                     </button>
-                    <button className="px-10 py-4 bg-slate-50 border border-slate-100 text-slate-400 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-white hover:text-orange-600 hover:border-orange-500/30 transition-all">
+                    <button className="px-10 py-4 bg-orange-100 border border-orange-200 text-orange-800 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-orange-200 hover:text-orange-900 hover:border-orange-300 transition-all">
                         Restaurar Valores por Defecto
                     </button>
                 </div>
@@ -50,7 +50,7 @@ function ParamGroup({ title, limits }: any) {
     return (
         <div className="glass-card bg-card p-6 flex items-center justify-between border-none shadow-xl hover:scale-[1.01] transition-all duration-300">
             <div className="flex items-center gap-6">
-                <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-[1.25rem] border border-slate-100 shadow-inner group-hover:bg-orange-50 transition-colors">
+                <div className="p-4 bg-orange-50 rounded-[1.25rem] border border-orange-100 shadow-inner group-hover:bg-orange-100 transition-colors">
                     <Cpu size={24} className="text-slate-400 group-hover:text-orange-600 transition-colors" />
                 </div>
                 <div>

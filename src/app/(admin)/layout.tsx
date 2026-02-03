@@ -25,11 +25,11 @@ export default function AdminLayout({
     if (!user || user.role !== 'superadmin') return null;
 
     return (
-        <div className="flex bg-background-light dark:bg-background-dark min-h-screen text-foreground transition-colors duration-300">
+        <div className="flex bg-background min-h-screen text-foreground transition-colors duration-300">
             <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} role="superadmin" />
 
             <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-                <header className="h-20 border-b border-border bg-slate-900 text-white flex items-center justify-between px-8 sticky top-0 z-40">
+                <header className="h-20 border-b border-orange-200 bg-gradient-to-r from-orange-900 to-orange-800 text-white flex items-center justify-between px-8 sticky top-0 z-40">
                     <div className="flex items-center gap-3">
                         <Shield className="text-accent" size={24} />
                         <h2 className="font-bold text-lg tracking-tight uppercase tracking-widest text-slate-400">Panel de Control Global</h2>

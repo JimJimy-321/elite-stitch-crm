@@ -42,37 +42,42 @@ export default function AdminOwnersPage() {
     return (
         <div className="space-y-8 animate-fade-in">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-black tracking-tight text-foreground">Gestión de Dueños</h1>
-                    <p className="text-muted text-sm mt-1">Monitorea y administra la base de clientes SaaS.</p>
+                <div className="flex flex-col gap-1">
+                    <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
+                        <div className="p-2 bg-orange-500/10 rounded-xl border border-orange-500/20">
+                            <Building2 className="text-orange-600" size={28} />
+                        </div>
+                        Gestión de Dueños
+                    </h1>
+                    <p className="text-muted-foreground text-sm font-medium">Monitorea y administra la base de clientes SaaS SastrePro.</p>
                 </div>
                 <button
                     onClick={() => setIsModalOpen(true)}
-                    className="btn-primary"
+                    className="bg-orange-500 text-white py-4 px-8 flex items-center gap-3 group shadow-2xl shadow-orange-500/30 rounded-2xl hover:bg-orange-600 active:scale-95 transition-all"
                 >
-                    <Plus size={18} />
-                    Registrar Nuevo Dueño
+                    <Plus size={20} className="group-hover:rotate-90 transition-transform" />
+                    <span className="text-[11px] font-black uppercase tracking-[0.15em]">Registrar Nuevo Dueño</span>
                 </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <StatCard label="Total Dueños" value={ownersList.length.toString()} color="accent" />
-                <StatCard label="Ingresos MRR" value="$14,820" color="emerald" />
-                <StatCard label="En Riesgo" value="8" color="amber" />
-                <StatCard label="Nuevos (Mes)" value="+12" color="cyan" />
+                <DashboardStatCard label="Total Dueños" value={ownersList.length.toString()} borderColor="border-l-orange-500" />
+                <DashboardStatCard label="Ingresos MRR" value="$14,820" borderColor="border-l-indigo-500" />
+                <DashboardStatCard label="En Riesgo" value="8" borderColor="border-l-amber-500" />
+                <DashboardStatCard label="Nuevos (Mes)" value="+12" borderColor="border-l-emerald-500" />
             </div>
 
-            <div className="glass-card overflow-hidden">
-                <div className="p-6 border-b border-border flex flex-col md:flex-row gap-4 items-center justify-between bg-card/30 backdrop-blur-md">
-                    <div className="flex items-center gap-3 bg-secondary/50 px-4 py-2.5 rounded-xl border border-border flex-1 max-w-md focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                        <Search className="text-muted-foreground" size={18} />
+            <div className="glass-card border-none shadow-2xl bg-card overflow-hidden">
+                <div className="p-8 border-b border-slate-100 flex flex-col md:flex-row gap-6 items-center justify-between bg-card">
+                    <div className="flex items-center gap-4 bg-slate-50 px-5 py-3.5 rounded-[1.25rem] border border-slate-100 flex-1 max-w-md focus-within:ring-4 focus-within:ring-orange-500/10 focus-within:border-orange-500/30 transition-all shadow-inner">
+                        <Search className="text-slate-400" size={18} />
                         <input
                             placeholder="Buscar por nombre, email o empresa..."
-                            className="bg-transparent border-none outline-none text-sm w-full text-foreground placeholder:text-muted-foreground"
+                            className="bg-transparent border-none outline-none text-sm w-full text-foreground placeholder:text-muted-foreground/30 font-bold"
                         />
                     </div>
-                    <div className="flex items-center gap-2">
-                        <button className="p-2.5 bg-secondary rounded-xl border border-border text-muted-foreground hover:text-foreground transition-colors shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <button className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 text-slate-400 hover:text-orange-500 hover:bg-white transition-all shadow-sm">
                             <Filter size={20} />
                         </button>
                     </div>
@@ -81,56 +86,58 @@ export default function AdminOwnersPage() {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="bg-secondary/30 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                <th className="px-6 py-4">Cliente / Organization</th>
-                                <th className="px-6 py-4">Membresía</th>
-                                <th className="px-6 py-4">Sucursales</th>
-                                <th className="px-6 py-4">Vigencia</th>
-                                <th className="px-6 py-4">Estatus</th>
-                                <th className="px-6 py-4 text-right">Acciones</th>
+                            <tr className="bg-slate-50/50 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100">
+                                <th className="px-8 py-5">Cliente / Organization</th>
+                                <th className="px-8 py-5">Membresía</th>
+                                <th className="px-8 py-5">Sucursales</th>
+                                <th className="px-8 py-5">Vigencia</th>
+                                <th className="px-8 py-5">Estatus</th>
+                                <th className="px-8 py-5 text-right">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-border">
+                        <tbody className="divide-y divide-slate-100">
                             {ownersList.map((owner) => (
-                                <tr key={owner.id} className="hover:bg-primary/5 transition-colors group">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center font-bold text-primary group-hover:scale-110 transition-transform">
+                                <tr key={owner.id} className="hover:bg-slate-50/50 transition-colors group">
+                                    <td className="px-8 py-6">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center font-black text-orange-600 shadow-xl group-hover:scale-110 transition-transform">
                                                 {owner.name.charAt(0)}
                                             </div>
                                             <div>
-                                                <p className="font-bold text-sm text-foreground">{owner.name}</p>
-                                                <p className="text-xs text-muted-foreground font-medium">{owner.email}</p>
+                                                <p className="font-black text-[13px] text-foreground tracking-tight">{owner.name}</p>
+                                                <p className="text-[11px] text-muted-foreground font-bold">{owner.email}</p>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-foreground">
+                                    <td className="px-8 py-6">
                                         <div className="flex items-center gap-2">
-                                            <div className="p-1 px-2 rounded-lg bg-secondary text-[10px] font-bold uppercase flex items-center gap-1.5">
-                                                <CreditCard size={10} className="text-primary" />
+                                            <div className="px-3 py-1.5 rounded-lg bg-orange-50 text-orange-600 text-[10px] font-black uppercase flex items-center gap-2 shadow-sm border border-orange-100">
+                                                <CreditCard size={12} />
                                                 {owner.plan}
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-sm font-bold text-foreground">
+                                    <td className="px-8 py-6 text-[13px] font-black text-foreground">
                                         <div className="flex items-center gap-2">
-                                            <Store size={14} className="text-muted-foreground" />
-                                            {owner.branches}
+                                            <Store size={16} className="text-orange-500/50" />
+                                            {owner.branches} Sedes
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-xs font-mono text-muted-foreground">
+                                    <td className="px-8 py-6 text-[11px] font-black text-slate-400 tracking-tighter">
                                         {owner.expiry}
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-8 py-6">
                                         <span className={cn(
-                                            "px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter",
-                                            owner.status === 'Active' ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                                            "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.1em] shadow-sm",
+                                            owner.status === 'Active'
+                                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                                : "bg-amber-50 text-amber-600 border border-amber-100"
                                         )}>
                                             {owner.status}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button className="p-2 text-muted-foreground hover:text-primary transition-colors">
+                                    <td className="px-8 py-6 text-right">
+                                        <button className="p-2 text-slate-300 hover:text-orange-500 transition-all hover:bg-orange-50 rounded-lg">
                                             <MoreVertical size={20} />
                                         </button>
                                     </td>
@@ -201,11 +208,14 @@ export default function AdminOwnersPage() {
     );
 }
 
-function StatCard({ label, value, color }: { label: string; value: string; color: string }) {
+function DashboardStatCard({ label, value, borderColor }: { label: string; value: string; borderColor: string }) {
     return (
-        <div className="glass-card p-6 border-b-4 border-b-primary hover:translate-y-[-4px] transition-transform">
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">{label}</p>
-            <p className="text-2xl font-black text-foreground">{value}</p>
+        <div className={cn(
+            "glass-card p-8 border-none shadow-xl bg-card border-l-4 transition-all hover:scale-[1.02] duration-300",
+            borderColor
+        )}>
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-3">{label}</p>
+            <p className="text-3xl font-black text-foreground tracking-tighter">{value}</p>
         </div>
     );
 }

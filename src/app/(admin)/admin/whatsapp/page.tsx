@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { MessageSquare, ShieldCheck, Key, Smartphone, Plus, Settings } from 'lucide-react';
+import { cn } from '@/shared/lib/utils';
 
 export default function AdminWhatsAppPage() {
     return (

@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { UserPlus, Shield, Store, Mail, Phone, MoreHorizontal, Search } from 'lucide-react';
+import { UserPlus, Shield, Store, Mail, Phone, MoreHorizontal, Search, Plus } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 
 const managers = [

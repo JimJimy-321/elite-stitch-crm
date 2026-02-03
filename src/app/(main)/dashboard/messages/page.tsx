@@ -4,13 +4,22 @@ import React, { useState } from 'react';
 import { Search, Send, MoreHorizontal, User, CheckCheck, Smile, Meh, Frown } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 
-const mockMessages = [
+interface Chat {
+    id: number;
+    client: string;
+    lastMessage: string;
+    time: string;
+    sentiment: 'positive' | 'neutral' | 'negative';
+    unread: number;
+}
+
+const mockMessages: Chat[] = [
     { id: 1, client: "Carlos Fuentes", lastMessage: "¿Mi traje para el sábado estará listo?", time: "10:15", sentiment: "neutral", unread: 2 },
     { id: 2, client: "Mariana Sosa", lastMessage: "¡Me encantó como quedó el vestido! Mil gracias.", time: "09:30", sentiment: "positive", unread: 0 },
     { id: 3, client: "Roberto Gomez", lastMessage: "Sigo esperando el presupuesto desde ayer...", time: "Ayer", sentiment: "negative", unread: 1 },
 ];
 
-const sentimentIcons: any = {
+const sentimentIcons: Record<'positive' | 'neutral' | 'negative', { icon: any; color: string }> = {
     positive: { icon: Smile, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
     neutral: { icon: Meh, color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
     negative: { icon: Frown, color: "text-red-400 bg-red-500/10 border-red-500/20" },

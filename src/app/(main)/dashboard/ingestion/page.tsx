@@ -4,9 +4,16 @@ import React, { useState } from 'react';
 import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 
+interface ReportData {
+    tickets_extracted: number;
+    revenue_total: number;
+    clients_new: number;
+    source: string;
+}
+
 export default function IngestionPage() {
     const [status, setStatus] = useState<'idle' | 'uploading' | 'processing' | 'success'>('idle');
-    const [reportData, setReportData] = useState<any>(null);
+    const [reportData, setReportData] = useState<ReportData | null>(null);
 
     const simulateIngestion = () => {
         setStatus('uploading');
@@ -65,20 +72,20 @@ export default function IngestionPage() {
                             <CheckCircle2 className="text-emerald-500" size={32} />
                         </div>
                         <h3 className="text-xl font-bold mb-2">¡Procesamiento Exitoso!</h3>
-                        <p className="text-sm text-muted mb-8">{reportData.source} ha sido procesado e integrado.</p>
+                        <p className="text-sm text-muted mb-8">{reportData?.source} ha sido procesado e integrado.</p>
 
                         <div className="grid grid-cols-3 gap-8 w-full">
                             <div className="p-4 bg-secondary/50 rounded-xl">
                                 <p className="text-[10px] font-bold text-muted uppercase mb-1">Tickets</p>
-                                <p className="text-xl font-bold">{reportData.tickets_extracted}</p>
+                                <p className="text-xl font-bold">{reportData?.tickets_extracted}</p>
                             </div>
                             <div className="p-4 bg-secondary/50 rounded-xl">
                                 <p className="text-[10px] font-bold text-muted uppercase mb-1">Monto Total</p>
-                                <p className="text-xl font-bold text-emerald-400">${reportData.revenue_total}</p>
+                                <p className="text-xl font-bold text-emerald-400">${reportData?.revenue_total}</p>
                             </div>
                             <div className="p-4 bg-secondary/50 rounded-xl">
                                 <p className="text-[10px] font-bold text-muted uppercase mb-1">Clientes</p>
-                                <p className="text-xl font-bold">{reportData.clients_new}</p>
+                                <p className="text-xl font-bold">{reportData?.clients_new}</p>
                             </div>
                         </div>
 

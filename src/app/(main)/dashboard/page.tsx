@@ -21,7 +21,7 @@ import {
   AreaChart,
   Area
 } from 'recharts';
-import { formatCurrency } from '@/shared/lib/utils';
+import { formatCurrency, cn } from '@/shared/lib/utils';
 
 const salesData = [
   { name: 'Lun', total: 4500 },
@@ -212,13 +212,22 @@ export default function DashboardPage() {
   );
 }
 
-function KPICard({ title, value, change, isPositive, icon: Icon, color }: any) {
+interface KPICardProps {
+  title: string;
+  value: string;
+  change: string;
+  isPositive: boolean;
+  icon: any;
+  color: 'accent' | 'blue' | 'purple' | 'emerald';
+}
+
+function KPICard({ title, value, change, isPositive, icon: Icon, color }: KPICardProps) {
   const colorClasses = {
     accent: "bg-accent/20 text-accent border-accent/30",
     blue: "bg-blue-500/20 text-blue-400 border-blue-500/30",
     purple: "bg-purple-500/20 text-purple-400 border-purple-500/30",
     emerald: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  }[color as string] || "bg-accent/20 text-accent border-accent/30";
+  }[color] || "bg-accent/20 text-accent border-accent/30";
 
   return (
     <div className="glass-card p-6 flex flex-col gap-4">

@@ -13,16 +13,16 @@ const config: Config = {
     extend: {
       colors: {
         background: {
-          light: '#F8FAFC', // Gray-50
-          dark: '#020617',  // Slate-950
+          light: '#F8FAFC',
+          dark: '#020617',
         },
         card: {
           light: '#FFFFFF',
-          dark: '#0F172A',  // Slate-900
+          dark: '#0F172A',
         },
         accent: {
-          DEFAULT: '#6366F1', // Indigo-500
-          cyan: '#22D3EE',    // Cyan-400
+          DEFAULT: '#F97316', // Orange-500
+          cyan: '#FB923C',    // Orange-400
         },
         border: 'var(--border)',
         muted: 'var(--muted)',

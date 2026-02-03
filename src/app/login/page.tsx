@@ -45,90 +45,103 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-background-light dark:bg-background-dark flex flex-col lg:flex-row transition-colors duration-500">
+        <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row transition-colors duration-500 overflow-hidden">
             {/* Visual Side (Hidden on mobile) */}
-            <div className="hidden lg:flex lg:w-1/2 bg-slate-950 relative overflow-hidden items-center justify-center p-20">
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2" />
-                <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-accent.cyan/10 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2" />
+            <div className="hidden lg:flex lg:w-[55%] bg-slate-950 relative overflow-hidden items-center justify-center p-20">
+                {/* Dynamic Background Effects */}
+                <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-orange-500/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2" />
+                <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-orange-600/5 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2" />
 
-                <div className="relative z-10 text-center">
-                    <div className="w-24 h-24 bg-accent rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-accent/40 rotate-12">
-                        <Scissors size={48} className="text-white -rotate-12" />
+                <div className="relative z-10 w-full max-w-2xl">
+                    <div className="w-24 h-24 bg-orange-500 rounded-[2.5rem] flex items-center justify-center mb-10 shadow-3xl shadow-orange-500/40 rotate-12 hover:rotate-0 transition-all duration-700 border border-orange-400">
+                        <Scissors size={48} className="text-white" />
                     </div>
-                    <h1 className="text-5xl font-black text-white mb-6 tracking-tight">
-                        Sastre<span className="text-accent">Pro</span>
+
+                    <h1 className="text-7xl font-black text-white mb-8 tracking-tighter leading-none">
+                        Sastre<span className="text-orange-500">Pro</span>
+                        <span className="block text-2xl font-bold text-slate-400 tracking-normal mt-4">Intelligence & CRM</span>
                     </h1>
-                    <p className="text-slate-400 text-xl max-w-md mx-auto leading-relaxed">
-                        La plataforma definitiva para la gestión de sastrerías y negocios textiles a gran escala.
+
+                    <p className="text-slate-400 text-xl max-w-lg leading-relaxed font-medium">
+                        Impulsando la eficiencia operativa de las sastrerías modernas con <span className="text-white font-bold">Inteligencia Artificial</span> y gestión omnicanal.
                     </p>
 
-                    <div className="mt-12 grid grid-cols-3 gap-8 border-t border-slate-800 pt-12">
-                        <div>
-                            <p className="text-3xl font-bold text-white">450+</p>
-                            <p className="text-slate-500 text-sm">Sucursales</p>
+                    <div className="mt-16 grid grid-cols-3 gap-12 border-t border-white/[0.05] pt-16">
+                        <div className="space-y-1">
+                            <p className="text-4xl font-black text-white tracking-tighter">450+</p>
+                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest text-orange-500/70">Sucursales</p>
                         </div>
-                        <div>
-                            <p className="text-3xl font-bold text-white">12k</p>
-                            <p className="text-slate-500 text-sm">Tickets Hoy</p>
+                        <div className="space-y-1">
+                            <p className="text-4xl font-black text-white tracking-tighter">12k</p>
+                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest text-orange-500/70">Tickets Hoy</p>
                         </div>
-                        <div>
-                            <p className="text-3xl font-bold text-white">99%</p>
-                            <p className="text-slate-500 text-sm">Satisfacción</p>
+                        <div className="space-y-1">
+                            <p className="text-4xl font-black text-white tracking-tighter">99%</p>
+                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest text-orange-500/70">Satisfacción</p>
                         </div>
                     </div>
+                </div>
+
+                {/* Decorative Elements */}
+                <div className="absolute bottom-0 right-0 p-12 opacity-10">
+                    <div className="text-[120px] font-black text-white select-none pointer-events-none">SASTRE</div>
                 </div>
             </div>
 
             {/* Form Side */}
-            <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 lg:px-24 xl:px-32 py-12 relative">
+            <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 lg:px-24 xl:px-32 py-12 relative bg-white">
                 <div className="max-w-md w-full mx-auto">
-                    <div className="lg:hidden flex items-center gap-3 mb-12">
-                        <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center">
-                            <Scissors size={24} className="text-white" />
+                    <div className="lg:hidden flex items-center gap-4 mb-12">
+                        <div className="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center shadow-xl shadow-orange-500/20">
+                            <Scissors size={28} className="text-white" />
                         </div>
-                        <span className="text-2xl font-bold tracking-tight">SastrePro</span>
+                        <span className="text-3xl font-black tracking-tighter text-slate-900">SastrePro</span>
                     </div>
 
-                    <div className="mb-10">
-                        <h2 className="text-3xl font-extrabold text-foreground mb-2">Bienvenido de nuevo</h2>
-                        <p className="text-muted">Ingresa tus credenciales para acceder a tu panel.</p>
+                    <div className="mb-12">
+                        <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-3">Bienvenido</h2>
+                        <p className="text-slate-500 font-medium">Ingresa tus credenciales para acceder al núcleo de tu negocio.</p>
                     </div>
 
-                    <form onSubmit={handleLogin} className="space-y-6">
-                        <div className="space-y-2">
-                            <label className="text-sm font-bold text-muted uppercase tracking-widest ml-1">Email Corporativo</label>
+                    <form onSubmit={handleLogin} className="space-y-8">
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Email Profesional</label>
                             <div className="relative group">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-accent transition-colors" size={20} />
+                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-12 flex justify-center text-slate-300 group-focus-within:text-orange-500 transition-colors">
+                                    <Mail size={20} />
+                                </div>
                                 <input
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="ejemplo@sastrepro.com"
-                                    className="w-full bg-slate-100 dark:bg-slate-800 border border-border rounded-xl pl-12 pr-4 py-3.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all text-foreground"
+                                    placeholder="nombre@empresa.com"
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] pl-12 pr-4 py-4.5 outline-none focus:bg-white focus:border-orange-500/30 focus:ring-4 focus:ring-orange-500/5 transition-all text-slate-900 font-bold placeholder:text-slate-300"
                                     required
                                 />
                             </div>
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                             <div className="flex justify-between items-center px-1">
-                                <label className="text-sm font-bold text-muted uppercase tracking-widest">Contraseña</label>
-                                <a href="#" className="text-xs font-bold text-accent hover:underline">¿La olvidaste?</a>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Contraseña de Acceso</label>
+                                <a href="#" className="text-[10px] font-black text-orange-600 uppercase tracking-widest hover:underline decoration-2">¿Olvidaste tu clave?</a>
                             </div>
                             <div className="relative group">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-accent transition-colors" size={20} />
+                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-12 flex justify-center text-slate-300 group-focus-within:text-orange-500 transition-colors">
+                                    <Lock size={20} />
+                                </div>
                                 <input
                                     type={showPassword ? "text" : "password"}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     placeholder="••••••••"
-                                    className="w-full bg-slate-100 dark:bg-slate-800 border border-border rounded-xl pl-12 pr-12 py-3.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all text-foreground"
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] pl-12 pr-12 py-4.5 outline-none focus:bg-white focus:border-orange-500/30 focus:ring-4 focus:ring-orange-500/5 transition-all text-slate-900 font-bold placeholder:text-slate-300"
                                     required
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-foreground transition-colors"
+                                    className="absolute right-0 top-1/2 -translate-y-1/2 w-12 flex justify-center text-slate-300 hover:text-orange-500 transition-colors"
                                 >
                                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                 </button>
@@ -138,29 +151,29 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full btn-primary py-4 text-lg font-bold group relative overflow-hidden"
+                            className="w-full bg-slate-900 text-white py-5 rounded-[1.25rem] font-black text-xs uppercase tracking-[0.3em] group relative overflow-hidden shadow-2xl shadow-slate-900/20 hover:bg-orange-600 hover:shadow-orange-500/40 hover:-translate-y-1 active:translate-y-0 transition-all duration-300"
                         >
                             {isLoading ? (
-                                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                <div className="w-6 h-6 border-3 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
                             ) : (
-                                <>
-                                    Entrar al Sistema
-                                    <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                                </>
+                                <span className="flex items-center justify-center gap-4">
+                                    Iniciar Sesión Directa
+                                    <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform duration-500" />
+                                </span>
                             )}
                         </button>
                     </form>
 
-                    <div className="mt-8 pt-8 border-t border-border space-y-4">
-                        <p className="text-center text-sm text-muted">O accede con tu cuenta profesional</p>
-                        <button className="w-full flex items-center justify-center gap-3 bg-white dark:bg-slate-900 border border-border py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-semibold">
-                            <Github size={20} />
-                            Continuar con GitHub
+                    <div className="mt-12 pt-12 border-t border-slate-50 space-y-6">
+                        <p className="text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Autenticación Segura Corporativa</p>
+                        <button className="w-full flex items-center justify-center gap-4 bg-white border border-slate-100 py-4.5 rounded-[1.25rem] hover:bg-slate-50 hover:border-slate-200 transition-all font-black text-[11px] uppercase tracking-widest text-slate-600 shadow-sm">
+                            <Github size={20} className="text-slate-900" />
+                            Acceder con GitHub Enterprise
                         </button>
                     </div>
 
-                    <p className="mt-10 text-center text-sm text-muted">
-                        ¿No tienes cuenta? <span className="text-accent font-bold cursor-pointer hover:underline">Contactar a SastrePro Ventas</span>
+                    <p className="mt-12 text-center text-xs font-medium text-slate-500">
+                        ¿Requieres soporte profesional? <span className="text-orange-600 font-bold cursor-pointer hover:underline">SastrePro Concierge</span>
                     </p>
                 </div>
             </div>

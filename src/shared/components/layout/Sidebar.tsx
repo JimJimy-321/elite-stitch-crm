@@ -20,7 +20,9 @@ import {
     Megaphone,
     CreditCard,
     Sun,
-    Moon
+    Moon,
+    Sparkles,
+    Activity
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 
@@ -52,6 +54,7 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
             { icon: Store, label: 'Sucursales', href: '/dashboard/branches' },
             { icon: UserCog, label: 'Encargados', href: '/dashboard/managers' },
             { icon: Megaphone, label: 'Marketing', href: '/dashboard/marketing' },
+            { icon: Sparkles, label: 'Inteligencia', href: '/dashboard/intelligence' },
             { icon: CreditCard, label: 'Membresía', href: '/dashboard/billing' },
             { icon: Settings, label: 'Ajustes', href: '/dashboard/settings' },
         ],
@@ -61,6 +64,7 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
             { icon: Users, label: 'Clientes', href: '/dashboard/clients' },
             { icon: Wallet, label: 'Caja', href: '/dashboard/finance' },
             { icon: MessageSquare, label: 'Mensajes', href: '/dashboard/messages' },
+            { icon: Sparkles, label: 'Inteligencia', href: '/dashboard/intelligence' },
         ]
     };
 

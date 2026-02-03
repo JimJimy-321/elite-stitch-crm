@@ -12,7 +12,7 @@ export default function DashboardLayout({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   // Simulación de sesión - En producción vendría de Supabase Auth
-  const userRole = 'superadmin'; // Cambiado a superadmin para validar flujo inicial
+  const userRole: 'superadmin' | 'owner' | 'manager' = 'superadmin'; // Cambiado a superadmin para validar flujo inicial
 
   return (
     <div className="flex bg-background min-h-screen text-foreground transition-colors duration-300">
@@ -32,7 +32,7 @@ export default function DashboardLayout({
 
           <div className="flex items-center gap-6">
             {/* SaaS Status Badge */}
-            {(userRole === 'owner' || userRole === 'superadmin') && (
+            {((userRole as string) === 'owner' || (userRole as string) === 'superadmin') && (
               <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-full group cursor-pointer hover:bg-primary/20 transition-all">
                 <Sparkles size={14} className="text-primary animate-pulse" />
                 <span className="text-[10px] font-black text-primary uppercase tracking-tighter">

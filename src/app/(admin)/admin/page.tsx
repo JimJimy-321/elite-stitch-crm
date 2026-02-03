@@ -1,18 +1,20 @@
 "use client";
 
 import React from 'react';
-import { Shield, Users, Smartphone, Zap, Activity, Globe, ArrowUpRight } from 'lucide-react';
+import { Shield, Users, Smartphone, Zap, Activity, Globe, ArrowUpRight, Cpu, Server, Database, Globe2 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 
 export default function AdminDashboardPage() {
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="space-y-8 animate-fade-in">
             <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-black tracking-tight text-white flex items-center gap-3">
-                    <Shield className="text-accent" />
-                    Superadmin Infrastructure
+                <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-xl border border-primary/20">
+                        <Shield className="text-primary" size={28} />
+                    </div>
+                    Infraestructura Global
                 </h1>
-                <p className="text-slate-400 text-sm">Estado global del ecosistema SastrePro SaaS.</p>
+                <p className="text-muted-foreground text-sm">Estado consolidado del ecosistema SastrePro SaaS.</p>
             </div>
 
             {/* Global Stats */}
@@ -25,12 +27,14 @@ export default function AdminDashboardPage() {
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 {/* Recent Activity */}
-                <div className="xl:col-span-2 glass-card bg-slate-900 overflow-hidden text-white">
-                    <div className="p-6 border-b border-white/5 flex justify-between items-center">
-                        <h3 className="font-bold">Log de Operaciones Globales</h3>
-                        <Activity size={18} className="text-slate-500" />
+                <div className="xl:col-span-2 glass-card overflow-hidden">
+                    <div className="p-6 border-b border-border flex justify-between items-center bg-card/50">
+                        <h3 className="font-bold text-foreground flex items-center gap-2">
+                            <Activity size={18} className="text-primary" />
+                            Log de Operaciones Globales
+                        </h3>
                     </div>
-                    <div className="divide-y divide-white/5">
+                    <div className="divide-y divide-border">
                         <ActivityItem type="new_owner" text="Nuevo dueño registrado: 'Sastrería El Corte'" time="Hace 12 min" />
                         <ActivityItem type="payment" text="Pago recibido: Suscripción Plan Pro (#8492)" time="Hace 45 min" />
                         <ActivityItem type="whatsapp" text="API WhatsApp reconectada - Sede Norte" time="Hace 1 hora" />
@@ -39,16 +43,19 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* Infrastructure Health */}
-                <div className="glass-card bg-slate-900 p-8 text-white">
-                    <h3 className="font-bold mb-6">Salud de Servicios</h3>
+                <div className="glass-card p-8">
+                    <h3 className="font-bold mb-6 text-foreground flex items-center gap-2">
+                        <Server size={18} className="text-primary" />
+                        Salud de Servicios
+                    </h3>
                     <div className="space-y-6">
-                        <HealthItem label="Base de Datos (Supabase)" status="Normal" score={98} />
-                        <HealthItem label="Edge Functions" status="Normal" score={100} />
-                        <HealthItem label="CRM Main Engine" status="Heavy Load" score={72} warning />
-                        <HealthItem label="WhatsApp Webhook" status="Normal" score={95} />
+                        <HealthItem icon={Database} label="PostgreSQL (Supabase)" status="Normal" score={98} />
+                        <HealthItem icon={Cpu} label="Edge Functions" status="Normal" score={100} />
+                        <HealthItem icon={Globe2} label="CRM Main Engine" status="Heavy Load" score={72} warning />
+                        <HealthItem icon={Smartphone} label="WhatsApp Gateway" status="Normal" score={95} />
                     </div>
-                    <button className="w-full mt-8 py-3 bg-white/5 border border-white/10 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2">
-                        Ver Monitor en Tiempo Real
+                    <button className="w-full mt-8 py-3 bg-secondary border border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:bg-primary hover:text-white hover:border-primary transition-all flex items-center justify-center gap-2">
+                        Ver Monitor Pro
                         <ArrowUpRight size={14} />
                     </button>
                 </div>
@@ -59,20 +66,20 @@ export default function AdminDashboardPage() {
 
 function StatCard({ label, value, icon: Icon, color }: any) {
     const colors: any = {
-        indigo: "bg-indigo-500/10 text-indigo-500",
-        emerald: "bg-emerald-500/10 text-emerald-500",
-        cyan: "bg-cyan-500/10 text-cyan-500",
-        amber: "bg-amber-500/10 text-amber-500",
+        indigo: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+        emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+        cyan: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20",
+        amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
     };
 
     return (
-        <div className="glass-card bg-slate-900 p-6 flex items-center gap-4 border border-white/5">
-            <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", colors[color])}>
+        <div className="glass-card p-6 flex items-center gap-4 hover:scale-[1.02] transition-transform">
+            <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center border", colors[color])}>
                 <Icon size={24} />
             </div>
             <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{label}</p>
-                <p className="text-2xl font-black text-white">{value}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{label}</p>
+                <p className="text-2xl font-black text-foreground">{value}</p>
             </div>
         </div>
     );
@@ -80,34 +87,38 @@ function StatCard({ label, value, icon: Icon, color }: any) {
 
 function ActivityItem({ text, time, type }: any) {
     return (
-        <div className="p-4 hover:bg-white/[0.02] transition-colors flex items-center justify-between">
+        <div className="p-4 hover:bg-secondary/50 transition-colors flex items-center justify-between">
             <div className="flex items-center gap-4">
                 <div className={cn(
                     "w-2 h-2 rounded-full",
-                    type === 'new_owner' ? "bg-accent" : type === 'payment' ? "bg-emerald-500" : "bg-slate-500"
+                    type === 'new_owner' ? "bg-primary" : type === 'payment' ? "bg-emerald-500" : "bg-muted-foreground"
                 )} />
-                <span className="text-sm font-medium text-slate-300">{text}</span>
+                <span className="text-sm font-medium text-foreground/80">{text}</span>
             </div>
-            <span className="text-xs text-slate-500">{time}</span>
+            <span className="text-xs text-muted-foreground">{time}</span>
         </div>
     );
 }
 
-function HealthItem({ label, status, score, warning }: any) {
+function HealthItem({ label, status, score, warning, icon: Icon }: any) {
     return (
         <div className="space-y-2">
-            <div className="flex justify-between items-center text-xs">
-                <span className="font-bold text-slate-400">{label}</span>
+            <div className="flex justify-between items-center text-[11px]">
+                <div className="flex items-center gap-2 font-bold text-muted-foreground">
+                    <Icon size={14} className="text-primary/70" />
+                    {label}
+                </div>
                 <span className={cn("font-black uppercase tracking-tighter", warning ? "text-amber-500" : "text-emerald-500")}>
                     {status}
                 </span>
             </div>
-            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
                 <div
-                    className={cn("h-full transition-all duration-1000", warning ? "bg-amber-500" : "bg-emerald-500")}
+                    className={cn("h-full transition-all duration-1000", warning ? "bg-gradient-to-r from-amber-500 to-amber-400" : "bg-gradient-to-r from-emerald-500 to-emerald-400")}
                     style={{ width: `${score}%` }}
                 />
             </div>
         </div>
     );
 }
+

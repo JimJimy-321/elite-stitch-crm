@@ -1,2 +1,0 @@
-src/app/(admin)/admin/whatsapp/page.tsx(83,30): error TS2304: Cannot find name 'cn'.
-src/app/(main)/dashboard/managers/page.tsx(79,38): error TS2304: Cannot find name 'Plus'.

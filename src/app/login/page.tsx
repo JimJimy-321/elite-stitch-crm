@@ -47,7 +47,7 @@ export default function LoginPage() {
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row transition-colors duration-500 overflow-hidden">
             {/* Visual Side (Hidden on mobile) */}
-            <div className="hidden lg:flex lg:w-[55%] bg-slate-950 relative overflow-hidden items-center justify-center p-20">
+            <div className="hidden lg:flex lg:w-[55%] bg-gradient-to-br from-orange-900 to-orange-800 relative overflow-hidden items-center justify-center p-20">
                 {/* Dynamic Background Effects */}
                 <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-orange-500/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2" />
                 <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-orange-600/5 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2" />
@@ -151,7 +151,7 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full bg-slate-900 text-white py-5 rounded-[1.25rem] font-black text-xs uppercase tracking-[0.3em] group relative overflow-hidden shadow-2xl shadow-slate-900/20 hover:bg-orange-600 hover:shadow-orange-500/40 hover:-translate-y-1 active:translate-y-0 transition-all duration-300"
+                            className="w-full bg-orange-600 text-white py-5 rounded-[1.25rem] font-black text-xs uppercase tracking-[0.3em] group relative overflow-hidden shadow-2xl shadow-orange-600/20 hover:bg-orange-700 hover:shadow-orange-500/40 hover:-translate-y-1 active:translate-y-0 transition-all duration-300"
                         >
                             {isLoading ? (
                                 <div className="w-6 h-6 border-3 border-white/20 border-t-white rounded-full animate-spin mx-auto" />

@@ -3,31 +3,30 @@
 @tailwind utilities;
 
 :root {
-  /* Neutrals - Light Mode (Premium Professional) */
-  --background: #F8FAFC;
-  --foreground: #0F172A;
-  --muted: #475569;
-  --muted-foreground: #475569;
-  /* Oscurecido para mejor contraste */
+  /* Neutrals - Orange Soft Theme */
+  --background: #FFF7ED;
+  --foreground: #1C1917;
+  --muted: #78716C;
+  --muted-foreground: #78716C;
 
   /* Surface colors */
-  --card: #FFFFFF;
-  --card-foreground: #0F172A;
+  --card: #FFFBF5;
+  --card-foreground: #1C1917;
   --popover: #FFFFFF;
-  --popover-foreground: #0F172A;
+  --popover-foreground: #1C1917;
 
   /* Brand colors */
   --primary: #F97316;
   /* Orange-500 Premium */
   --primary-foreground: #FFFFFF;
-  --secondary: #F1F5F9;
-  --secondary-foreground: #1E293B;
+  --secondary: #FFEDD5;
+  --secondary-foreground: #9A3412;
 
   /* Status & Accents */
   --accent: #F97316;
   --accent-foreground: #FFFFFF;
-  --border: #E2E8F0;
-  --input: #CBD5E1;
+  --border: #FED7AA;
+  --input: #FDBA74;
   --ring: #F97316;
 }
 

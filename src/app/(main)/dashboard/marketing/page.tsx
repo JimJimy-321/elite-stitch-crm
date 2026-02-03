@@ -52,7 +52,7 @@ export default function MarketingPage() {
                                         value={msg}
                                         onChange={(e) => setMsg(e.target.value)}
                                         placeholder="Hola {{nombre}}, tenemos una promoción exclusiva para ti..."
-                                        className="w-full h-48 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-sm text-foreground placeholder:text-muted-foreground/30 resize-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500/30 outline-none transition-all shadow-inner font-medium"
+                                        className="w-full h-48 bg-orange-50 border border-orange-200 rounded-2xl p-6 text-sm text-foreground placeholder:text-muted-foreground/30 resize-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500/30 outline-none transition-all shadow-inner font-medium"
                                     />
                                     <button className="absolute bottom-4 right-4 p-2 bg-orange-500 text-white rounded-xl shadow-lg shadow-orange-500/30 hover:scale-110 active:scale-95 transition-all group-hover:opacity-100 opacity-80 border border-white/20">
                                         <Wand2 size={16} />
@@ -67,11 +67,11 @@ export default function MarketingPage() {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <button className="flex items-center justify-center gap-3 py-4 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700 hover:border-orange-500/30 transition-all font-black text-[10px] uppercase tracking-widest shadow-sm">
+                                    <button className="flex items-center justify-center gap-3 py-4 bg-orange-100 text-orange-800 rounded-2xl border border-orange-200 hover:bg-orange-200 hover:border-orange-300 transition-all font-black text-[10px] uppercase tracking-widest shadow-sm">
                                         <ImageIcon size={18} className="text-orange-500" />
                                         Adjuntar Imagen
                                     </button>
-                                    <button className="flex items-center justify-center gap-3 py-4 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700 hover:border-orange-500/30 transition-all font-black text-[10px] uppercase tracking-widest shadow-sm">
+                                    <button className="flex items-center justify-center gap-3 py-4 bg-orange-100 text-orange-800 rounded-2xl border border-orange-200 hover:bg-orange-200 hover:border-orange-300 transition-all font-black text-[10px] uppercase tracking-widest shadow-sm">
                                         <Clock size={18} className="text-orange-500" />
                                         Programar Envío
                                     </button>

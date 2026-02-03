@@ -31,7 +31,7 @@ export default function ManagersPage() {
 
             <div className="glass-card border-none shadow-2xl bg-card">
                 <div className="p-8">
-                    <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-900 px-6 py-4 rounded-2xl border border-slate-200 dark:border-slate-800 mb-10 max-w-md focus-within:ring-4 focus-within:ring-orange-500/10 focus-within:border-orange-500/30 transition-all shadow-inner">
+                    <div className="flex items-center gap-4 bg-orange-50 px-6 py-4 rounded-2xl border border-orange-200 mb-10 max-w-md focus-within:ring-4 focus-within:ring-orange-500/10 focus-within:border-orange-500/30 transition-all shadow-inner">
                         <Search className="text-slate-400" size={18} />
                         <input
                             placeholder="Buscar por nombre o sucursal..."
@@ -82,9 +82,9 @@ export default function ManagersPage() {
                                     </div>
 
                                     <div className="pt-8 border-t border-slate-200 flex items-center justify-between">
-                                        <div className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg shadow-inner">
+                                        <div className="flex items-center gap-2 px-2.5 py-1.5 bg-orange-100 rounded-lg shadow-inner">
                                             <Shield size={14} className="text-orange-500" />
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 border-none">Admin Sede</span>
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-orange-800 border-none">Admin Sede</span>
                                         </div>
                                         <button className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-orange-600 hover:text-orange-700 hover:underline group/more transition-all">
                                             Gestionar

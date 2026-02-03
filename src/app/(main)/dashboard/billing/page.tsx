@@ -43,7 +43,7 @@ export default function BillingPage() {
                         </div>
                     </div>
 
-                    <div className="flex flex-col items-center lg:items-end gap-5 bg-slate-50 dark:bg-slate-900/50 p-8 rounded-[2rem] border border-slate-100 shadow-inner min-w-[320px]">
+                    <div className="flex flex-col items-center lg:items-end gap-5 bg-orange-50 p-8 rounded-[2rem] border border-orange-200 shadow-inner min-w-[320px]">
                         <p className="text-5xl font-black text-foreground tracking-tighter">$1,490 <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mt-1">MXN / Pago Mensual</span></p>
                         <button className="w-full flex items-center justify-center gap-3 px-10 py-5 bg-foreground text-background rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-foreground/20">
                             <CreditCard size={18} />

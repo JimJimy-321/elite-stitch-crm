@@ -1,0 +1,10 @@
+{
+    "maintenance": false,
+    "trial_days": 14,
+    "support_email": "admin@sastrepro.com",
+    "max_branches_starter": 1,
+    "max_branches_pro": 5,
+    "max_branches_enterprise": 99,
+    "api_whatsapp_base_url": "https://graph.facebook.com/v17.0",
+    "system_version": "2.0.0-SaaS"
+}

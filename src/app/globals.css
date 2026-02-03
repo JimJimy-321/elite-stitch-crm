@@ -2,47 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #0F0E13;
-  --foreground: #FFFFFF;
+@layer base {
+  :root {
+    --background: #F8FAFC;
+    --foreground: #0F172A;
+    --card: #FFFFFF;
+    --card-foreground: #0F172A;
+    --border: #E2E8F0;
+    --accent: #6366F1;
+    --muted: #64748B;
+  }
+
+  .dark {
+    --background: #020617;
+    --foreground: #F8FAFC;
+    --card: #0F172A;
+    --card-foreground: #F8FAFC;
+    --border: #1E293B;
+    --accent: #6366F1;
+    --muted: #94A3B8;
+  }
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
+  @apply bg-background-light dark:bg-background-dark text-foreground transition-colors duration-300;
   font-family: 'Inter', sans-serif;
-  -webkit-font-smoothing: antialiased;
 }
 
 @layer components {
   .glass-card {
-    @apply bg-card border border-border rounded-xl shadow-2xl;
+    @apply bg-card-light dark:bg-card-dark border border-border shadow-premium rounded-2xl;
   }
-  
+
   .btn-primary {
-    @apply bg-accent hover:bg-accent/90 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 active:scale-95;
+    @apply bg-accent hover:bg-accent/90 text-white font-semibold px-5 py-2.5 rounded-xl transition-all active:scale-95 shadow-lg shadow-accent/20 flex items-center justify-center gap-2;
   }
 
   .sidebar-item {
-    @apply flex items-center gap-3 px-4 py-3 rounded-lg text-muted hover:text-white hover:bg-secondary transition-colors cursor-pointer;
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-muted hover:text-foreground hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all cursor-pointer font-medium;
   }
 
   .sidebar-item-active {
-    @apply sidebar-item bg-secondary text-white;
+    @apply sidebar-item bg-slate-200/50 dark:bg-slate-800/50 text-accent font-bold;
+  }
+
+  .input-field {
+    @apply w-full bg-slate-100 dark:bg-slate-800 border border-border rounded-xl px-4 py-2.5 outline-none focus:border-accent transition-all text-sm;
   }
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
+
 ::-webkit-scrollbar-track {
-  background: var(--background);
+  @apply bg-transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #2D2B35;
-  border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #3D3B45;
+  @apply bg-slate-300 dark:bg-slate-700 rounded-full;
 }

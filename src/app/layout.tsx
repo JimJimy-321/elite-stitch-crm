@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'SaaS Factory App',
-  description: 'Built with SaaS Factory',
+  title: 'SastrePro SaaS',
+  description: 'Sistema de Gestión Multisede para Sastrerías Profesionales',
 }
 
 export default function RootLayout({

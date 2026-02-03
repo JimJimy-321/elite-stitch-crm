@@ -11,7 +11,7 @@ export default function SettingsPage() {
                     <SettingsIcon className="text-muted" />
                     Configuración del Sistema
                 </h1>
-                <p className="text-muted text-sm">Ajustes generales, seguridad y personalización de Elite Stitch.</p>
+                <p className="text-muted text-sm">Ajustes generales, seguridad y personalización de SastrePro.</p>
             </div>
 
             <div className="grid grid-cols-1 gap-6">

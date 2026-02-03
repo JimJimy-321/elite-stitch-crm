@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Sidebar } from '@/shared/components/layout/Sidebar';
 import { Shield, Bell, User } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { useSupabaseAuth } from '@/features/auth/hooks/useSupabaseAuth';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -15,6 +16,9 @@ export default function AdminLayout({
     const [collapsed, setCollapsed] = useState(false);
     const { user } = useAuthStore();
     const router = useRouter();
+
+    // Inicializar sincronización con Supabase
+    useSupabaseAuth();
 
     useEffect(() => {
         if (!user || user.role !== 'superadmin') {

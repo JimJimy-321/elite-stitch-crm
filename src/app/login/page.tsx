@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Scissors, Mail, Lock, Eye, EyeOff, ArrowRight, Github } from 'lucide-react';
-import { useAuthStore, UserRole } from '@/features/auth/store/authStore';
+import { useSupabaseAuth } from '@/features/auth/hooks/useSupabaseAuth';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -11,37 +11,24 @@ export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
 
-    const { setUser } = useAuthStore();
+    const { signInWithEmail } = useSupabaseAuth();
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError('');
         setIsLoading(true);
 
-        // Simulación de login con redirección basada en rol
-        setTimeout(() => {
-            let role: UserRole = 'manager';
-            let redirectPath = '/dashboard';
-
-            if (email.includes('admin')) {
-                role = 'superadmin';
-                redirectPath = '/admin';
-            } else if (email.includes('owner')) {
-                role = 'owner';
-                redirectPath = '/dashboard';
-            }
-
-            const mockUser = {
-                id: '1',
-                name: email.split('@')[0],
-                email: email,
-                role: role
-            };
-
-            setUser(mockUser);
-            router.push(redirectPath);
+        try {
+            await signInWithEmail(email, password);
+            router.push('/dashboard');
+        } catch (err: any) {
+            console.error('Login error:', err);
+            setError(err.message || 'Error al iniciar sesión. Verifica tus credenciales.');
+        } finally {
             setIsLoading(false);
-        }, 1500);
+        }
     };
 
     return (
@@ -104,6 +91,12 @@ export default function LoginPage() {
                     </div>
 
                     <form onSubmit={handleLogin} className="space-y-8">
+                        {error && (
+                            <div className="bg-red-50 border-2 border-red-200 text-red-800 px-6 py-4 rounded-2xl text-sm font-bold">
+                                {error}
+                            </div>
+                        )}
+
                         <div className="space-y-3">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Email Profesional</label>
                             <div className="relative group">

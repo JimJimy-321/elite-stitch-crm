@@ -5,6 +5,7 @@ import { Sidebar } from '@/shared/components/layout/Sidebar';
 import { Search, Bell, User, ChevronDown, Sparkles } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { useSupabaseAuth } from '@/features/auth/hooks/useSupabaseAuth';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -16,6 +17,9 @@ export default function DashboardLayout({
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const { user } = useAuthStore();
+
+  // Inicializar sincronización con Supabase
+  useSupabaseAuth();
 
   // Proteger ruta
   useEffect(() => {

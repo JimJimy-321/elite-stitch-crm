@@ -10,77 +10,84 @@ export default function FinancePage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-col gap-2">
                     <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-xl border border-primary/20">
-                            <Wallet className="text-primary" size={28} />
+                        <div className="p-2 bg-orange-500/10 rounded-xl border border-orange-500/20">
+                            <Wallet className="text-orange-600" size={28} />
                         </div>
                         Control Financiero
                     </h1>
-                    <p className="text-muted-foreground text-sm">Monitoreo en tiempo real de ingresos, egresos y salud fiscal.</p>
+                    <p className="text-muted-foreground text-sm font-medium">Monitoreo en tiempo real de ingresos, egresos y salud fiscal de tu negocio.</p>
                 </div>
-                <div className="flex items-center gap-3 bg-card border border-border px-4 py-2 rounded-2xl shadow-sm">
-                    <Calendar size={18} className="text-primary" />
-                    <span className="text-sm font-black text-foreground">Octubre 2023</span>
+                <div className="flex items-center gap-3 bg-white border border-slate-100 px-6 py-3 rounded-2xl shadow-xl shadow-slate-200/50">
+                    <Calendar size={20} className="text-orange-500" />
+                    <span className="text-sm font-black text-foreground uppercase tracking-widest px-2 border-l border-slate-100 italic">Octubre 2023</span>
                 </div>
             </div>
 
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <FinanceStat label="Ingresos Totales" value={formatCurrency(42850)} trend="+12.4%" positive />
-                <FinanceStat label="Gastos Operativos" value={formatCurrency(12400)} trend="-3.2%" negative />
-                <FinanceStat label="Balance Neto" value={formatCurrency(30450)} trend="+18.1%" positive primary />
+                <FinanceStat label="Ingresos Totales" value={formatCurrency(42850)} trend="+12.4%" positive border="border-l-indigo-500" />
+                <FinanceStat label="Gastos Operativos" value={formatCurrency(12400)} trend="-3.2%" negative border="border-l-rose-500" />
+                <FinanceStat label="Balance Neto" value={formatCurrency(30450)} trend="+18.1%" positive primary border="border-l-orange-500" />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 {/* Daily Cash Flow */}
-                <div className="xl:col-span-2 glass-card overflow-hidden">
-                    <div className="p-8 border-b border-border flex justify-between items-center bg-card/50">
-                        <h3 className="font-black text-foreground flex items-center gap-3">
-                            <Activity size={18} className="text-primary" />
+                <div className="xl:col-span-2 glass-card border-none shadow-2xl overflow-hidden bg-white rounded-[2rem]">
+                    <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+                        <h3 className="font-black text-foreground flex items-center gap-3 text-lg tracking-tight">
+                            <div className="p-2 bg-orange-500/10 rounded-lg">
+                                <Activity size={20} className="text-orange-600" />
+                            </div>
                             Monitor de Caja Diario
                         </h3>
-                        <button className="text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/5 px-4 py-2 rounded-xl border border-primary/20 transition-all">
+                        <button className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600 bg-orange-50 hover:bg-orange-100 px-6 py-3 rounded-xl border border-orange-200 transition-all shadow-sm">
                             Exportar Reporte
                         </button>
                     </div>
-                    <div className="p-8 space-y-6">
-                        <div className="flex flex-col gap-4">
+                    <div className="p-10 space-y-10">
+                        <div className="flex flex-col gap-6">
                             <div className="flex justify-between items-end">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Progreso Meta Mensual ($50k)</span>
-                                <span className="text-sm font-black text-primary">85%</span>
+                                <div className="space-y-1">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Progreso Meta Mensual</span>
+                                    <p className="text-2xl font-black text-foreground">$50,000.00 <span className="text-slate-300 font-medium">Objetivo</span></p>
+                                </div>
+                                <span className="text-xl font-black text-orange-600">85%</span>
                             </div>
-                            <div className="h-4 bg-secondary rounded-full overflow-hidden border border-border shadow-inner">
-                                <div className="h-full bg-gradient-to-r from-primary to-primary/60 w-[85%] rounded-full shadow-lg shadow-primary/20 animate-pulse" />
+                            <div className="h-6 bg-slate-100 rounded-full overflow-hidden border border-slate-200 shadow-inner p-1">
+                                <div className="h-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-400 w-[85%] rounded-full shadow-lg shadow-orange-500/20 animate-pulse" />
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-6">
-                            <MiniStat label="Efectivo" value="$8,200" />
-                            <MiniStat label="Stripe" value="$24,500" />
-                            <MiniStat label="Transferencias" value="$9,150" />
-                            <MiniStat label="Otros" value="$1,000" />
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 pt-4">
+                            <MiniStat label="Efectivo" value="$8,200" icon={<DollarSign size={14} />} />
+                            <MiniStat label="Stripe" value="$24,500" icon={<CreditCard size={14} />} />
+                            <MiniStat label="Transferencias" value="$9,150" icon={<TrendingUp size={14} />} />
+                            <MiniStat label="Otros" value="$1,000" icon={<Receipt size={14} />} />
                         </div>
                     </div>
                 </div>
 
                 {/* Recent Movements */}
-                <div className="glass-card flex flex-col">
-                    <div className="p-8 border-b border-border">
-                        <h3 className="font-black text-foreground flex items-center gap-3">
-                            <Receipt size={18} className="text-primary" />
+                <div className="glass-card flex flex-col border-none shadow-2xl bg-white rounded-[2rem] overflow-hidden">
+                    <div className="p-8 border-b border-slate-50 bg-slate-50/30">
+                        <h3 className="font-black text-foreground flex items-center gap-3 text-lg tracking-tight">
+                            <div className="p-2 bg-orange-500/10 rounded-lg">
+                                <Receipt size={20} className="text-orange-600" />
+                            </div>
                             Últimos Movimientos
                         </h3>
                     </div>
                     <div className="p-4 flex-1">
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                             <MovementItem type="income" label="Pedido #4292 - Sucursal Norte" amount="+$1,450.00" time="Hace 12 min" />
                             <MovementItem type="expense" label="Pago de Insumos - Telas Elite" amount="-$3,200.00" time="Hace 45 min" />
                             <MovementItem type="income" label="Ajuste Pro - Cliente VIP" amount="+$850.00" time="Hace 2 horas" />
                             <MovementItem type="income" label="Pedido #4291 - Sucursal Sur" amount="+$2,100.00" time="Hace 3 horas" />
                         </div>
                     </div>
-                    <button className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-all border-t border-border flex items-center justify-center gap-2">
-                        Ver todo el historial
-                        <ArrowUpRight size={14} />
+                    <button className="p-8 text-[11px] font-black uppercase tracking-[0.25em] text-slate-400 hover:text-orange-600 hover:bg-orange-50 transition-all border-t border-slate-50 flex items-center justify-center gap-3 group">
+                        Ver historial completo
+                        <ArrowUpRight size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                     </button>
                 </div>
             </div>
@@ -88,26 +95,22 @@ export default function FinancePage() {
     );
 }
 
-function FinanceStat({ label, value, trend, positive, negative, primary }: any) {
+function FinanceStat({ label, value, trend, positive, negative, primary, border }: any) {
     return (
         <div className={cn(
-            "glass-card p-8 group relative overflow-hidden",
-            primary && "border-t-4 border-t-primary shadow-2xl shadow-primary/10"
+            "glass-card p-10 group relative overflow-hidden border-none shadow-2xl bg-white transition-all hover:scale-[1.02] duration-500",
+            border,
+            "border-l-8"
         )}>
-            {primary && (
-                <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform duration-700">
-                    <TrendingUp size={120} className="text-primary" />
-                </div>
-            )}
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">{label}</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 mb-6">{label}</p>
             <div className="flex items-end justify-between gap-4">
-                <h2 className={cn("text-3xl font-black text-foreground", primary && "text-primary")}>{value}</h2>
+                <h2 className={cn("text-4xl font-black tracking-tighter text-foreground group-hover:text-orange-600 transition-colors")}>{value}</h2>
                 <div className={cn(
-                    "flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10px] font-black",
-                    positive && "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
-                    negative && "text-red-500 bg-red-500/10 border-red-500/20"
+                    "flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-black shadow-sm",
+                    positive && "text-emerald-600 bg-emerald-50 border-emerald-100",
+                    negative && "text-rose-600 bg-rose-50 border-rose-100"
                 )}>
-                    {positive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                    {positive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
                     {trend}
                 </div>
             </div>
@@ -115,33 +118,36 @@ function FinanceStat({ label, value, trend, positive, negative, primary }: any) 
     );
 }
 
-function MiniStat({ label, value }: any) {
+function MiniStat({ label, value, icon }: any) {
     return (
-        <div className="space-y-1">
-            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{label}</p>
-            <p className="text-sm font-black text-foreground">{value}</p>
+        <div className="space-y-2 p-5 bg-slate-50 hover:bg-white border border-slate-100 rounded-2xl transition-all shadow-inner hover:shadow-xl hover:shadow-slate-200/50 group">
+            <div className="flex items-center gap-2 text-slate-400 group-hover:text-orange-500 transition-colors">
+                {icon}
+                <p className="text-[9px] font-black uppercase tracking-[0.2em]">{label}</p>
+            </div>
+            <p className="text-xl font-black text-foreground tracking-tight">{value}</p>
         </div>
     );
 }
 
 function MovementItem({ type, label, amount, time }: any) {
     return (
-        <div className="flex items-center justify-between p-4 rounded-2xl hover:bg-secondary/50 transition-all group">
-            <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between p-5 rounded-[1.5rem] bg-white border border-transparent hover:border-slate-100 hover:bg-slate-50/50 hover:shadow-lg hover:shadow-slate-200/30 transition-all group cursor-default">
+            <div className="flex items-center gap-5">
                 <div className={cn(
-                    "w-10 h-10 rounded-xl flex items-center justify-center border transition-all",
-                    type === 'income' ? "bg-emerald-500/5 border-emerald-500/10 text-emerald-500" : "bg-red-500/5 border-red-500/10 text-red-500"
+                    "w-12 h-12 rounded-2xl flex items-center justify-center border transition-all shadow-sm",
+                    type === 'income' ? "bg-emerald-50 border-emerald-100 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white" : "bg-rose-50 border-rose-100 text-rose-500 group-hover:bg-rose-500 group-hover:text-white"
                 )}>
-                    {type === 'income' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
+                    {type === 'income' ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />}
                 </div>
                 <div>
-                    <p className="text-xs font-black text-foreground group-hover:text-primary transition-colors truncate max-w-[150px]">{label}</p>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{time}</p>
+                    <p className="text-[15px] font-black text-foreground tracking-tight group-hover:text-orange-600 transition-colors truncate max-w-[150px]">{label}</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{time}</p>
                 </div>
             </div>
             <span className={cn(
-                "text-sm font-black",
-                type === 'income' ? "text-emerald-500" : "text-red-500"
+                "text-lg font-black tracking-tight",
+                type === 'income' ? "text-emerald-500" : "text-rose-500"
             )}>{amount}</span>
         </div>
     );

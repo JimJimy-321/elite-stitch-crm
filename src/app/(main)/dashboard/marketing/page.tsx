@@ -67,12 +67,12 @@ export default function MarketingPage() {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <button className="flex items-center justify-center gap-2 py-4 bg-slate-50 text-foreground rounded-2xl border border-slate-200 hover:bg-white hover:border-orange-500/30 transition-all font-bold text-xs uppercase tracking-widest shadow-sm">
-                                        <ImageIcon size={16} className="text-orange-500" />
+                                    <button className="flex items-center justify-center gap-3 py-4 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700 hover:border-orange-500/30 transition-all font-black text-[10px] uppercase tracking-widest shadow-sm">
+                                        <ImageIcon size={18} className="text-orange-500" />
                                         Adjuntar Imagen
                                     </button>
-                                    <button className="flex items-center justify-center gap-2 py-4 bg-slate-50 text-foreground rounded-2xl border border-slate-200 hover:bg-white hover:border-orange-500/30 transition-all font-bold text-xs uppercase tracking-widest shadow-sm">
-                                        <Clock size={16} className="text-orange-500" />
+                                    <button className="flex items-center justify-center gap-3 py-4 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700 hover:border-orange-500/30 transition-all font-black text-[10px] uppercase tracking-widest shadow-sm">
+                                        <Clock size={18} className="text-orange-500" />
                                         Programar Envío
                                     </button>
                                 </div>

@@ -29,57 +29,59 @@ export default function DashboardLayout({
   const userRole = user.role;
 
   return (
-    <div className="flex bg-background min-h-screen text-foreground transition-colors duration-300">
+    <div className="flex bg-slate-50 min-h-screen text-foreground transition-colors duration-300">
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} role={userRole} />
 
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         {/* Top Navbar */}
-        <header className="h-20 border-b border-border bg-card/50 backdrop-blur-xl flex items-center justify-between px-8 sticky top-0 z-40 shadow-sm">
-          <div className="flex items-center gap-4 bg-secondary px-4 py-2.5 rounded-2xl border border-border w-96 transition-all focus-within:ring-2 focus-within:ring-primary/20 shadow-inner">
-            <Search className="text-muted-foreground w-4 h-4" />
+        <header className="h-20 border-b border-slate-100 bg-white/80 backdrop-blur-xl flex items-center justify-between px-10 sticky top-0 z-40 shadow-sm">
+          <div className="flex items-center gap-4 bg-slate-50 px-5 py-3 rounded-2xl border border-slate-100 w-96 transition-all focus-within:ring-4 focus-within:ring-orange-500/10 focus-within:border-orange-500/30 shadow-inner">
+            <Search className="text-slate-300 w-5 h-5" />
             <input
               type="text"
-              placeholder="Buscar tickets, clientes..."
-              className="bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground w-full font-medium"
+              placeholder="Buscar tickets, clientes o facturas..."
+              className="bg-transparent border-none outline-none text-sm text-foreground placeholder:text-slate-300 w-full font-bold"
             />
           </div>
 
           <div className="flex items-center gap-6">
             {/* SaaS Status Badge */}
             {((userRole as string) === 'owner' || (userRole as string) === 'superadmin') && (
-              <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-full group cursor-pointer hover:bg-primary/20 transition-all">
-                <Sparkles size={14} className="text-primary animate-pulse" />
-                <span className="text-[10px] font-black text-primary uppercase tracking-tighter">
+              <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-orange-500/5 border border-orange-500/20 rounded-full group cursor-pointer hover:bg-orange-500/10 transition-all shadow-sm">
+                <Sparkles size={14} className="text-orange-600 animate-pulse" />
+                <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest">
                   {userRole === 'superadmin' ? 'Infraestructura SastrePro' : 'Suscripción Pro Activa'}
                 </span>
               </div>
             )}
 
-            <div className="h-8 w-px bg-border mx-2" />
+            <div className="h-10 w-px bg-slate-100 mx-2" />
 
-            <button className="relative p-2.5 text-muted-foreground hover:text-primary transition-all bg-secondary rounded-xl border border-border hover:border-primary/30 shadow-sm active:scale-90">
-              <Bell size={20} />
-              <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-background animate-bounce" />
+            <button className="relative p-3 text-slate-400 hover:text-orange-600 transition-all bg-slate-50 rounded-2xl border border-slate-100 hover:border-orange-500/30 shadow-sm active:scale-90 hover:bg-white">
+              <Bell size={22} />
+              <span className="absolute top-3 right-3 w-3 h-3 bg-rose-500 rounded-full border-4 border-white shadow-lg animate-bounce" />
             </button>
 
-            <div className="flex items-center gap-2 pl-4 cursor-pointer group">
+            <div className="flex items-center gap-4 pl-4 cursor-pointer group">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-black group-hover:text-primary transition-colors leading-none mb-1 text-foreground">Juan Ibarra</p>
+                <p className="text-[15px] font-black group-hover:text-orange-600 transition-colors leading-none mb-1 text-foreground">Juan Ibarra</p>
                 <div className="flex items-center justify-end gap-1.5">
-                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                  <span className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.1em]">En línea</span>
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">En línea</span>
                 </div>
               </div>
-              <div className="w-11 h-11 bg-primary rounded-2xl flex items-center justify-center border-2 border-primary/20 overflow-hidden group-hover:scale-110 active:scale-95 transition-all shadow-lg shadow-primary/20">
-                <User className="text-white w-6 h-6" />
+              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center border border-slate-100 overflow-hidden group-hover:scale-110 active:scale-95 transition-all shadow-xl shadow-slate-200/50 group-hover:border-orange-500/30">
+                <div className="w-full h-full bg-orange-500 flex items-center justify-center">
+                  <User className="text-white w-7 h-7" />
+                </div>
               </div>
             </div>
           </div>
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-secondary/70 shadow-inner">
-          <div className="max-w-[1600px] mx-auto">
+        <div className="flex-1 overflow-y-auto p-10 custom-scrollbar bg-slate-50/50">
+          <div className="max-w-[1700px] mx-auto">
             {children}
           </div>
         </div>

@@ -17,19 +17,18 @@
   --popover-foreground: #0F172A;
 
   /* Brand colors */
-  --primary: #4F46E5;
-  /* Indigo un poco más saturado */
+  --primary: #F97316;
+  /* Orange-500 Premium */
   --primary-foreground: #FFFFFF;
   --secondary: #F1F5F9;
   --secondary-foreground: #1E293B;
 
   /* Status & Accents */
   --accent: #F97316;
-  /* Naranja según referencia visual */
   --accent-foreground: #FFFFFF;
   --border: #E2E8F0;
   --input: #CBD5E1;
-  --ring: #4F46E5;
+  --ring: #F97316;
 }
 
 .dark {
@@ -46,17 +45,17 @@
   --popover-foreground: #F8FAFC;
 
   /* Brand colors */
-  --primary: #818CF8;
+  --primary: #F97316;
   --primary-foreground: #FFFFFF;
   --secondary: #1E293B;
   --secondary-foreground: #F8FAFC;
 
   /* Status */
-  --accent: #6366F1;
+  --accent: #F97316;
   --accent-foreground: #FFFFFF;
   --border: #1E293B;
   --input: #1E293B;
-  --ring: #818CF8;
+  --ring: #F97316;
 }
 
 @layer base {
@@ -102,13 +101,13 @@
     align-items: center;
     justify-content: center;
     gap: 0.625rem;
-    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+    box-shadow: 0 4px 6px -1px rgba(249, 115, 22, 0.2);
   }
 
   .btn-primary:hover {
     filter: brightness(1.1);
     transform: translateY(-2px);
-    box-shadow: 0 12px 20px -5px rgba(79, 70, 229, 0.3);
+    box-shadow: 0 12px 20px -5px rgba(249, 115, 22, 0.3);
   }
 
   /* Sidebar Items */
@@ -150,7 +149,7 @@
 
   .input-field:focus {
     border-color: var(--ring);
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+    box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.1);
   }
 }
 

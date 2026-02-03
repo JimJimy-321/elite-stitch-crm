@@ -2,64 +2,100 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: #F8FAFC;
-    --foreground: #0F172A;
-    --card: #FFFFFF;
-    --card-foreground: #0F172A;
-    --border: #E2E8F0;
-    --accent: #6366F1;
-    --muted: #64748B;
-  }
+:root {
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --border: #E2E8F0;
+  --accent: #6366F1;
+}
 
-  .dark {
-    --background: #020617;
-    --foreground: #F8FAFC;
-    --card: #0F172A;
-    --card-foreground: #F8FAFC;
-    --border: #1E293B;
-    --accent: #6366F1;
-    --muted: #94A3B8;
-  }
+.dark {
+  --background: #020617;
+  --foreground: #F8FAFC;
+  --border: #1E293B;
+  --accent: #6366F1;
 }
 
 body {
-  @apply bg-background-light dark:bg-background-dark text-foreground transition-colors duration-300;
+  background-color: var(--background);
+  color: var(--foreground);
   font-family: 'Inter', sans-serif;
 }
 
-@layer components {
-  .glass-card {
-    @apply bg-card-light dark:bg-card-dark border border-border shadow-premium rounded-2xl;
-  }
-
-  .btn-primary {
-    @apply bg-accent hover:bg-accent/90 text-white font-semibold px-5 py-2.5 rounded-xl transition-all active:scale-95 shadow-lg shadow-accent/20 flex items-center justify-center gap-2;
-  }
-
-  .sidebar-item {
-    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-muted hover:text-foreground hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all cursor-pointer font-medium;
-  }
-
-  .sidebar-item-active {
-    @apply sidebar-item bg-slate-200/50 dark:bg-slate-800/50 text-accent font-bold;
-  }
-
-  .input-field {
-    @apply w-full bg-slate-100 dark:bg-slate-800 border border-border rounded-xl px-4 py-2.5 outline-none focus:border-accent transition-all text-sm;
-  }
+/* Clases de utilidad personalizadas sin usar @apply para evitar fallos de Turbopack */
+.glass-card {
+  background-color: white;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  border-radius: 1rem;
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
+.dark .glass-card {
+  background-color: #0F172A;
+  border-color: #1E293B;
 }
 
-::-webkit-scrollbar-track {
-  @apply bg-transparent;
+.btn-primary {
+  background-color: #6366F1;
+  color: white;
+  font-weight: 600;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.75rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
-::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 dark:bg-slate-700 rounded-full;
+.btn-primary:hover {
+  background-color: #4F46E5;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  color: #64748B;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.sidebar-item:hover {
+  color: #0F172A;
+  background-color: #F1F5F9;
+}
+
+.dark .sidebar-item:hover {
+  color: white;
+  background-color: #1E293B;
+}
+
+.sidebar-item-active {
+  background-color: #F1F5F9;
+  color: #6366F1;
+  font-weight: 700;
+}
+
+.dark .sidebar-item-active {
+  background-color: #1E293B;
+  color: #818CF8;
+}
+
+.input-field {
+  width: 100%;
+  background-color: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.75rem;
+  padding: 0.625rem 1rem;
+  outline: none;
+  font-size: 0.875rem;
+}
+
+.dark .input-field {
+  background-color: #1E293B;
+  border-color: #334155;
+  color: white;
 }

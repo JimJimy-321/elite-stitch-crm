@@ -24,6 +24,8 @@ const config: Config = {
           DEFAULT: '#6366F1', // Indigo-500
           cyan: '#22D3EE',    // Cyan-400
         },
+        border: 'var(--border)',
+        muted: 'var(--muted)',
         slate: {
           900: '#0F172A',
           950: '#020617',

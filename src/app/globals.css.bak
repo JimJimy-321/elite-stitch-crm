@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #F8FAFC;
+    --foreground: #0F172A;
+    --card: #FFFFFF;
+    --card-foreground: #0F172A;
+    --border: #E2E8F0;
+    --accent: #6366F1;
+    --muted: #64748B;
+  }
+
+  .dark {
+    --background: #020617;
+    --foreground: #F8FAFC;
+    --card: #0F172A;
+    --card-foreground: #F8FAFC;
+    --border: #1E293B;
+    --accent: #6366F1;
+    --muted: #94A3B8;
+  }
+}
+
+body {
+  @apply bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 transition-colors duration-300;
+  font-family: 'Inter', sans-serif;
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-premium rounded-2xl;
+  }
+
+  .btn-primary {
+    @apply bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-5 py-2.5 rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2;
+  }
+
+  .sidebar-item {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer font-medium;
+  }
+
+  .sidebar-item-active {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-bold transition-all cursor-pointer;
+  }
+
+  .input-field {
+    @apply w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 transition-all text-sm;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 dark:bg-slate-700 rounded-full;
+}

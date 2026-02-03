@@ -98,7 +98,7 @@ export default function DashboardPage() {
               <h3 className="font-black text-foreground uppercase text-[11px] tracking-[0.2em] mb-1">Flujo de Ingresos Semanal</h3>
               <p className="text-xs text-muted-foreground font-medium">Consolidado todas las sedes</p>
             </div>
-            <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
+            <button className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
               <MoreHorizontal size={20} className="text-muted-foreground" />
             </button>
           </div>
@@ -154,10 +154,10 @@ export default function DashboardPage() {
             {performanceData.map((branch) => (
               <div key={branch.name} className="space-y-3">
                 <div className="flex justify-between items-end">
-                  <span className="text-xs font-black text-slate-700 dark:text-slate-300 tracking-tight">{branch.name}</span>
+                  <span className="text-xs font-black text-slate-700 tracking-tight">{branch.name}</span>
                   <span className="text-xs text-orange-600 font-black">{formatCurrency(branch.ingresos)}</span>
                 </div>
-                <div className="relative h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
+                <div className="relative h-2 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner">
                   <div
                     className="absolute top-0 left-0 h-full bg-gradient-to-r from-orange-500 to-orange-400 rounded-full transition-all duration-1000"
                     style={{ width: `${(branch.ingresos / 50000) * 100}%` }}
@@ -185,7 +185,7 @@ export default function DashboardPage() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-900/50">
+              <tr className="bg-slate-50">
                 <th className="px-8 py-5 text-left text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">No. Ticket</th>
                 <th className="px-8 py-5 text-left text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">Cliente</th>
                 <th className="px-8 py-5 text-left text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">Sede</th>
@@ -196,9 +196,9 @@ export default function DashboardPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {[1, 2, 3, 4, 5].map((i) => (
-                <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                <tr key={i} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-8 py-6 text-xs font-black text-foreground tracking-tight">#ST-034{i}</td>
-                  <td className="px-8 py-6 text-xs font-bold text-slate-600 dark:text-slate-300">Cliente Genérico {i}</td>
+                  <td className="px-8 py-6 text-xs font-bold text-slate-700">Cliente Genérico {i}</td>
                   <td className="px-8 py-6 text-xs font-medium text-muted-foreground">Sede Norte</td>
                   <td className="px-8 py-6">
                     <span className={cn(

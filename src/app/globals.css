@@ -31,62 +31,15 @@
   --ring: #F97316;
 }
 
-.dark {
-  /* Neutrals - Dark Mode (Sleek Silicon Valley Dark) */
-  --background: #020617;
-  --foreground: #F8FAFC;
-  --muted: #94A3B8;
-  --muted-foreground: #64748B;
-
-  /* Surface colors */
-  --card: #0F172A;
-  --card-foreground: #F8FAFC;
-  --popover: #0F172A;
-  --popover-foreground: #F8FAFC;
-
-  /* Brand colors */
-  --primary: #F97316;
-  --primary-foreground: #FFFFFF;
-  --secondary: #1E293B;
-  --secondary-foreground: #F8FAFC;
-
-  /* Status */
-  --accent: #F97316;
-  --accent-foreground: #FFFFFF;
-  --border: #1E293B;
-  --input: #1E293B;
-  --ring: #F97316;
-}
-
-@layer base {
-  * {
-    border-color: var(--border);
-  }
-
-  body {
-    background-color: var(--background);
-    color: var(--foreground);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-}
-
 @layer components {
 
-  /* Glassmorphism & Cards */
+  /* Glassmorphism & Cards (Light Mode Only) */
   .glass-card {
-    background-color: var(--card);
-    border: 1px solid var(--border);
+    background-color: #FFFFFF;
+    border: 1px solid #F1F5F9;
     box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
     border-radius: 1.25rem;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .dark .glass-card {
-    background-color: #0F172A;
-    border-color: #1E293B;
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.3), 0 10px 10px -5px rgb(0 0 0 / 0.3);
   }
 
   /* Buttons */

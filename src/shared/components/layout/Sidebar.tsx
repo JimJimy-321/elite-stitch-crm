@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -19,8 +19,6 @@ import {
     UserCog,
     Megaphone,
     CreditCard,
-    Sun,
-    Moon,
     Sparkles,
     Activity
 } from 'lucide-react';
@@ -34,13 +32,6 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
     const pathname = usePathname();
-    const [isDark, setIsDark] = useState(true);
-
-    useEffect(() => {
-        const root = window.document.documentElement;
-        if (isDark) root.classList.add('dark');
-        else root.classList.remove('dark');
-    }, [isDark]);
 
     const menuByRole = {
         superadmin: [
@@ -94,29 +85,6 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
                 )}
             </div>
 
-            {/* Theme Toggle */}
-            {!collapsed && (
-                <div className="px-6 mb-6 animate-in fade-in duration-500">
-                    <button
-                        onClick={() => setIsDark(!isDark)}
-                        className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 border border-slate-100"
-                    >
-                        <div className="flex items-center gap-3 text-slate-500">
-                            {isDark ? <Moon size={16} className="text-orange-500" /> : <Sun size={16} className="text-amber-500" />}
-                            <span>{isDark ? 'Modo Oscuro' : 'Modo Claro'}</span>
-                        </div>
-                        <div className={cn(
-                            "w-10 h-5 bg-slate-200 dark:bg-slate-800 rounded-full relative transition-colors",
-                            isDark && "bg-orange-500/40"
-                        )}>
-                            <div className={cn(
-                                "absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-transform shadow-md",
-                                isDark && "translate-x-5 bg-orange-500"
-                            )} />
-                        </div>
-                    </button>
-                </div>
-            )}
 
             {/* Nav Toggle Button */}
             <button

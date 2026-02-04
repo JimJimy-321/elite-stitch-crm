@@ -29,6 +29,25 @@ export function useSupabaseAuth() {
     }, []);
 
     const syncUserFromSupabase = async (userId: string) => {
+        // Obtenemos los datos del usuario directamente de Auth (metadata) para evitar recursión RLS
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+
+        const metadata = authUser?.user_metadata;
+
+        // Si tenemos metadatos, los usamos directamente (Más rápido y seguro)
+        if (metadata?.role) {
+            const userData = {
+                id: userId,
+                full_name: metadata.full_name || authUser?.email || 'Usuario',
+                email: authUser?.email || '',
+                role: metadata.role as UserRole,
+                organization_id: metadata.organization_id
+            };
+            setUser(userData);
+            return userData;
+        }
+
+        // Si no hay metadatos, recurrimos a la tabla profiles (fallback)
         const { data: profile } = await supabase
             .from('profiles')
             .select('id, full_name, role, organization_id')
@@ -36,11 +55,10 @@ export function useSupabaseAuth() {
             .single();
 
         if (profile) {
-            const { data: authUser } = await supabase.auth.getUser();
             const userData = {
                 id: profile.id,
                 full_name: profile.full_name,
-                email: authUser.user?.email || '',
+                email: authUser?.email || '',
                 role: profile.role as UserRole,
                 organization_id: profile.organization_id
             };

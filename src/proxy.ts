@@ -7,8 +7,12 @@ export function proxy(request: NextRequest) {
     // Rutas públicas que no requieren autenticación
     const isPublicPath = path === '/login' || path === '/';
 
-    // Obtener token de autenticación desde las cookies
-    const authToken = request.cookies.get('sb-rbhvjqcyczgaanwphhjr-auth-token');
+    // Obtener el ID del proyecto desde la URL de Supabase para construir el nombre de la cookie
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const projectId = supabaseUrl.split('.')[0].split('//')[1] || 'rbhvjqcyczgaanwphhjr';
+
+    // Buscar la cookie de autenticación de Supabase basada en el ID dinámico
+    const authToken = request.cookies.get(`sb-${projectId}-auth-token`);
 
     // Si no hay token y está intentando acceder a ruta protegida
     if (!authToken && !isPublicPath) {

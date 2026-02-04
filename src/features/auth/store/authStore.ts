@@ -9,6 +9,7 @@ interface User {
     email: string;
     role: UserRole;
     organization_id?: string;
+    assigned_branch_id?: string;
 }
 
 interface AuthState {

@@ -41,7 +41,8 @@ export function useSupabaseAuth() {
                 full_name: metadata.full_name || authUser?.email || 'Usuario',
                 email: authUser?.email || '',
                 role: metadata.role as UserRole,
-                organization_id: metadata.organization_id
+                organization_id: metadata.organization_id,
+                assigned_branch_id: metadata.assigned_branch_id
             };
             setUser(userData);
             return userData;
@@ -50,7 +51,7 @@ export function useSupabaseAuth() {
         // Si no hay metadatos, recurrimos a la tabla profiles (fallback)
         const { data: profile } = await supabase
             .from('profiles')
-            .select('id, full_name, role, organization_id')
+            .select('id, full_name, role, organization_id, assigned_branch_id')
             .eq('id', userId)
             .single();
 
@@ -60,7 +61,8 @@ export function useSupabaseAuth() {
                 full_name: profile.full_name,
                 email: authUser?.email || '',
                 role: profile.role as UserRole,
-                organization_id: profile.organization_id
+                organization_id: profile.organization_id,
+                assigned_branch_id: profile.assigned_branch_id
             };
             setUser(userData);
             return userData;

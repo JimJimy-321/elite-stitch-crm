@@ -21,16 +21,16 @@ export default function AdminLayout({
     useSupabaseAuth();
 
     useEffect(() => {
-        if (!user || user.role !== 'superadmin') {
+        if (!user || user.role !== 'super_admin') {
             router.push('/login');
         }
     }, [user, router]);
 
-    if (!user || user.role !== 'superadmin') return null;
+    if (!user || user.role !== 'super_admin') return null;
 
     return (
         <div className="flex bg-background min-h-screen text-foreground transition-colors duration-300">
-            <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} role="superadmin" />
+            <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} role="super_admin" />
 
             <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
                 <header className="h-20 border-b border-orange-200 bg-gradient-to-r from-orange-900 to-orange-800 text-white flex items-center justify-between px-8 sticky top-0 z-40">
@@ -45,11 +45,11 @@ export default function AdminLayout({
                         </button>
                         <div className="flex items-center gap-3">
                             <div className="text-right">
-                                <p className="text-sm font-bold leading-none mb-1">{user?.name}</p>
-                                <span className="text-[10px] text-accent font-bold uppercase tracking-widest">{user?.role}</span>
+                                <p className="text-sm font-bold leading-none mb-1">{user?.full_name}</p>
+                                <span className="text-[10px] text-accent font-bold uppercase tracking-widest">{user?.role?.replace('_', ' ')}</span>
                             </div>
-                            <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center border border-accent/30 font-bold">
-                                {user?.name?.substring(0, 2).toUpperCase()}
+                            <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center border border-accent/30 font-bold uppercase">
+                                {user?.full_name?.substring(0, 2).toUpperCase()}
                             </div>
                         </div>
                     </div>

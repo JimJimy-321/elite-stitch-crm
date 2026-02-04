@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import { useEffect } from 'react';
-import { useAuthStore } from '../store/authStore';
+import { useAuthStore, UserRole } from '../store/authStore';
 
 export function useSupabaseAuth() {
     const supabase = createClient();
@@ -39,9 +39,10 @@ export function useSupabaseAuth() {
             const { data: authUser } = await supabase.auth.getUser();
             setUser({
                 id: profile.id,
-                name: profile.full_name,
+                full_name: profile.full_name,
                 email: authUser.user?.email || '',
-                role: mapSupabaseRole(profile.role),
+                role: profile.role as UserRole,
+                organization_id: profile.organization_id
             });
         }
     };
@@ -65,10 +66,4 @@ export function useSupabaseAuth() {
     };
 
     return { signInWithEmail, signOut };
-}
-
-// Mapear roles de Supabase (super_admin) a frontend (superadmin)
-function mapSupabaseRole(role: string): 'superadmin' | 'owner' | 'manager' {
-    if (role === 'super_admin') return 'superadmin';
-    return role as 'owner' | 'manager';
 }

@@ -1,10 +1,41 @@
 "use client";
 
-import React from 'react';
-import { MessageSquare, ShieldCheck, Key, Smartphone, Plus, Settings, Globe, Zap, ExternalLink, Copy } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MessageSquare, ShieldCheck, Key, Smartphone, Plus, Settings, Globe, Zap, ExternalLink, Copy, CheckCircle2, Save } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { useGlobalConfig } from '@/features/dashboard/hooks/useDashboardData';
 
 export default function AdminWhatsAppPage() {
+    const { config, loading, updateConfig } = useGlobalConfig('whatsapp_master');
+    const [accessToken, setAccessToken] = useState('');
+    const [businessId, setBusinessId] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
+
+    useEffect(() => {
+        if (config) {
+            setAccessToken(config.access_token || '');
+            setBusinessId(config.business_id || '');
+        }
+    }, [config]);
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await updateConfig({
+                access_token: accessToken,
+                business_id: businessId
+            });
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 3000);
+        } catch (error) {
+            console.error('Error saving config:', error);
+            alert('Error al guardar la configuración');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return (
         <div className="space-y-8 animate-fade-in max-w-5xl">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -17,10 +48,12 @@ export default function AdminWhatsAppPage() {
                     </h1>
                     <p className="text-muted-foreground text-sm font-medium">Gestión centralizada de tokens de acceso, Webhooks y Phone IDs globales.</p>
                 </div>
-                <div className="flex items-center gap-3 px-5 py-2.5 bg-emerald-50 border border-emerald-100 rounded-full shadow-sm">
-                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em]">Gateway Master Online</span>
-                </div>
+                {showSuccess && (
+                    <div className="flex items-center gap-3 px-5 py-2.5 bg-emerald-50 border border-emerald-100 rounded-full shadow-sm animate-in fade-in slide-in-from-right-4">
+                        <CheckCircle2 className="text-emerald-500" size={18} />
+                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em]">Cambios Guardados</span>
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
@@ -41,14 +74,12 @@ export default function AdminWhatsAppPage() {
                             <div className="relative group/token">
                                 <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/token:text-orange-500 transition-colors" size={18} />
                                 <input
-                                    type="password"
-                                    value="EAAGm0PZC6ZCs0BAO6D..."
-                                    readOnly
+                                    type="text"
+                                    value={accessToken}
+                                    onChange={(e) => setAccessToken(e.target.value)}
+                                    placeholder="EAAGm..."
                                     className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-12 py-5 text-sm font-bold font-mono outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500/30 transition-all shadow-inner"
                                 />
-                                <button className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-orange-500 p-2 hover:bg-white rounded-xl transition-all shadow-sm">
-                                    <Copy size={16} />
-                                </button>
                             </div>
                         </div>
 
@@ -58,16 +89,21 @@ export default function AdminWhatsAppPage() {
                                 <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                                 <input
                                     type="text"
-                                    value="342958012932"
-                                    readOnly
-                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 py-5 text-sm font-black font-mono outline-none text-foreground/80 shadow-inner"
+                                    value={businessId}
+                                    onChange={(e) => setBusinessId(e.target.value)}
+                                    placeholder="3429..."
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 py-5 text-sm font-black font-mono outline-none text-foreground focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500/30 transition-all shadow-inner"
                                 />
                             </div>
                         </div>
 
-                        <button className="w-full py-5 bg-orange-500 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-orange-600 active:scale-95 transition-all shadow-2xl shadow-orange-500/30 flex items-center justify-center gap-3">
-                            <Zap size={18} />
-                            Actualizar Claves Maestras
+                        <button
+                            onClick={handleSave}
+                            disabled={isSaving || loading}
+                            className="w-full py-5 bg-orange-500 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-orange-600 active:scale-95 disabled:opacity-50 transition-all shadow-2xl shadow-orange-500/30 flex items-center justify-center gap-3"
+                        >
+                            {isSaving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={18} />}
+                            {isSaving ? 'Guardando...' : 'Actualizar Claves Maestras'}
                         </button>
                     </div>
                 </div>
@@ -84,7 +120,6 @@ export default function AdminWhatsAppPage() {
                     <div className="p-6 flex-1 space-y-3">
                         <PhoneItem label="SastrePro Matriz" id="102938475" status="Online" />
                         <PhoneItem label="SastrePro Sede Sur" id="192837465" status="Online" />
-                        <PhoneItem label="SastrePro Demo" id="000000000" status="Disconnected" />
                     </div>
 
                     <div className="p-8 border-t border-slate-50">

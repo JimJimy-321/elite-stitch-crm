@@ -1,42 +1,40 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Users, Mail, CreditCard, Store, Search, Filter, MoreVertical, Plus, Building2, Calendar, ShieldCheck } from 'lucide-react';
+import { Users, Mail, CreditCard, Store, Search, Filter, MoreVertical, Plus, Building2, Calendar, ShieldCheck, AlertCircle } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { Modal } from '@/shared/components/ui/Modal';
-
-const INITIAL_OWNERS = [
-    { id: 1, name: "Juan Ibarra", email: "juan@elite.com", plan: "Anual Pro", status: "Active", branches: 4, expiry: "2027-01-20" },
-    { id: 2, name: "Maria Garcia", email: "maria@sastre.com", plan: "Mensual", status: "Active", branches: 1, expiry: "2026-03-05" },
-    { id: 3, name: "Roberto Soto", email: "roberto@textil.mx", plan: "Trial", status: "Expiring", branches: 2, expiry: "2026-02-15" },
-    { id: 4, name: "Sastrería Lopez", email: "ventas@lopez.com", plan: "Enterprise", status: "Active", branches: 12, expiry: "2028-11-10" },
-];
+import { useOwners, useAdminStats } from '@/features/dashboard/hooks/useDashboardData';
 
 export default function AdminOwnersPage() {
-    const [ownersList, setOwnersList] = useState(INITIAL_OWNERS);
+    const { owners: ownersList, loading, error, createOwner } = useOwners();
+    const { stats, loading: statsLoading } = useAdminStats();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
-    const handleAddOwner = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleAddOwner = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setIsSubmitting(true);
+        setSubmitError(null);
 
         const formData = new FormData(e.currentTarget);
-        const newOwner = {
-            id: ownersList.length + 1,
+        const ownerData = {
             name: formData.get('name') as string,
             email: formData.get('email') as string,
             plan: formData.get('plan') as string,
-            status: "Active",
-            branches: parseInt(formData.get('branches') as string) || 1,
-            expiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+            branches: parseInt(formData.get('branches') as string) || 1
         };
 
-        setTimeout(() => {
-            setOwnersList([newOwner, ...ownersList]);
+        try {
+            await createOwner(ownerData);
             setIsSubmitting(false);
             setIsModalOpen(false);
-        }, 1500);
+        } catch (err: any) {
+            console.error('Error creating owner:', err);
+            setSubmitError(err.message || 'Error al guardar el dueño. Intenta de nuevo.');
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -62,9 +60,9 @@ export default function AdminOwnersPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <DashboardStatCard label="Total Dueños" value={ownersList.length.toString()} borderColor="border-l-orange-500" />
-                <DashboardStatCard label="Ingresos MRR" value="$14,820" borderColor="border-l-indigo-500" />
-                <DashboardStatCard label="En Riesgo" value="8" borderColor="border-l-amber-500" />
-                <DashboardStatCard label="Nuevos (Mes)" value="+12" borderColor="border-l-emerald-500" />
+                <DashboardStatCard label="Ingresos MRR" value={statsLoading ? "..." : `$${(stats?.totalMRR || 0).toLocaleString()}`} borderColor="border-l-indigo-500" />
+                <DashboardStatCard label="Dueños Activos" value={statsLoading ? "..." : (stats?.totalOwners || 0).toString()} borderColor="border-l-amber-500" />
+                <DashboardStatCard label="Bots Online" value={statsLoading ? "..." : (stats?.activeBots || 0).toString()} borderColor="border-l-emerald-500" />
             </div>
 
             <div className="glass-card border-none shadow-2xl bg-card overflow-hidden">
@@ -76,85 +74,102 @@ export default function AdminOwnersPage() {
                             className="bg-transparent border-none outline-none text-sm w-full text-foreground placeholder:text-muted-foreground/30 font-bold"
                         />
                     </div>
-                    <div className="flex items-center gap-3">
-                        <button className="p-3.5 bg-orange-100 rounded-xl border border-orange-200 text-orange-700 hover:text-orange-600 hover:bg-orange-200 transition-all shadow-sm">
-                            <Filter size={20} />
-                        </button>
-                    </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="bg-orange-50/30 text-[10px] font-black uppercase tracking-[0.2em] text-orange-800 border-b border-orange-100">
-                                <th className="px-8 py-5">Cliente / Organization</th>
-                                <th className="px-8 py-5">Membresía</th>
-                                <th className="px-8 py-5">Sucursales</th>
-                                <th className="px-8 py-5">Vigencia</th>
-                                <th className="px-8 py-5">Estatus</th>
-                                <th className="px-8 py-5 text-right">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {ownersList.map((owner) => (
-                                <tr key={owner.id} className="hover:bg-slate-50/50 transition-colors group">
-                                    <td className="px-8 py-6">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center font-black text-orange-600 shadow-xl group-hover:scale-110 transition-transform">
-                                                {owner.name.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <p className="font-black text-[13px] text-foreground tracking-tight">{owner.name}</p>
-                                                <p className="text-[11px] text-muted-foreground font-bold">{owner.email}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        <div className="flex items-center gap-2">
-                                            <div className="px-3 py-1.5 rounded-lg bg-orange-50 text-orange-600 text-[10px] font-black uppercase flex items-center gap-2 shadow-sm border border-orange-100">
-                                                <CreditCard size={12} />
-                                                {owner.plan}
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-6 text-[13px] font-black text-foreground">
-                                        <div className="flex items-center gap-2">
-                                            <Store size={16} className="text-orange-500/50" />
-                                            {owner.branches} Sedes
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-6 text-[11px] font-black text-slate-400 tracking-tighter">
-                                        {owner.expiry}
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        <span className={cn(
-                                            "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.1em] shadow-sm",
-                                            owner.status === 'Active'
-                                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                                                : "bg-amber-50 text-amber-600 border border-amber-100"
-                                        )}>
-                                            {owner.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-8 py-6 text-right">
-                                        <button className="p-2 text-slate-300 hover:text-orange-500 transition-all hover:bg-orange-50 rounded-lg">
-                                            <MoreVertical size={20} />
-                                        </button>
-                                    </td>
+                {loading ? (
+                    <div className="py-20 flex flex-col items-center justify-center animate-pulse">
+                        <div className="w-16 h-16 bg-slate-100 rounded-full mb-4"></div>
+                        <div className="h-4 w-48 bg-slate-100 rounded"></div>
+                    </div>
+                ) : ownersList.length > 0 ? (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="bg-orange-50/30 text-[10px] font-black uppercase tracking-[0.2em] text-orange-800 border-b border-orange-100">
+                                    <th className="px-8 py-5">Cliente / Organization</th>
+                                    <th className="px-8 py-5">Membresía</th>
+                                    <th className="px-8 py-5">Sucursales Max</th>
+                                    <th className="px-8 py-5">Registro</th>
+                                    <th className="px-8 py-5">Estatus</th>
+                                    <th className="px-8 py-5 text-right">Acciones</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {ownersList.map((owner) => (
+                                    <tr key={owner.id} className="hover:bg-slate-50/50 transition-colors group">
+                                        <td className="px-8 py-6">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center font-black text-orange-600 shadow-xl group-hover:scale-110 transition-transform shadow-inner">
+                                                    {(owner.contact_name || owner.name || 'U').charAt(0)}
+                                                </div>
+                                                <div>
+                                                    <p className="font-black text-[13px] text-foreground tracking-tight">{owner.contact_name || owner.name || 'Sin nombre'}</p>
+                                                    <p className="text-[11px] text-muted-foreground font-bold">{owner.contact_email || 'No email'}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <div className="flex items-center gap-2">
+                                                <div className="px-3 py-1.5 rounded-lg bg-orange-50 text-orange-600 text-[10px] font-black uppercase flex items-center gap-2 shadow-sm border border-orange-100">
+                                                    <CreditCard size={12} />
+                                                    {owner.plan_name || 'Trial'}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-6 text-[13px] font-black text-foreground">
+                                            <div className="flex items-center gap-2">
+                                                <Store size={16} className="text-orange-500/50" />
+                                                {owner.max_branches || 1} Sedes
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-6 text-[11px] font-black text-slate-400 tracking-tighter">
+                                            {owner.created_at ? new Date(owner.created_at).toLocaleDateString('es-ES') : '---'}
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <span className={cn(
+                                                "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.1em] shadow-sm",
+                                                owner.subscription_status === 'active'
+                                                    ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                                    : "bg-amber-50 text-amber-600 border border-amber-100"
+                                            )}>
+                                                {owner.subscription_status || 'Trial'}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-6 text-right">
+                                            <button className="p-2 text-slate-300 hover:text-orange-500 transition-all hover:bg-orange-50 rounded-lg">
+                                                <MoreVertical size={20} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center py-32 text-center border-t border-slate-50 bg-slate-50/20">
+                        <Building2 size={48} className="text-slate-200 mb-4" />
+                        <h3 className="text-xl font-black text-foreground tracking-tight">Cero Dueños Registrados</h3>
+                        <p className="text-sm font-medium text-slate-400 max-w-xs mt-2">Registra tu primer cliente SaaS para comenzar a trackear el crecimiento.</p>
+                    </div>
+                )}
             </div>
 
             {/* Registrar Dueño Modal */}
             <Modal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setSubmitError(null);
+                }}
                 title="Registrar Nuevo Dueño SaaS"
             >
                 <form onSubmit={handleAddOwner} className="space-y-4">
+                    {submitError && (
+                        <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex items-center gap-3 text-red-600 animate-in fade-in slide-in-from-top-2">
+                            <AlertCircle size={18} />
+                            <p className="text-[11px] font-black uppercase tracking-tight">{submitError}</p>
+                        </div>
+                    )}
                     <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Nombre Completo</label>
                         <div className="relative">
@@ -219,4 +234,3 @@ function DashboardStatCard({ label, value, borderColor }: { label: string; value
         </div>
     );
 }
-

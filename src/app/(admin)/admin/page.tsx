@@ -3,8 +3,11 @@
 import React from 'react';
 import { Shield, Users, Smartphone, Zap, Activity, Globe, ArrowUpRight, Cpu, Server, Database, Globe2 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { useAdminStats } from '@/features/dashboard/hooks/useDashboardData';
 
 export default function AdminDashboardPage() {
+    const { stats, loading } = useAdminStats();
+
     return (
         <div className="space-y-8 animate-fade-in">
             <div className="flex flex-col gap-2">
@@ -19,10 +22,34 @@ export default function AdminDashboardPage() {
 
             {/* Global Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard label="Dueños Activos" value="128" icon={Users} color="indigo" border="border-indigo-500" />
-                <StatCard label="Bots WhatsApp Online" value="342" icon={Smartphone} color="emerald" border="border-emerald-500" />
-                <StatCard label="MRR Total" value="$182,400" icon={Zap} color="orange" border="border-orange-500" />
-                <StatCard label="Uptime Sistema" value="99.99%" icon={Globe} color="amber" border="border-amber-500" />
+                <StatCard
+                    label="Dueños Activos"
+                    value={loading ? "..." : stats?.totalOwners.toString()}
+                    icon={Users}
+                    color="indigo"
+                    border="border-l-indigo-500"
+                />
+                <StatCard
+                    label="Bots WhatsApp Online"
+                    value={loading ? "..." : stats?.activeBots.toString()}
+                    icon={Smartphone}
+                    color="emerald"
+                    border="border-l-emerald-500"
+                />
+                <StatCard
+                    label="MRR Real"
+                    value={loading ? "..." : `$${stats?.totalMRR.toLocaleString()}`}
+                    icon={Zap}
+                    color="orange"
+                    border="border-l-orange-500"
+                />
+                <StatCard
+                    label="Uptime Sistema"
+                    value={stats?.uptime || "99.99%"}
+                    icon={Globe}
+                    color="amber"
+                    border="border-l-amber-500"
+                />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">

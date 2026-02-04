@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -23,18 +23,22 @@ import {
     Activity
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { useSupabaseAuth } from '@/features/auth/hooks/useSupabaseAuth';
 
 interface SidebarProps {
     collapsed: boolean;
     setCollapsed: (collapsed: boolean) => void;
-    role: 'superadmin' | 'owner' | 'manager';
+    role: 'super_admin' | 'owner' | 'manager';
 }
 
 export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
     const pathname = usePathname();
+    const { user } = useAuthStore();
+    const { signOut } = useSupabaseAuth();
 
     const menuByRole = {
-        superadmin: [
+        super_admin: [
             { icon: ShieldCheck, label: 'Admin Global', href: '/admin' },
             { icon: UserCog, label: 'Dueños', href: '/admin/owners' },
             { icon: MessageSquare, label: 'API WhatsApp', href: '/admin/whatsapp' },
@@ -77,14 +81,13 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
                             SastrePro
                         </span>
                         <div className="flex items-center gap-1.5 mt-2">
-                            <span className="text-[9px] text-orange-600 font-black uppercase tracking-[0.25em] bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-100">
-                                {role}
+                            <span className="text-[9px] text-orange-600 font-black uppercase tracking-[0.25em] bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-100 uppercase">
+                                {role?.replace('_', ' ')}
                             </span>
                         </div>
                     </div>
                 )}
             </div>
-
 
             {/* Nav Toggle Button */}
             <button
@@ -96,7 +99,7 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
 
             {/* Navigation */}
             <nav className="flex-1 px-4 py-2 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar">
-                {currentMenu.map((item) => {
+                {currentMenu.map((item: any) => {
                     const isActive = pathname === item.href;
                     return (
                         <Link
@@ -124,19 +127,24 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
             <div className="p-6 border-t border-slate-50 bg-slate-50/30">
                 {!collapsed && (
                     <div className="flex items-center gap-4 px-2 mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div className="w-12 h-12 rounded-2xl bg-orange-500/10 border border-orange-100 flex items-center justify-center text-orange-600 font-black text-xs shadow-inner">
-                            JI
+                        <div className="w-12 h-12 rounded-2xl bg-orange-500/10 border border-orange-100 flex items-center justify-center text-orange-600 font-black text-xs shadow-inner uppercase">
+                            {user?.full_name?.substring(0, 2) || 'SP'}
                         </div>
                         <div className="flex flex-col min-w-0">
-                            <span className="text-sm font-black truncate text-foreground tracking-tight">Juan Ibarra</span>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate">SastrePro Elite</span>
+                            <span className="text-sm font-black truncate text-foreground tracking-tight">{user?.full_name || 'Usuario'}</span>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate">
+                                {user?.role === 'super_admin' ? 'Infraestructura' : 'SastrePro Elite'}
+                            </span>
                         </div>
                     </div>
                 )}
-                <button className={cn(
-                    "flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group w-full text-rose-500 hover:bg-rose-50 hover:text-rose-600",
-                    collapsed && "justify-center px-0"
-                )}>
+                <button
+                    onClick={() => signOut()}
+                    className={cn(
+                        "flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group w-full text-rose-500 hover:bg-rose-50 hover:text-rose-600",
+                        collapsed && "justify-center px-0"
+                    )}
+                >
                     <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
                     {!collapsed && <span className="text-[10px] font-black uppercase tracking-[0.2em]">Cerrar Sesión</span>}
                 </button>
@@ -144,4 +152,3 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
         </div>
     );
 }
-

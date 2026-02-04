@@ -5,6 +5,7 @@ import { Users, Mail, CreditCard, Store, Search, Filter, MoreVertical, Plus, Bui
 import { cn } from '@/shared/lib/utils';
 import { Modal } from '@/shared/components/ui/Modal';
 import { useOwners, useAdminStats } from '@/features/dashboard/hooks/useDashboardData';
+import { translateError } from '@/shared/lib/error-handler';
 
 export default function AdminOwnersPage() {
     const { owners: ownersList, loading, error, createOwner } = useOwners();
@@ -32,7 +33,8 @@ export default function AdminOwnersPage() {
             setIsModalOpen(false);
         } catch (err: any) {
             console.error('Error creating owner:', err);
-            setSubmitError(err.message || 'Error al guardar el dueño. Intenta de nuevo.');
+            const translatedMessage = translateError(err);
+            setSubmitError(translatedMessage);
             setIsSubmitting(false);
         }
     };

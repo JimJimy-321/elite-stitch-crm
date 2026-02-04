@@ -35,32 +35,6 @@ export default function SettingsPage() {
                     title="Alertas y Notificaciones"
                     description="Gestiona las alertas push y SMS para tickets listos y cierres de caja."
                 />
-                <SettingsGroup
-                    icon={Lock}
-                    title="Seguridad y Roles"
-                    description="Administra permisos granulares, 2FA y sesiones activas del personal."
-                />
-                <SettingsGroup
-                    icon={Database}
-                    title="Infraestructura Supabase"
-                    description="Credenciales API, monitoreo de RLS y logs de auditoría técnica."
-                />
-            </div>
-
-            {/* AI Suggestion Banner */}
-            <div className="glass-card p-10 bg-gradient-to-r from-orange-500/10 via-orange-500/5 to-transparent border-l-[6px] border-l-orange-500 flex flex-col md:flex-row items-center justify-between group gap-8 shadow-2xl shadow-orange-500/10 rounded-[2.5rem] border-none">
-                <div className="flex items-center gap-6">
-                    <div className="w-16 h-16 rounded-[1.5rem] bg-orange-500/10 flex items-center justify-center border border-orange-500/20 shadow-inner">
-                        <Sparkles size={32} className="text-orange-500 animate-pulse" />
-                    </div>
-                    <div>
-                        <h4 className="text-xl font-black text-foreground tracking-tight">Asistente de Configuración IA</h4>
-                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-[0.1em] mt-2">Optimiza tu flujo de trabajo con recomendaciones inteligentes</p>
-                    </div>
-                </div>
-                <button className="px-10 py-5 bg-orange-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-orange-500/30 hover:bg-orange-600 hover:scale-105 active:scale-95 transition-all">
-                    Iniciar Consultoría IA
-                </button>
             </div>
         </div>
     );

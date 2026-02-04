@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Settings, Save, Database, Globe, Lock, Cpu } from 'lucide-react';
+import { Settings, Save, Database, Globe, Lock, Cpu, Sparkles, ChevronRight } from 'lucide-react';
 
 export default function SaaSParametersPage() {
     return (
@@ -20,6 +20,36 @@ export default function SaaSParametersPage() {
                 <ParamGroup title="Plan Básico" limits="1 Sucursal, 100 Clientes, No WhatsApp" />
                 <ParamGroup title="Plan Profesional" limits="5 Sucursales, Clientes ilimitados, WhatsApp Incluido" />
                 <ParamGroup title="Seguridad de Sesión" limits="JWT 24h, MFA habilitado, Rate Limit: 100 req/min" />
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 pt-4">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] ml-2">Infraestructura Crítica</h3>
+                <AdminSettingsGroup
+                    icon={Lock}
+                    title="Seguridad y Roles"
+                    description="Administra permisos granulares, 2FA y sesiones activas del personal de todas las organizaciones."
+                />
+                <AdminSettingsGroup
+                    icon={Database}
+                    title="Infraestructura Supabase"
+                    description="Credenciales API maestras, monitoreo de RLS y logs de auditoría técnica global."
+                />
+            </div>
+
+            {/* AI Suggestion Banner */}
+            <div className="glass-card p-10 bg-gradient-to-r from-orange-500/10 via-orange-500/5 to-transparent border-l-[6px] border-l-orange-500 flex flex-col md:flex-row items-center justify-between group gap-8 shadow-2xl shadow-orange-500/10 rounded-[2.5rem] border-none">
+                <div className="flex items-center gap-6">
+                    <div className="w-16 h-16 rounded-[1.5rem] bg-orange-500/10 flex items-center justify-center border border-orange-500/20 shadow-inner">
+                        <Sparkles size={32} className="text-orange-500 animate-pulse" />
+                    </div>
+                    <div>
+                        <h4 className="text-xl font-black text-foreground tracking-tight">Asistente de Configuración IA</h4>
+                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-[0.1em] mt-2">Maestro de orquestación IA para todo el SaaS</p>
+                    </div>
+                </div>
+                <button className="px-10 py-5 bg-orange-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-orange-500/30 hover:bg-orange-600 hover:scale-105 active:scale-95 transition-all">
+                    Orquestar IA Global
+                </button>
             </div>
 
             <div className="glass-card bg-card border-none shadow-2xl p-10 space-y-8 rounded-[2.5rem]">
@@ -41,6 +71,25 @@ export default function SaaSParametersPage() {
                         Restaurar Valores por Defecto
                     </button>
                 </div>
+            </div>
+        </div>
+    );
+}
+
+function AdminSettingsGroup({ icon: Icon, title, description }: any) {
+    return (
+        <div className="glass-card bg-card p-6 flex items-center justify-between border-none shadow-xl hover:scale-[1.01] transition-all duration-300">
+            <div className="flex items-center gap-6">
+                <div className="p-4 bg-orange-50 rounded-[1.25rem] border border-orange-100 shadow-inner group-hover:bg-orange-100 transition-colors">
+                    <Icon size={24} className="text-orange-600" />
+                </div>
+                <div>
+                    <h4 className="text-lg font-black text-foreground tracking-tight">{title}</h4>
+                    <p className="text-xs font-bold text-muted-foreground leading-relaxed mt-1">{description}</p>
+                </div>
+            </div>
+            <div className="p-2 bg-slate-50 rounded-xl border border-slate-100 group-hover:bg-orange-500 group-hover:text-white transition-all cursor-pointer">
+                <ChevronRight size={18} />
             </div>
         </div>
     );

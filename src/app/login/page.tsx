@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Scissors, Mail, Lock, Eye, EyeOff, ArrowRight, Github } from 'lucide-react';
 import { useSupabaseAuth } from '@/features/auth/hooks/useSupabaseAuth';
+import { translateError } from '@/shared/lib/error-handler';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -30,7 +31,7 @@ export default function LoginPage() {
             }
         } catch (err: any) {
             console.error('Login error:', err);
-            setError(err.message || 'Error al iniciar sesión. Verifica tus credenciales.');
+            setError(translateError(err));
         } finally {
             setIsLoading(false);
         }

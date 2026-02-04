@@ -3,8 +3,21 @@
 import React from 'react';
 import { Sparkles, Activity, Zap, Brain, TrendingUp, Users, MessageSquare, CheckCircle2, AlertCircle, Clock, ChevronRight, BarChart3 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function IntelligencePage() {
+    const { user } = useAuthStore();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (user && user.role === 'manager') {
+            router.push('/dashboard');
+        }
+    }, [user, router]);
+
+    if (!user || user.role === 'manager') return null;
     return (
         <div className="space-y-8 animate-fade-in max-w-6xl pb-12">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

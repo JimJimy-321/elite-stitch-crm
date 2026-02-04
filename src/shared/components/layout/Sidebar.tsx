@@ -59,7 +59,6 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
             { icon: Users, label: 'Clientes', href: '/dashboard/clients' },
             { icon: Wallet, label: 'Caja', href: '/dashboard/finance' },
             { icon: MessageSquare, label: 'Mensajes', href: '/dashboard/messages' },
-            { icon: Sparkles, label: 'Inteligencia', href: '/dashboard/intelligence' },
         ]
     };
 

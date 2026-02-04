@@ -304,6 +304,16 @@ test('should calculate total with tax', () => {
 - **Fix**: Siempre usar `npm run dev` (auto-detecta puerto)
 - **Aplicar en**: Todos los proyectos
 
+### 2026-02-04: Recursividad RLS en Perfiles
+- **Error**: "Database error querying schema" causado por políticas RLS circulares (política consulta tabla -> tabla activa política).
+- **Fix**: Usar funciones con `SECURITY DEFINER` y leer metadatos de `auth.jwt()` directamente para evitar consultas a tablas protegidas durante la evaluación de políticas.
+- **Aplicar en**: Cualquier tabla con roles complejos.
+
+### 2026-02-04: Sincronización de Project ID en Middleware
+- **Error**: Cookies de sesión no reconocidas en producción por ID de proyecto incorrecto en el nombre de la cookie (`sb-[PROJECT_ID]-auth-token`).
+- **Fix**: Verificar que `src/proxy.ts` (o el middleware) coincida con el ID de Supabase activo en Vercel.
+- **Aplicar en**: Setup inicial de middleware.
+
 ---
 
 *Este archivo es el cerebro de la fábrica. Cada error documentado la hace más fuerte.*

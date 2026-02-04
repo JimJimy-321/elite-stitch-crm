@@ -37,14 +37,17 @@ export function useSupabaseAuth() {
 
         if (profile) {
             const { data: authUser } = await supabase.auth.getUser();
-            setUser({
+            const userData = {
                 id: profile.id,
                 full_name: profile.full_name,
                 email: authUser.user?.email || '',
                 role: profile.role as UserRole,
                 organization_id: profile.organization_id
-            });
+            };
+            setUser(userData);
+            return userData;
         }
+        return null;
     };
 
     const signInWithEmail = async (email: string, password: string) => {
@@ -55,7 +58,8 @@ export function useSupabaseAuth() {
 
         if (error) throw error;
         if (data.user) {
-            await syncUserFromSupabase(data.user.id);
+            const profile = await syncUserFromSupabase(data.user.id);
+            return { ...data, profile };
         }
         return data;
     };

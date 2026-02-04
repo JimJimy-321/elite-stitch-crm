@@ -21,8 +21,13 @@ export default function LoginPage() {
         setIsLoading(true);
 
         try {
-            await signInWithEmail(email, password);
-            router.push('/dashboard');
+            const data = await signInWithEmail(email, password) as any;
+
+            if (data?.profile?.role === 'super_admin') {
+                router.push('/admin');
+            } else {
+                router.push('/dashboard');
+            }
         } catch (err: any) {
             console.error('Login error:', err);
             setError(err.message || 'Error al iniciar sesión. Verifica tus credenciales.');

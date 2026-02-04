@@ -40,12 +40,17 @@ const performanceData = [
   { name: 'Sede Centro', ingresos: 39000, rentabilidad: 72 },
 ];
 
+import { useAuthStore } from '@/features/auth/store/authStore';
+
 export default function DashboardPage() {
+  const { user } = useAuthStore();
+  const firstName = user?.full_name?.split(' ')[0] || 'Usuario';
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header Section */}
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-black tracking-tight text-foreground">Bienvenido, Juan</h1>
+        <h1 className="text-3xl font-black tracking-tight text-foreground">Bienvenido, {firstName}</h1>
         <p className="text-muted-foreground text-sm font-medium">Aquí tienes el resumen consolidado de tus 4 sucursales.</p>
       </div>
 

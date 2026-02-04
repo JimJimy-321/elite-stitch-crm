@@ -8,7 +8,7 @@ export function proxy(request: NextRequest) {
     const isPublicPath = path === '/login' || path === '/';
 
     // Obtener token de autenticación desde las cookies
-    const authToken = request.cookies.get('sb-rbhvjqcyczgaanwphhjr-auth-token');
+    const authToken = request.cookies.get('sb-tqbbwdcsjuljfcrdogfi-auth-token');
 
     // Si no hay token y está intentando acceder a ruta protegida
     if (!authToken && !isPublicPath) {

@@ -47,13 +47,16 @@ export default function TicketsPage() {
                             <Search className="text-slate-300" size={20} />
                             <input
                                 type="text"
-                                placeholder="Buscar por Folio de Nota, Nombre o Teléfono..."
-                                className="bg-transparent border-none outline-none text-[15px] w-full font-bold text-foreground placeholder:text-slate-300"
+                                placeholder="BUSCAR POR FOLIO, NOMBRE O TELÉFONO..."
+                                className="bg-transparent border-none outline-none text-[15px] w-full font-bold text-foreground placeholder:text-slate-300 uppercase"
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={(e) => setSearchTerm(e.target.value.toUpperCase())}
                             />
                         </div>
-                        <button className="flex items-center gap-3 px-8 py-4 bg-white rounded-2xl border border-slate-100 hover:bg-orange-50 hover:border-orange-500/20 transition-all font-black text-[11px] uppercase tracking-widest text-slate-600 shadow-sm group">
+                        <button
+                            onClick={() => alert("Los filtros avanzados se activarán en el siguiente módulo de reportes.")}
+                            className="flex items-center gap-3 px-8 py-4 bg-white rounded-2xl border border-slate-100 hover:bg-orange-50 hover:border-orange-500/20 transition-all font-black text-[11px] uppercase tracking-widest text-slate-600 shadow-sm group"
+                        >
                             <Filter size={18} className="text-orange-500 group-hover:rotate-12 transition-transform" />
                             Filtros Avanzados
                         </button>

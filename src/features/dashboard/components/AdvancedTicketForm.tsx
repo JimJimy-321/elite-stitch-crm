@@ -362,13 +362,13 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
                 </div>
             </div>
 
-            <div className="bg-slate-900 rounded-[3rem] p-10 text-white space-y-8 shadow-2xl relative overflow-hidden">
+            <div className="bg-slate-900 rounded-[2rem] p-6 text-white space-y-6 shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/5 rounded-full -mr-32 -mt-32 blur-3xl" />
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500">Venta Total</p>
-                        <p className="text-5xl font-black tracking-tighter text-white">${total.toLocaleString()}</p>
+                        <p className="text-4xl font-black tracking-tighter text-white">${total.toLocaleString()}</p>
                         {appliedDiscount && (
                             <p className="text-[10px] text-emerald-400 font-bold uppercase animate-pulse">
                                 Ahorro: -${discountAmount.toLocaleString()}
@@ -383,7 +383,13 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
                                 type="text"
                                 className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-5 h-12 outline-none focus:ring-2 focus:ring-orange-500 transition-all font-black uppercase text-xs"
                                 value={discountCode}
-                                onChange={(e) => setDiscountCode(e.target.value)}
+                                onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleApplyDiscount();
+                                    }
+                                }}
                                 placeholder="CÓDIGO"
                             />
                             <button
@@ -428,15 +434,15 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
                     </div>
                 </div>
 
-                <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="pt-6 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="flex gap-10">
                         <div>
                             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-1">Subtotal</p>
-                            <p className="text-xl font-black text-slate-400 font-mono">${subtotal.toLocaleString()}</p>
+                            <p className="text-lg font-black text-slate-400 font-mono">${subtotal.toLocaleString()}</p>
                         </div>
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500 mb-1">Saldo Pendiente</p>
-                            <p className={cn("text-4xl font-black tracking-tighter", balance > 0 ? "text-amber-400" : "text-emerald-400")}>
+                            <p className={cn("text-3xl font-black tracking-tighter", balance > 0 ? "text-amber-400" : "text-emerald-400")}>
                                 ${balance.toLocaleString()}
                             </p>
                         </div>

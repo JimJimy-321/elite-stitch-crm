@@ -77,9 +77,13 @@ export function TicketDetailView({ ticket, onUpdate }: Props) {
                     <div className="flex items-center gap-3">
                         <div className={cn(
                             "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm",
-                            ticket.status === 'delivered' ? "bg-emerald-500 text-white" : "bg-orange-500 text-white"
+                            ticket.status === 'delivered' ? "bg-slate-500 text-white" :
+                                ticket.status === 'ready' ? "bg-emerald-500 text-white" :
+                                    ticket.status === 'processing' ? "bg-orange-500 text-white" : "bg-amber-500 text-white"
                         )}>
-                            {ticket.status === 'delivered' ? 'Entregado' : 'Activo'}
+                            {ticket.status === 'delivered' ? 'Entregado' :
+                                ticket.status === 'ready' ? 'Listo' :
+                                    ticket.status === 'processing' ? 'En Proceso' : 'Recibido'}
                         </div>
                         <span className="text-xl font-black text-slate-800 tracking-tighter">{ticket.ticket_number}</span>
                     </div>
@@ -129,17 +133,26 @@ export function TicketDetailView({ ticket, onUpdate }: Props) {
                                     <span className="font-black text-slate-700">{formatCurrency(item.price)}</span>
                                 </div>
                                 <div className="flex gap-2">
-                                    {item.status === 'pending' ? (
+                                    {item.status === 'pending' && (
+                                        <button
+                                            onClick={() => handleUpdateStatus(item.id, 'processing')}
+                                            className="px-6 py-3 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg active:scale-95"
+                                        >
+                                            Iniciar Trabajo
+                                        </button>
+                                    )}
+                                    {item.status === 'processing' && (
                                         <button
                                             onClick={() => handleUpdateStatus(item.id, 'finished')}
                                             className="px-6 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-500 transition-all shadow-lg active:scale-95"
                                         >
                                             Marcar Terminado
                                         </button>
-                                    ) : (
+                                    )}
+                                    {item.status === 'finished' && (
                                         <div className="px-6 py-3 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100 flex items-center gap-2">
                                             <CheckCircle2 size={14} />
-                                            Listo para Entrega
+                                            Listo
                                         </div>
                                     )}
                                 </div>
@@ -152,10 +165,10 @@ export function TicketDetailView({ ticket, onUpdate }: Props) {
             {/* Acciones de Pago y Entrega */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {ticket.balance_due > 0 ? (
-                    <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white space-y-6 shadow-2xl overflow-hidden relative">
+                    <div className="bg-slate-900 rounded-[2rem] p-6 text-white space-y-4 shadow-2xl overflow-hidden relative">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full -mr-16 -mt-16 blur-3xl" />
-                        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-orange-500 flex items-center gap-3">
-                            <CreditCard size={18} /> Liquidar Saldo
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500 flex items-center gap-3">
+                            <CreditCard size={14} /> Liquidar Saldo
                         </h3>
 
                         <div className="space-y-4">
@@ -172,7 +185,7 @@ export function TicketDetailView({ ticket, onUpdate }: Props) {
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase text-slate-500">Método</label>
                                     <select
-                                        className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500 font-bold"
+                                        className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500 font-bold text-xs text-white [&>option]:bg-slate-900 [&>option]:text-white"
                                         value={paymentMethod}
                                         onChange={(e) => setPaymentMethod(e.target.value)}
                                     >
@@ -192,27 +205,27 @@ export function TicketDetailView({ ticket, onUpdate }: Props) {
                         </div>
                     </div>
                 ) : (
-                    <div className="bg-emerald-500 rounded-[2.5rem] p-8 text-white space-y-4 shadow-2xl flex flex-col items-center justify-center text-center">
-                        <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-2">
-                            <ShieldCheck size={32} />
+                    <div className="bg-emerald-500 rounded-[2rem] p-6 text-white space-y-2 shadow-2xl flex flex-col items-center justify-center text-center">
+                        <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mb-1">
+                            <ShieldCheck size={20} />
                         </div>
-                        <h3 className="text-xl font-black uppercase tracking-tight">¡Cuenta Saldada!</h3>
-                        <p className="text-xs font-medium opacity-90">No hay saldos pendientes para esta nota.</p>
+                        <h3 className="text-sm font-black uppercase tracking-tight">¡Cuenta Saldada!</h3>
+                        <p className="text-[10px] font-medium opacity-90">No hay saldos pendientes para esta nota.</p>
                     </div>
                 )}
 
                 <div className={cn(
-                    "rounded-[2.5rem] p-8 space-y-6 shadow-2xl flex flex-col justify-between transition-all border-4",
+                    "rounded-[2rem] p-6 space-y-4 shadow-2xl flex flex-col justify-between transition-all border-4",
                     ticket.status === 'delivered' ? "bg-slate-50 border-slate-100" : (allFinished && ticket.balance_due <= 0 ? "bg-white border-emerald-500 shadow-emerald-500/10" : "bg-white border-slate-50 opacity-60")
                 )}>
                     <div className="space-y-2">
                         <h3 className={cn(
-                            "text-sm font-black uppercase tracking-[0.2em] flex items-center gap-3",
+                            "text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3",
                             ticket.status === 'delivered' ? "text-slate-400" : "text-emerald-600"
                         )}>
-                            <PackageCheck size={18} /> Entrega al Cliente
+                            <PackageCheck size={16} /> Entrega al Cliente
                         </h3>
-                        <p className="text-xs font-bold text-slate-400">
+                        <p className="text-[11px] font-bold text-slate-400 leading-tight">
                             {ticket.status === 'delivered'
                                 ? 'Esta orden ya fue entregada satisfactoriamente.'
                                 : (allFinished ? 'Todo listo. Procede con la entrega física.' : 'Aún hay prendas en proceso de costura.')
@@ -225,14 +238,14 @@ export function TicketDetailView({ ticket, onUpdate }: Props) {
                             disabled={!allFinished || ticket.balance_due > 0 || loading}
                             onClick={handleDeliver}
                             className={cn(
-                                "w-full py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl",
+                                "w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl",
                                 allFinished && ticket.balance_due <= 0
                                     ? "bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-500/30 active:scale-95"
                                     : "bg-slate-100 text-slate-400 cursor-not-allowed"
                             )}
                         >
                             {loading ? 'Confirmando...' : 'Confirmar Entrega Final'}
-                            <ChevronRight size={18} />
+                            <ChevronRight size={16} />
                         </button>
                     )}
                 </div>

@@ -326,14 +326,42 @@ export const dashboardService = {
     },
 
     async updateItemStatus(itemId: string, status: string) {
-        const { data, error } = await supabase
+        // 1. Update the item
+        const { data: item, error: iError } = await supabase
             .from('ticket_items')
             .update({ status })
             .eq('id', itemId)
             .select()
             .single();
-        if (error) throw error;
-        return data;
+        if (iError) throw iError;
+
+        // 2. Fetch all items for this ticket to determine ticket status
+        const { data: allItems, error: aError } = await supabase
+            .from('ticket_items')
+            .select('status')
+            .eq('ticket_id', item.ticket_id);
+
+        if (aError) throw aError;
+
+        // Determine new ticket status
+        let newTicketStatus = 'received';
+        const states = allItems.map(i => i.status);
+
+        if (states.every(s => s === 'finished')) {
+            newTicketStatus = 'ready';
+        } else if (states.some(s => s === 'processing' || s === 'finished')) {
+            newTicketStatus = 'processing';
+        }
+
+        // 3. Update the ticket
+        const { error: tError } = await supabase
+            .from('tickets')
+            .update({ status: newTicketStatus })
+            .eq('id', item.ticket_id);
+
+        if (tError) throw tError;
+
+        return item;
     },
 
     async deliverTicket(ticketId: string) {

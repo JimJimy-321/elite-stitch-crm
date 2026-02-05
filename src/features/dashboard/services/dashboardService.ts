@@ -349,7 +349,7 @@ export const dashboardService = {
 
         if (states.every(s => s === 'finished')) {
             newTicketStatus = 'ready';
-        } else if (states.some(s => s === 'processing' || s === 'finished')) {
+        } else if (states.some(s => s === 'in_process' || s === 'finished')) {
             newTicketStatus = 'processing';
         }
 

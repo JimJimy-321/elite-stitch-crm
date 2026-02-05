@@ -135,13 +135,13 @@ export function TicketDetailView({ ticket, onUpdate }: Props) {
                                 <div className="flex gap-2">
                                     {item.status === 'pending' && (
                                         <button
-                                            onClick={() => handleUpdateStatus(item.id, 'processing')}
+                                            onClick={() => handleUpdateStatus(item.id, 'in_process')}
                                             className="px-6 py-3 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg active:scale-95"
                                         >
                                             Iniciar Trabajo
                                         </button>
                                     )}
-                                    {item.status === 'processing' && (
+                                    {item.status === 'in_process' && (
                                         <button
                                             onClick={() => handleUpdateStatus(item.id, 'finished')}
                                             className="px-6 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-500 transition-all shadow-lg active:scale-95"
@@ -179,7 +179,10 @@ export function TicketDetailView({ ticket, onUpdate }: Props) {
                                         type="number"
                                         className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500 font-bold"
                                         value={paymentAmount}
-                                        onChange={(e) => setPaymentAmount(Number(e.target.value))}
+                                        onChange={(e) => {
+                                            const val = Number(e.target.value);
+                                            setPaymentAmount(val > ticket.balance_due ? ticket.balance_due : val);
+                                        }}
                                     />
                                 </div>
                                 <div className="space-y-2">

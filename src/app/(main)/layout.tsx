@@ -7,7 +7,7 @@ import { cn } from '@/shared/lib/utils';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useSupabaseAuth } from '@/features/auth/hooks/useSupabaseAuth';
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 export default function DashboardLayout({
   children,
@@ -15,8 +15,11 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const { user } = useAuthStore();
+
+  const isSearchHidden = pathname === '/dashboard' || pathname?.startsWith('/dashboard/tickets');
 
   // Inicializar sincronización con Supabase
   useSupabaseAuth();
@@ -39,14 +42,16 @@ export default function DashboardLayout({
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         {/* Top Navbar */}
         <header className="h-20 border-b border-slate-100 bg-white/80 backdrop-blur-xl flex items-center justify-between px-10 sticky top-0 z-40 shadow-sm">
-          <div className="flex items-center gap-4 bg-slate-50 px-5 py-3 rounded-2xl border border-slate-100 w-96 transition-all focus-within:ring-4 focus-within:ring-orange-500/10 focus-within:border-orange-500/30 shadow-inner">
-            <Search className="text-slate-300 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Buscar tickets, clientes o facturas..."
-              className="bg-transparent border-none outline-none text-sm text-foreground placeholder:text-slate-300 w-full font-bold"
-            />
-          </div>
+          {!isSearchHidden ? (
+            <div className="flex items-center gap-4 bg-slate-50 px-5 py-3 rounded-2xl border border-slate-100 w-96 transition-all focus-within:ring-4 focus-within:ring-orange-500/10 focus-within:border-orange-500/30 shadow-inner">
+              <Search className="text-slate-300 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Buscar tickets, clientes o facturas..."
+                className="bg-transparent border-none outline-none text-sm text-foreground placeholder:text-slate-300 w-full font-bold"
+              />
+            </div>
+          ) : <div />}
 
           <div className="flex items-center gap-6">
             {/* SaaS Status Badge */}

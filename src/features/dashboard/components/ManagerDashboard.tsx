@@ -131,8 +131,8 @@ export function ManagerDashboard({ user }: Props) {
                             {[1, 2, 3, 4].map(i => <div key={i} className="h-48 bg-slate-50 rounded-[2rem] animate-pulse" />)}
                         </div>
                     ) : tickets.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {tickets.slice(0, 6).map((t: any) => (
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                            {tickets.slice(0, 9).map((t: any) => (
                                 <QuickTicketCard
                                     key={t.id}
                                     ticket={t}
@@ -219,46 +219,39 @@ function QuickTicketCard({ ticket, onClick }: { ticket: any, onClick: () => void
     const status = statusMap[ticket.status] || statusMap.received;
 
     return (
-        <div onClick={onClick} className="p-6 bg-white border border-slate-100 rounded-[2.5rem] hover:shadow-2xl hover:shadow-orange-500/10 transition-all group cursor-pointer relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 rounded-full -mr-12 -mt-12 transition-all group-hover:scale-110" />
-
-            <div className="flex justify-between items-start mb-6 relative">
+        <div onClick={onClick} className="p-5 bg-white border border-slate-100 rounded-[2rem] hover:shadow-xl hover:shadow-orange-500/5 transition-all group cursor-pointer relative overflow-hidden">
+            <div className="flex justify-between items-start mb-4">
                 <div>
-                    <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-100 uppercase tracking-widest mb-2 block w-fit">NOTA {ticket.ticket_number}</span>
-                    <h4 className="font-black text-lg text-slate-800 truncate max-w-[140px] tracking-tight">{ticket.client?.full_name}</h4>
+                    <span className="text-[9px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100 uppercase tracking-widest mb-1 shadow-sm block w-fit">NOTA {ticket.ticket_number}</span>
+                    <h4 className="font-black text-[15px] text-slate-800 truncate max-w-[120px] tracking-tight">{ticket.client?.full_name}</h4>
                 </div>
-                <div className={cn("px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-sm", status.bg, status.color)}>
+                <div className={cn("px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest shadow-sm", status.bg, status.color)}>
                     {status.label}
                 </div>
             </div>
 
-            <div className="flex items-center gap-6 mb-8 relative">
-                <div className="flex -space-x-2">
-                    {ticket.items?.slice(0, 3).map((item: any, i: number) => (
-                        <div key={i} className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-slate-400">
-                            {item.garment_name[0]}
-                        </div>
-                    ))}
-                    {ticket.items?.length > 3 && (
-                        <div className="w-8 h-8 rounded-full bg-orange-500 border-2 border-white flex items-center justify-center text-[10px] font-bold text-white">
-                            +{ticket.items.length - 3}
-                        </div>
-                    )}
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                    <div className="flex -space-x-1.5">
+                        {ticket.items?.slice(0, 2).map((item: any, i: number) => (
+                            <div key={i} className="w-7 h-7 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-[9px] font-bold text-slate-400">
+                                {item.garment_name?.[0] || 'P'}
+                            </div>
+                        ))}
+                    </div>
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{ticket.items?.length || 0} pzs</span>
                 </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{ticket.items?.length || 0} Prendas</span>
+                <div className="flex items-center gap-2">
+                    <Calendar size={12} className="text-orange-500" />
+                    <span className="text-[9px] font-black text-slate-500 uppercase">{new Date(ticket.delivery_date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}</span>
+                </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-50 flex items-center justify-between relative">
-                <div className="flex items-center gap-2">
-                    <Calendar size={14} className="text-orange-500" />
-                    <span className="text-[10px] font-black text-slate-500 uppercase">{new Date(ticket.delivery_date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-slate-300 uppercase">Saldo</span>
-                    <span className={cn("text-xs font-black", ticket.balance_due > 0 ? "text-amber-500" : "text-emerald-500")}>
-                        {formatCurrency(ticket.balance_due)}
-                    </span>
-                </div>
+            <div className="pt-3 border-t border-slate-50 flex items-center justify-between">
+                <span className="text-[9px] font-black text-slate-300 uppercase">Saldo</span>
+                <span className={cn("text-[13px] font-black", ticket.balance_due > 0 ? "text-amber-500" : "text-emerald-500")}>
+                    {formatCurrency(ticket.balance_due)}
+                </span>
             </div>
         </div>
     );

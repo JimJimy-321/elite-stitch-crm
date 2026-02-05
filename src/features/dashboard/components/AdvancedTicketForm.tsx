@@ -31,8 +31,10 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
     const [selectedBranch, setSelectedBranch] = useState<any>(null);
 
     useEffect(() => {
-        if (user?.assigned_branch_id && branches.length > 0) {
-            const branch = branches.find(b => b.id === user.assigned_branch_id);
+        if (branches.length > 0) {
+            const branch = user?.assigned_branch_id
+                ? branches.find(b => b.id === user.assigned_branch_id)
+                : branches[0];
             if (branch) setSelectedBranch(branch);
         }
     }, [user, branches]);
@@ -98,7 +100,23 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
     };
 
     const updateItem = (id: number, field: string, value: any) => {
-        setItems(items.map(i => i.id === id ? { ...i, [field]: value } : i));
+        let processedValue = value;
+        if (field === 'price' || field === 'amount') {
+            processedValue = value === '' ? 0 : Number(value);
+        } else if (typeof value === 'string') {
+            processedValue = value.toUpperCase();
+        }
+        setItems(items.map(i => i.id === id ? { ...i, [field]: processedValue } : i));
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent, nextFieldId?: string) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (nextFieldId) {
+                const nextEl = document.getElementById(nextFieldId);
+                if (nextEl) nextEl.focus();
+            }
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -143,7 +161,7 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
         try {
             await createTicket(ticketData, itemData, paymentData);
             onSuccess();
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
             setSubmittingError(translateError(err));
         }
@@ -163,6 +181,7 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
                     <label className="text-[10px] font-black uppercase tracking-widest text-orange-500 ml-2">Número de Nota</label>
                     <div className="relative group">
                         <input
+                            id="field-ticket-number"
                             type="text"
                             maxLength={6}
                             placeholder="000000"
@@ -170,6 +189,7 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
                             className="w-full bg-white border-2 border-slate-100 rounded-2xl px-10 h-14 font-black text-lg tracking-[0.2em] focus:border-orange-500 outline-none transition-all text-right"
                             value={ticketNumber}
                             onChange={(e) => setTicketNumber(e.target.value.replace(/\D/g, ''))}
+                            onKeyDown={(e) => handleKeyDown(e, 'field-client-search')}
                         />
                         <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-400" size={18} />
                     </div>
@@ -179,17 +199,19 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Cliente</label>
                     <div className="relative group">
                         <input
+                            id="field-client-search"
                             type="text"
-                            placeholder="Buscar por nombre o tel..."
+                            placeholder="BUSCAR POR NOMBRE O TEL..."
                             autoComplete="off"
-                            className="w-full bg-white border-2 border-slate-100 rounded-2xl px-10 h-14 font-bold text-slate-700 focus:border-orange-500 outline-none transition-all"
+                            className="w-full bg-white border-2 border-slate-100 rounded-2xl px-10 h-14 font-bold text-slate-700 focus:border-orange-500 outline-none transition-all uppercase"
                             value={selectedClient ? selectedClient.full_name : clientSearch}
                             onChange={(e) => {
-                                setClientSearch(e.target.value);
+                                setClientSearch(e.target.value.toUpperCase());
                                 setSelectedClient(null);
                                 setShowClientResults(true);
                             }}
                             onFocus={() => setShowClientResults(true)}
+                            onKeyDown={(e) => handleKeyDown(e, 'field-delivery-date')}
                         />
                         <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
 
@@ -250,6 +272,7 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Fecha de entrega</label>
                     <div className="relative group">
                         <input
+                            id="field-delivery-date"
                             type="date"
                             required
                             className="w-full bg-white border-2 border-slate-100 rounded-2xl px-10 h-14 font-bold text-slate-700 focus:border-orange-500 outline-none transition-all"
@@ -283,28 +306,28 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
 
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3 flex-1">
                                     <select
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 h-11 text-[11px] font-bold outline-none focus:border-orange-500 transition-all cursor-pointer"
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 h-11 text-[11px] font-bold outline-none focus:border-orange-500 transition-all cursor-pointer uppercase"
                                         value={item.garment}
                                         required
                                         onChange={(e) => updateItem(item.id, 'garment', e.target.value)}
                                     >
-                                        <option value="">Prenda...</option>
-                                        {garments.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
+                                        <option value="">PRENDA...</option>
+                                        {garments.map(g => <option key={g.id} value={g.name.toUpperCase()}>{g.name.toUpperCase()}</option>)}
                                     </select>
 
                                     <select
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 h-11 text-[11px] font-bold outline-none focus:border-orange-500 transition-all cursor-pointer"
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 h-11 text-[11px] font-bold outline-none focus:border-orange-500 transition-all cursor-pointer uppercase"
                                         value={item.service}
                                         required
                                         onChange={(e) => updateItem(item.id, 'service', e.target.value)}
                                     >
-                                        <option value="">Arreglo...</option>
-                                        {services.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                                        <option value="">ARREGLO...</option>
+                                        {services.map(s => <option key={s.id} value={s.name.toUpperCase()}>{s.name.toUpperCase()}</option>)}
                                     </select>
 
                                     <input
-                                        placeholder="Descripción rápida..."
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 h-11 text-[11px] font-bold outline-none focus:border-orange-500 transition-all"
+                                        placeholder="DESCRIPCIÓN RÁPIDA..."
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 h-11 text-[11px] font-bold outline-none focus:border-orange-500 transition-all uppercase"
                                         value={item.description}
                                         onChange={(e) => updateItem(item.id, 'description', e.target.value)}
                                     />

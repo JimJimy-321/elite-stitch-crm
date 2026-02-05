@@ -6,6 +6,7 @@ import { useClients, useBranches, useGarments, useServices, useAdvancedTickets }
 import { dashboardService } from '../services/dashboardService';
 import { cn } from '@/shared/lib/utils';
 import { translateError } from '@/shared/lib/error-handler';
+import { useAuthStore } from '@/features/auth/store/authStore';
 
 interface AdvancedTicketFormProps {
     onClose: () => void;
@@ -13,6 +14,7 @@ interface AdvancedTicketFormProps {
 }
 
 export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormProps) {
+    const { user } = useAuthStore();
     const { clients } = useClients();
     const { branches } = useBranches();
     const { garments } = useGarments();
@@ -22,12 +24,29 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
 
     const [ticketNumber, setTicketNumber] = useState<string>('');
     const [selectedClient, setSelectedClient] = useState<any>(null);
+    const [clientSearch, setClientSearch] = useState('');
+    const [showClientResults, setShowClientResults] = useState(false);
+
+    // Auto-select branch from user
     const [selectedBranch, setSelectedBranch] = useState<any>(null);
+
+    useEffect(() => {
+        if (user?.assigned_branch_id && branches.length > 0) {
+            const branch = branches.find(b => b.id === user.assigned_branch_id);
+            if (branch) setSelectedBranch(branch);
+        }
+    }, [user, branches]);
+
     const [deliveryDate, setDeliveryDate] = useState<string>('');
     const [notes, setNotes] = useState<string>('');
     const [discountCode, setDiscountCode] = useState<string>('');
     const [appliedDiscount, setAppliedDiscount] = useState<any>(null);
     const [discountError, setDiscountError] = useState<string | null>(null);
+
+    const filteredClients = clients.filter(c =>
+        c.full_name?.toLowerCase().includes(clientSearch.toLowerCase()) ||
+        c.phone?.includes(clientSearch)
+    ).slice(0, 5);
 
     const [items, setItems] = useState<any[]>([
         { id: Date.now(), garment: '', service: '', description: '', price: 0, priority: 'normal' }
@@ -112,7 +131,7 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
             garment_name: item.garment,
             service_name: item.service,
             description: item.description,
-            price: item.price,
+            price: Number(item.price) || 0,
             priority: item.priority
         }));
 
@@ -131,195 +150,242 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-8 max-h-[80vh] overflow-y-auto px-2">
+        <form onSubmit={handleSubmit} className="space-y-8 max-h-[85vh] overflow-y-auto px-2 pb-10">
             {submittingError && (
                 <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex items-center gap-3 text-red-600 animate-in fade-in slide-in-from-top-2">
                     <AlertCircle size={18} />
                     <p className="text-[11px] font-black uppercase tracking-tight">{submittingError}</p>
                 </div>
             )}
-            {/* Seccion Info Basica */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-orange-500">Número de Nota</label>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 bg-slate-50/50 rounded-[2.5rem] border border-slate-100">
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-orange-500 ml-2">Número de Nota</label>
                     <div className="relative group">
                         <input
                             type="text"
                             maxLength={6}
                             placeholder="000000"
                             required
-                            className="input-field pl-10 h-14 font-black text-lg tracking-widest"
+                            className="w-full bg-white border-2 border-slate-100 rounded-2xl px-10 h-14 font-black text-lg tracking-[0.2em] focus:border-orange-500 outline-none transition-all text-right"
                             value={ticketNumber}
                             onChange={(e) => setTicketNumber(e.target.value.replace(/\D/g, ''))}
                         />
-                        <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-300" size={18} />
+                        <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-400" size={18} />
                     </div>
                 </div>
 
-                <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cliente</label>
+                <div className="space-y-2 relative">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Cliente</label>
                     <div className="relative group">
+                        <input
+                            type="text"
+                            placeholder="Buscar por nombre o tel..."
+                            autoComplete="off"
+                            className="w-full bg-white border-2 border-slate-100 rounded-2xl px-10 h-14 font-bold text-slate-700 focus:border-orange-500 outline-none transition-all"
+                            value={selectedClient ? selectedClient.full_name : clientSearch}
+                            onChange={(e) => {
+                                setClientSearch(e.target.value);
+                                setSelectedClient(null);
+                                setShowClientResults(true);
+                            }}
+                            onFocus={() => setShowClientResults(true)}
+                        />
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+
+                        {(selectedClient || clientSearch) && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSelectedClient(null);
+                                    setClientSearch('');
+                                }}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500"
+                            >
+                                <X size={16} />
+                            </button>
+                        )}
+                    </div>
+
+                    {showClientResults && clientSearch && !selectedClient && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 max-h-60 overflow-y-auto">
+                            {filteredClients.length > 0 ? (
+                                filteredClients.map(c => (
+                                    <button
+                                        key={c.id}
+                                        type="button"
+                                        className="w-full px-5 py-4 text-left hover:bg-orange-50 transition-colors flex flex-col border-b border-slate-50 last:border-0"
+                                        onClick={() => {
+                                            setSelectedClient(c);
+                                            setShowClientResults(false);
+                                        }}
+                                    >
+                                        <span className="font-black text-slate-800 text-xs uppercase">{c.full_name}</span>
+                                        <span className="text-[10px] font-bold text-slate-400">{c.phone}</span>
+                                    </button>
+                                ))
+                            ) : (
+                                <div className="p-5 text-center space-y-2">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase">No se encontraron clientes</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Sucursal</label>
+                    <div className="relative">
                         <select
-                            required
-                            className="input-field pl-10 h-14"
-                            onChange={(e) => setSelectedClient(clients.find(c => c.id === e.target.value))}
+                            disabled
+                            className="w-full bg-slate-100 border-2 border-slate-100 rounded-2xl px-5 h-14 font-bold text-slate-500 appearance-none cursor-not-allowed"
+                            value={selectedBranch?.id || ''}
                         >
-                            <option value="">Seleccionar Cliente...</option>
-                            {clients.map(c => (
-                                <option key={c.id} value={c.id}>{c.full_name} ({c.phone})</option>
-                            ))}
+                            <option value={selectedBranch?.id}>{selectedBranch?.name || 'Cargando...'}</option>
                         </select>
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                     </div>
                 </div>
 
-                <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Sucursal</label>
-                    <select
-                        required
-                        className="input-field h-14"
-                        value={selectedBranch?.id || ''}
-                        onChange={(e) => setSelectedBranch(branches.find(b => b.id === e.target.value))}
-                    >
-                        {branches.map(b => (
-                            <option key={b.id} value={b.id}>{b.name}</option>
-                        ))}
-                    </select>
-                </div>
-
-                <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Fecha Promesa</label>
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Fecha de entrega</label>
                     <div className="relative group">
                         <input
                             type="date"
                             required
-                            className="input-field pl-10 h-14"
+                            className="w-full bg-white border-2 border-slate-100 rounded-2xl px-10 h-14 font-bold text-slate-700 focus:border-orange-500 outline-none transition-all"
                             value={deliveryDate}
                             onChange={(e) => setDeliveryDate(e.target.value)}
                         />
-                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     </div>
                 </div>
             </div>
 
-            {/* Seccion Items */}
             <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Prendas y Arreglos</label>
+                <div className="flex items-center justify-between px-2">
+                    <label className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Prendas y Arreglos</label>
                     <button
                         type="button"
                         onClick={addItem}
-                        className="text-orange-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-orange-50 px-3 py-1.5 rounded-lg transition-all"
+                        className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg active:scale-95"
                     >
                         <Plus size={14} /> Añadir Prenda
                     </button>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                     {items.map((item, index) => (
-                        <div key={item.id} className="glass-card bg-slate-50/50 p-6 space-y-4 border-slate-100 group animate-in slide-in-from-left-2 duration-300">
-                            <div className="flex items-start justify-between">
-                                <span className="text-[11px] font-black text-orange-500 bg-orange-50 w-6 h-6 rounded-full flex items-center justify-center">
+                        <div key={item.id} className="bg-white p-4 rounded-3xl border border-slate-100 group animate-in slide-in-from-left-2 duration-300 flex flex-col gap-3">
+                            <div className="flex items-center gap-4">
+                                <div className="text-[10px] font-black text-orange-500 bg-orange-50 w-7 h-7 rounded-xl flex items-center justify-center shrink-0">
                                     {index + 1}
-                                </span>
-                                <button type="button" onClick={() => removeItem(item.id)} className="text-slate-300 hover:text-red-500 transition-colors">
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 flex-1">
+                                    <select
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 h-11 text-[11px] font-bold outline-none focus:border-orange-500 transition-all cursor-pointer"
+                                        value={item.garment}
+                                        required
+                                        onChange={(e) => updateItem(item.id, 'garment', e.target.value)}
+                                    >
+                                        <option value="">Prenda...</option>
+                                        {garments.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
+                                    </select>
+
+                                    <select
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 h-11 text-[11px] font-bold outline-none focus:border-orange-500 transition-all cursor-pointer"
+                                        value={item.service}
+                                        required
+                                        onChange={(e) => updateItem(item.id, 'service', e.target.value)}
+                                    >
+                                        <option value="">Arreglo...</option>
+                                        {services.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                                    </select>
+
+                                    <input
+                                        placeholder="Descripción rápida..."
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 h-11 text-[11px] font-bold outline-none focus:border-orange-500 transition-all"
+                                        value={item.description}
+                                        onChange={(e) => updateItem(item.id, 'description', e.target.value)}
+                                    />
+
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-[11px]">$</span>
+                                        <input
+                                            type="number"
+                                            placeholder="0"
+                                            className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-6 pr-4 h-11 text-[12px] font-black outline-none focus:border-orange-500 text-right"
+                                            value={item.price || ''}
+                                            required
+                                            onChange={(e) => updateItem(item.id, 'price', e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <button type="button" onClick={() => removeItem(item.id)} className="text-slate-300 hover:text-red-500 transition-colors p-2">
                                     <Trash2 size={16} />
                                 </button>
                             </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <select
-                                    className="input-field bg-white"
-                                    value={item.garment}
-                                    required
-                                    onChange={(e) => updateItem(item.id, 'garment', e.target.value)}
-                                >
-                                    <option value="">Tipo de Prenda...</option>
-                                    {garments.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
-                                </select>
-
-                                <select
-                                    className="input-field bg-white"
-                                    value={item.service}
-                                    required
-                                    onChange={(e) => updateItem(item.id, 'service', e.target.value)}
-                                >
-                                    <option value="">Tipo de Arreglo...</option>
-                                    {services.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                                </select>
-
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
-                                    <input
-                                        type="number"
-                                        placeholder="Precio"
-                                        className="input-field bg-white pl-8"
-                                        value={item.price}
-                                        required
-                                        onChange={(e) => updateItem(item.id, 'price', e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                            <input
-                                placeholder="Notas específicas (ej: Entallar 2cm, color hilo...)"
-                                className="input-field bg-white text-xs"
-                                value={item.description}
-                                onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                            />
                         </div>
                     ))}
                 </div>
             </div>
 
-            {/* Seccion Pago */}
-            <div className="bg-slate-900 rounded-[2rem] p-8 text-white space-y-6 shadow-2xl">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="bg-slate-900 rounded-[3rem] p-10 text-white space-y-8 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/5 rounded-full -mr-32 -mt-32 blur-3xl" />
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
                     <div className="space-y-2">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500">Subtotal</p>
-                        <p className="text-4xl font-black tracking-tighter">${subtotal.toLocaleString()}</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500">Venta Total</p>
+                        <p className="text-5xl font-black tracking-tighter text-white">${total.toLocaleString()}</p>
+                        {appliedDiscount && (
+                            <p className="text-[10px] text-emerald-400 font-bold uppercase animate-pulse">
+                                Ahorro: -${discountAmount.toLocaleString()}
+                            </p>
+                        )}
                     </div>
 
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Código de Descuento</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Código de Descuento</label>
                         <div className="flex gap-2">
                             <input
                                 type="text"
-                                className="flex-1 bg-white/10 border border-white/10 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500 transition-all font-bold uppercase"
+                                className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-5 h-12 outline-none focus:ring-2 focus:ring-orange-500 transition-all font-black uppercase text-xs"
                                 value={discountCode}
                                 onChange={(e) => setDiscountCode(e.target.value)}
+                                placeholder="CÓDIGO"
                             />
                             <button
                                 type="button"
                                 onClick={handleApplyDiscount}
-                                className="bg-white/20 hover:bg-white/30 px-4 rounded-xl transition-all"
+                                className="bg-orange-500 hover:bg-orange-600 px-4 rounded-2xl transition-all shadow-lg shadow-orange-500/20"
                             >
                                 <Tag size={18} />
                             </button>
                         </div>
-                        {appliedDiscount && (
-                            <p className="text-[10px] text-emerald-400 font-bold uppercase">
-                                ✓ {appliedDiscount.description} (-${discountAmount.toLocaleString()})
-                            </p>
-                        )}
                         {discountError && (
-                            <p className="text-[10px] text-rose-400 font-bold uppercase">{discountError}</p>
+                            <p className="text-[10px] text-rose-400 font-black uppercase">{discountError}</p>
                         )}
                     </div>
 
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Anticipo</label>
-                        <input
-                            type="number"
-                            className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500 transition-all font-bold"
-                            value={payment.amount}
-                            onChange={(e) => setPayment({ ...payment, amount: Number(e.target.value) })}
-                        />
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Anticipo</label>
+                        <div className="relative">
+                            <input
+                                type="number"
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 h-12 outline-none focus:ring-2 focus:ring-orange-500 transition-all font-black text-right pr-10"
+                                value={payment.amount || ''}
+                                onChange={(e) => setPayment({ ...payment, amount: Number(e.target.value) })}
+                                placeholder="0"
+                            />
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 font-bold">$</span>
+                        </div>
                     </div>
 
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Método</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Método de Pago</label>
                         <select
-                            className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500 transition-all font-bold"
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 h-12 outline-none focus:ring-2 focus:ring-orange-500 transition-all font-black text-xs text-white [&>option]:bg-slate-900 [&>option]:text-white"
                             value={payment.method}
                             onChange={(e) => setPayment({ ...payment, method: e.target.value })}
                         >
@@ -330,23 +396,30 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
                     </div>
                 </div>
 
-                <div className="pt-6 border-t border-white/10 flex items-center justify-between">
-                    <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Saldo Pendiente</p>
-                        <p className={cn("text-2xl font-black tracking-tighter", balance > 0 ? "text-amber-400" : "text-emerald-400")}>
-                            ${balance.toLocaleString()}
-                        </p>
+                <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="flex gap-10">
+                        <div>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-1">Subtotal</p>
+                            <p className="text-xl font-black text-slate-400 font-mono">${subtotal.toLocaleString()}</p>
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500 mb-1">Saldo Pendiente</p>
+                            <p className={cn("text-4xl font-black tracking-tighter", balance > 0 ? "text-amber-400" : "text-emerald-400")}>
+                                ${balance.toLocaleString()}
+                            </p>
+                        </div>
                     </div>
+
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="bg-orange-500 hover:bg-orange-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full md:w-auto bg-orange-500 hover:bg-orange-600 text-white px-12 py-5 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-orange-500/40 active:scale-95 transition-all flex items-center justify-center gap-4 disabled:opacity-50"
                     >
                         {isSubmitting ? (
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin" />
                         ) : (
                             <>
-                                <Save size={18} />
+                                <Save size={20} />
                                 Finalizar Nota
                             </>
                         )}

@@ -123,8 +123,8 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
         e.preventDefault();
         setSubmittingError(null);
 
-        if (!ticketNumber || ticketNumber.length !== 6) {
-            setSubmittingError("Ingresa un número de nota válido (6 dígitos)");
+        if (!ticketNumber || ticketNumber.length > 6) {
+            setSubmittingError("Ingresa un número de nota válido (1-6 dígitos)");
             return;
         }
 
@@ -306,41 +306,49 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
 
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3 flex-1">
                                     <select
+                                        id={`item-garment-${item.id}`}
                                         className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 h-11 text-[11px] font-bold outline-none focus:border-orange-500 transition-all cursor-pointer uppercase"
                                         value={item.garment}
                                         required
                                         onChange={(e) => updateItem(item.id, 'garment', e.target.value)}
+                                        onKeyDown={(e) => handleKeyDown(e, `item-service-${item.id}`)}
                                     >
                                         <option value="">PRENDA...</option>
                                         {garments.map(g => <option key={g.id} value={g.name.toUpperCase()}>{g.name.toUpperCase()}</option>)}
                                     </select>
 
                                     <select
+                                        id={`item-service-${item.id}`}
                                         className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 h-11 text-[11px] font-bold outline-none focus:border-orange-500 transition-all cursor-pointer uppercase"
                                         value={item.service}
                                         required
                                         onChange={(e) => updateItem(item.id, 'service', e.target.value)}
+                                        onKeyDown={(e) => handleKeyDown(e, `item-desc-${item.id}`)}
                                     >
                                         <option value="">ARREGLO...</option>
                                         {services.map(s => <option key={s.id} value={s.name.toUpperCase()}>{s.name.toUpperCase()}</option>)}
                                     </select>
 
                                     <input
+                                        id={`item-desc-${item.id}`}
                                         placeholder="DESCRIPCIÓN RÁPIDA..."
                                         className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 h-11 text-[11px] font-bold outline-none focus:border-orange-500 transition-all uppercase"
                                         value={item.description}
                                         onChange={(e) => updateItem(item.id, 'description', e.target.value)}
+                                        onKeyDown={(e) => handleKeyDown(e, `item-price-${item.id}`)}
                                     />
 
                                     <div className="relative">
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-[11px]">$</span>
                                         <input
+                                            id={`item-price-${item.id}`}
                                             type="number"
                                             placeholder="0"
                                             className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-6 pr-4 h-11 text-[12px] font-black outline-none focus:border-orange-500 text-right"
                                             value={item.price || ''}
                                             required
                                             onChange={(e) => updateItem(item.id, 'price', e.target.value)}
+                                            onKeyDown={(e) => handleKeyDown(e, 'field-payment-amount')}
                                         />
                                     </div>
                                 </div>
@@ -395,6 +403,7 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Anticipo</label>
                         <div className="relative">
                             <input
+                                id="field-payment-amount"
                                 type="number"
                                 className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 h-12 outline-none focus:ring-2 focus:ring-orange-500 transition-all font-black text-right pr-10"
                                 value={payment.amount || ''}

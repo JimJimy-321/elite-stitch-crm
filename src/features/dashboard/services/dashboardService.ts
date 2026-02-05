@@ -3,6 +3,17 @@ import { createClient } from '@/lib/supabase/client';
 const supabase = createClient();
 
 export const dashboardService = {
+    async checkTicketExists(ticketNumber: string) {
+        const { data, error } = await supabase
+            .from('tickets')
+            .select('id')
+            .eq('ticket_number', ticketNumber)
+            .maybeSingle();
+
+        if (error) throw error;
+        return !!data;
+    },
+
     async getTickets(search?: string) {
         let query = supabase
             .from('tickets')

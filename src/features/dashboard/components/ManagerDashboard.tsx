@@ -64,7 +64,10 @@ export function ManagerDashboard({ user }: Props) {
 
     // Lógica de Prioridades
     const today = new Date().toISOString().split('T')[0];
-    const urgentTickets = tickets.filter(t => t.status !== 'delivered' && t.delivery_date === today).slice(0, 5);
+    const urgentTickets = tickets.filter(t =>
+        t.status !== 'delivered' &&
+        (t.delivery_date === today || t.items?.some((i: any) => i.priority === 'express'))
+    ).slice(0, 10);
     const overdueTickets = tickets.filter(t => t.status !== 'delivered' && t.delivery_date < today).slice(0, 5);
     const abandonedTickets = tickets.filter(t => {
         const lastUpdate = new Date(t.updated_at);
@@ -152,10 +155,10 @@ export function ManagerDashboard({ user }: Props) {
 
                 {/* Priority Sidebar */}
                 <div className="space-y-8">
-                    {/* Urgentes HOY */}
+                    {/* Express HOY */}
                     <div className="glass-card p-8 border-none shadow-2xl bg-white rounded-[2.5rem]">
                         <h3 className="font-black text-foreground uppercase text-[11px] tracking-[0.2em] mb-6 flex items-center justify-between">
-                            Urgentes Hoy
+                            Express Hoy
                             <span className="w-2 h-2 bg-orange-500 rounded-full animate-ping" />
                         </h3>
                         <div className="space-y-4">
@@ -166,10 +169,12 @@ export function ManagerDashboard({ user }: Props) {
                                         <History size={14} className="text-orange-400" />
                                     </div>
                                     <p className="text-xs font-black text-slate-800 truncate">{t.client?.full_name}</p>
-                                    <p className="text-[10px] text-orange-600 font-bold mt-1 uppercase tracking-tight">Para HOY</p>
+                                    <p className="text-[10px] text-orange-600 font-bold mt-1 uppercase tracking-tight">
+                                        {t.items?.some((i: any) => i.priority === 'express') ? 'SERVICIO EXPRESS' : 'PARA HOY'}
+                                    </p>
                                 </div>
                             )) : (
-                                <p className="text-center py-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Sin urgencias hoy</p>
+                                <p className="text-center py-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Sin servicios express hoy</p>
                             )}
                         </div>
                     </div>
@@ -238,6 +243,14 @@ function QuickTicketCard({ ticket, onClick }: { ticket: any, onClick: () => void
                     {status.label}
                 </div>
             </div>
+
+            {ticket.items?.some((i: any) => i.priority === 'express') && (
+                <div className="absolute top-0 right-0">
+                    <div className="bg-red-500 text-white text-[7px] font-black px-4 py-1 rotate-45 translate-x-3 -translate-y-1 shadow-lg uppercase tracking-widest">
+                        Express
+                    </div>
+                </div>
+            )}
 
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">

@@ -19,8 +19,10 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
     const { branches } = useBranches();
     const { garments } = useGarments();
     const { services } = useServices();
-    const { createTicket, loading: isSubmitting } = useAdvancedTickets();
+    const { createTicket, checkTicketExists, loading: isSubmitting } = useAdvancedTickets();
     const [submittingError, setSubmittingError] = useState<string | null>(null);
+    const [ticketNumberError, setTicketNumberError] = useState<string | null>(null);
+    const [isValidatingTicket, setIsValidatingTicket] = useState(false);
 
     const [ticketNumber, setTicketNumber] = useState<string>('');
     const [selectedClient, setSelectedClient] = useState<any>(null);
@@ -51,7 +53,7 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
     ).slice(0, 5);
 
     const [items, setItems] = useState<any[]>([
-        { id: Date.now(), garment: '', service: '', description: '', price: 0, priority: 'NORMAL' }
+        { id: Date.now(), garment: '', service: '', description: '', price: 0, priority: 'normal' }
     ]);
 
     const [payment, setPayment] = useState({
@@ -90,7 +92,7 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
     };
 
     const addItem = () => {
-        setItems([...items, { id: Date.now(), garment: '', service: '', description: '', price: 0, priority: 'NORMAL' }]);
+        setItems([...items, { id: Date.now(), garment: '', service: '', description: '', price: 0, priority: 'normal' }]);
     };
 
     const removeItem = (id: number) => {
@@ -114,6 +116,22 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
         }));
     };
 
+    const validateTicketNumber = async (val: string) => {
+        if (!val || val.length === 0) return;
+        setIsValidatingTicket(true);
+        setTicketNumberError(null);
+        try {
+            const exists = await checkTicketExists(val);
+            if (exists) {
+                setTicketNumberError("EL NÚMERO DE NOTA YA EXISTE");
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsValidatingTicket(false);
+        }
+    };
+
     const handleKeyDown = (e: React.KeyboardEvent, nextFieldId?: string) => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -130,6 +148,11 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
 
         if (!ticketNumber || ticketNumber.length > 6) {
             setSubmittingError("Ingresa un número de nota válido (1-6 dígitos)");
+            return;
+        }
+
+        if (ticketNumberError) {
+            setSubmittingError("Corrige el número de nota antes de finalizar");
             return;
         }
 
@@ -191,13 +214,33 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
                             maxLength={6}
                             placeholder="000000"
                             required
-                            className="w-full bg-white border-2 border-slate-100 rounded-2xl px-10 h-14 font-black text-lg tracking-[0.2em] focus:border-orange-500 outline-none transition-all text-right"
+                            className={cn(
+                                "w-full bg-white border-2 rounded-2xl px-10 h-14 font-black text-lg tracking-[0.2em] outline-none transition-all text-right",
+                                ticketNumberError ? "border-red-500 bg-red-50" : "border-slate-100 focus:border-orange-500"
+                            )}
                             value={ticketNumber}
-                            onChange={(e) => setTicketNumber(e.target.value.replace(/\D/g, ''))}
-                            onKeyDown={(e) => handleKeyDown(e, 'field-client-search')}
+                            onChange={(e) => {
+                                setTicketNumber(e.target.value.replace(/\D/g, ''));
+                                setTicketNumberError(null);
+                            }}
+                            onBlur={(e) => validateTicketNumber(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    validateTicketNumber(ticketNumber);
+                                    handleKeyDown(e, 'field-client-search');
+                                }
+                            }}
                         />
-                        <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-400" size={18} />
+                        <Tag className={cn("absolute left-4 top-1/2 -translate-y-1/2 transition-colors", ticketNumberError ? "text-red-400" : "text-orange-400")} size={18} />
+                        {isValidatingTicket && (
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                <div className="w-4 h-4 border-2 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
+                            </div>
+                        )}
                     </div>
+                    {ticketNumberError && (
+                        <p className="text-[10px] font-black text-red-500 px-2 animate-in fade-in slide-in-from-top-1">{ticketNumberError}</p>
+                    )}
                 </div>
 
                 <div className="space-y-2 relative">
@@ -349,8 +392,8 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
                                         value={item.priority}
                                         onChange={(e) => updateItem(item.id, 'priority', e.target.value)}
                                     >
-                                        <option value="NORMAL">NORMAL</option>
-                                        <option value="EXPRESS">EXPRESS</option>
+                                        <option value="normal">NORMAL</option>
+                                        <option value="express">EXPRESS</option>
                                     </select>
                                     <div className="relative">
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-[11px]">$</span>

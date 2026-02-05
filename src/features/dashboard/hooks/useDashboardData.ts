@@ -235,7 +235,11 @@ export function useAdvancedTickets() {
         }
     };
 
-    return { createTicket, updateStatus, collectPayment, deliver, loading };
+    const checkTicketExists = async (ticketNumber: string) => {
+        return await dashboardService.checkTicketExists(ticketNumber);
+    };
+
+    return { createTicket, updateStatus, collectPayment, deliver, checkTicketExists, loading };
 }
 
 export function useDailyReport(branchId?: string) {

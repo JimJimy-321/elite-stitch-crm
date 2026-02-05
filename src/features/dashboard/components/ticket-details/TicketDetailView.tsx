@@ -122,7 +122,14 @@ export function TicketDetailView({ ticket, onUpdate }: Props) {
                                     <Scissors size={24} />
                                 </div>
                                 <div className="space-y-1">
-                                    <h4 className="font-black text-slate-800 uppercase text-xs tracking-tight">{item.garment_name} - {item.service_name}</h4>
+                                    <div className="flex items-center gap-2">
+                                        <h4 className="font-black text-slate-800 uppercase text-xs tracking-tight">{item.garment_name} - {item.service_name}</h4>
+                                        {item.priority === 'express' && (
+                                            <span className="px-2 py-0.5 bg-red-100 text-red-600 text-[8px] font-black uppercase rounded shadow-sm">
+                                                Express
+                                            </span>
+                                        )}
+                                    </div>
                                     <p className="text-[11px] text-slate-400 font-medium leading-relaxed">{item.description || 'Sin notas adicionales'}</p>
                                 </div>
                             </div>

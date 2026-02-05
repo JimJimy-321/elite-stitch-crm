@@ -23,26 +23,28 @@ export function useDashboardStats() {
     return { stats, loading, error };
 }
 
-export function useTickets() {
+export function useTickets(search?: string) {
     const [tickets, setTickets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<any>(null);
 
-    useEffect(() => {
-        async function fetchTickets() {
-            try {
-                const data = await dashboardService.getTickets();
-                setTickets(data);
-            } catch (err) {
-                setError(err);
-            } finally {
-                setLoading(false);
-            }
+    const fetchTickets = async () => {
+        setLoading(true);
+        try {
+            const data = await dashboardService.getTickets(search);
+            setTickets(data);
+        } catch (err) {
+            setError(err);
+        } finally {
+            setLoading(false);
         }
-        fetchTickets();
-    }, []);
+    };
 
-    return { tickets, loading, error };
+    useEffect(() => {
+        fetchTickets();
+    }, [search]);
+
+    return { tickets, loading, error, refetch: fetchTickets };
 }
 
 export function useClients() {
@@ -169,4 +171,89 @@ export function useGlobalConfig(key: string) {
     };
 
     return { config, loading, error, updateConfig, refetch: fetchConfig };
+}
+export function useGarments() {
+    const [garments, setGarments] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        dashboardService.getGarments().then(setGarments).finally(() => setLoading(false));
+    }, []);
+
+    return { garments, loading };
+}
+
+export function useServices() {
+    const [services, setServices] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        dashboardService.getServices().then(setServices).finally(() => setLoading(false));
+    }, []);
+
+    return { services, loading };
+}
+
+export function useAdvancedTickets() {
+    const [loading, setLoading] = useState(false);
+
+    const createTicket = async (ticketData: any, items: any[], payment: any) => {
+        setLoading(true);
+        try {
+            return await dashboardService.createAdvancedTicket(ticketData, items, payment);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const updateStatus = async (itemId: string, status: string) => {
+        setLoading(true);
+        try {
+            return await dashboardService.updateItemStatus(itemId, status);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const collectPayment = async (ticketId: string, amount: number, method: string, type: 'abono' | 'liquidacion', branchId: string) => {
+        setLoading(true);
+        try {
+            return await dashboardService.addPayment(ticketId, { amount, method, type, branch_id: branchId });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const deliver = async (ticketId: string) => {
+        setLoading(true);
+        try {
+            return await dashboardService.deliverTicket(ticketId);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return { createTicket, updateStatus, collectPayment, deliver, loading };
+}
+
+export function useDailyReport(branchId?: string) {
+    const [report, setReport] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        dashboardService.getDailyReport(branchId).then(setReport).finally(() => setLoading(false));
+    }, [branchId]);
+
+    return { report, loading };
+}
+
+export function useFinanceStats() {
+    const [stats, setStats] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        dashboardService.getFinanceStats().then(setStats).finally(() => setLoading(false));
+    }, []);
+
+    return { stats, loading };
 }

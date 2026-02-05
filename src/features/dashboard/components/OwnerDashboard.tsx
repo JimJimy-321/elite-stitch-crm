@@ -8,8 +8,10 @@ import {
     Clock,
     ArrowUpRight,
     ArrowDownRight,
-    MoreHorizontal
+    MoreHorizontal,
+    Wallet
 } from 'lucide-react';
+import { useFinanceStats } from '../hooks/useDashboardData';
 import {
     CartesianGrid,
     Tooltip,
@@ -43,6 +45,7 @@ const performanceData = [
 ];
 
 export function OwnerDashboard({ user }: Props) {
+    const { stats, loading } = useFinanceStats();
     const firstName = user?.full_name?.split(' ')[0] || 'Dueño';
 
     return (
@@ -55,35 +58,35 @@ export function OwnerDashboard({ user }: Props) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <KPICard
                     title="Ingresos Totales"
-                    value={formatCurrency(144000)}
-                    change="+12.5%"
+                    value={formatCurrency(stats?.totalIncome || 0)}
+                    change="+0%"
                     isPositive={true}
                     icon={TrendingUp}
                     color="orange"
                     border="border-orange-500"
                 />
                 <KPICard
-                    title="Tickets Activos"
-                    value="84"
-                    change="+5.2%"
+                    title="Cuentas por Cobrar"
+                    value={formatCurrency(stats?.totalReceivable || 0)}
+                    change="+0%"
                     isPositive={true}
-                    icon={ShoppingBag}
+                    icon={Wallet}
                     color="blue"
                     border="border-blue-500"
                 />
                 <KPICard
-                    title="Nuevos Clientes"
-                    value="24"
-                    change="-2.4%"
+                    title="Gastos Totales"
+                    value={formatCurrency(stats?.totalExpenses || 0)}
+                    change="0%"
                     isPositive={false}
                     icon={Users}
                     color="purple"
                     border="border-purple-500"
                 />
                 <KPICard
-                    title="Tiempo Promedio"
-                    value="3.2 días"
-                    change="-0.5 días"
+                    title="Balance Neto"
+                    value={formatCurrency(stats?.netBalance || 0)}
+                    change="0%"
                     isPositive={true}
                     icon={Clock}
                     color="emerald"

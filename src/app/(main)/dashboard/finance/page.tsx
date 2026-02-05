@@ -3,8 +3,21 @@
 import React from 'react';
 import { DollarSign, TrendingUp, TrendingDown, Wallet, Calendar, ArrowUpRight, ArrowDownRight, Activity, Receipt, CreditCard } from 'lucide-react';
 import { cn, formatCurrency } from '@/shared/lib/utils';
+import { useFinanceStats, useDailyReport } from '@/features/dashboard/hooks/useDashboardData';
+import { useAuthStore } from '@/features/auth/store/authStore';
 
 export default function FinancePage() {
+    const { user } = useAuthStore();
+    const { stats, loading: statsLoading } = useFinanceStats();
+    const { report, loading: reportLoading } = useDailyReport(user?.assigned_branch_id);
+
+    const isLoading = statsLoading || reportLoading;
+
+    if (isLoading) return <div className="p-20 text-center animate-pulse font-black text-slate-300 uppercase tracking-widest">Cargando Inteligencia Financiera...</div>;
+
+    const summary = report?.summary || { totalCash: 0, totalCard: 0, totalTransfer: 0, totalExpenses: 0 };
+    const movements = [...(report?.payments || []), ...(report?.expenses || [])]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     return (
         <div className="space-y-8 animate-fade-in">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -25,9 +38,9 @@ export default function FinancePage() {
 
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <FinanceStat label="Ingresos Totales" value={formatCurrency(42850)} trend="+12.4%" positive border="border-l-indigo-500" />
-                <FinanceStat label="Gastos Operativos" value={formatCurrency(12400)} trend="-3.2%" negative border="border-l-rose-500" />
-                <FinanceStat label="Balance Neto" value={formatCurrency(30450)} trend="+18.1%" positive primary border="border-l-orange-500" />
+                <FinanceStat label="Ingresos Totales" value={formatCurrency(stats?.totalIncome || 0)} trend="+0%" positive border="border-l-indigo-500" />
+                <FinanceStat label="Gastos Operativos" value={formatCurrency(stats?.totalExpenses || 0)} trend="0%" negative border="border-l-rose-500" />
+                <FinanceStat label="Cuentas por Cobrar" value={formatCurrency(stats?.totalReceivable || 0)} trend="+0%" positive primary border="border-l-orange-500" />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -59,10 +72,10 @@ export default function FinancePage() {
                         </div>
 
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 pt-4">
-                            <MiniStat label="Efectivo" value="$8,200" icon={<DollarSign size={14} />} />
-                            <MiniStat label="Stripe" value="$24,500" icon={<CreditCard size={14} />} />
-                            <MiniStat label="Transferencias" value="$9,150" icon={<TrendingUp size={14} />} />
-                            <MiniStat label="Otros" value="$1,000" icon={<Receipt size={14} />} />
+                            <MiniStat label="Efectivo" value={formatCurrency(summary.totalCash)} icon={<DollarSign size={14} />} />
+                            <MiniStat label="Tarjeta" value={formatCurrency(summary.totalCard)} icon={<CreditCard size={14} />} />
+                            <MiniStat label="Transferencias" value={formatCurrency(summary.totalTransfer)} icon={<TrendingUp size={14} />} />
+                            <MiniStat label="Gastos" value={formatCurrency(summary.totalExpenses)} icon={<Receipt size={14} />} />
                         </div>
                     </div>
                 </div>
@@ -79,10 +92,17 @@ export default function FinancePage() {
                     </div>
                     <div className="p-4 flex-1">
                         <div className="space-y-3">
-                            <MovementItem type="income" label="Pedido #4292 - Sucursal Norte" amount="+$1,450.00" time="Hace 12 min" />
-                            <MovementItem type="expense" label="Pago de Insumos - Telas Elite" amount="-$3,200.00" time="Hace 45 min" />
-                            <MovementItem type="income" label="Ajuste Pro - Cliente VIP" amount="+$850.00" time="Hace 2 horas" />
-                            <MovementItem type="income" label="Pedido #4291 - Sucursal Sur" amount="+$2,100.00" time="Hace 3 horas" />
+                            {movements.length > 0 ? movements.slice(0, 5).map((m: any) => (
+                                <MovementItem
+                                    key={m.id}
+                                    type={m.payment_type ? 'income' : 'expense'}
+                                    label={m.payment_type ? `Pago - Folio ${m.ticket_id.split('-')[0]}` : (m.description || 'Gasto Operativo')}
+                                    amount={m.payment_type ? `+${formatCurrency(m.amount)}` : `-${formatCurrency(m.amount)}`}
+                                    time={new Date(m.created_at).toLocaleTimeString()}
+                                />
+                            )) : (
+                                <p className="text-center py-10 text-xs font-bold text-slate-300 uppercase tracking-widest">Sin movimientos hoy</p>
+                            )}
                         </div>
                     </div>
                     <button className="p-8 text-[11px] font-black uppercase tracking-[0.25em] text-slate-400 hover:text-orange-600 hover:bg-orange-50 transition-all border-t border-slate-50 flex items-center justify-center gap-3 group">

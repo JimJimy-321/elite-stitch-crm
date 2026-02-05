@@ -4,10 +4,18 @@ import React from 'react';
 import { Ticket, Plus, Search, Filter, Sparkles, Activity, Clock, ChevronRight, User as UserIcon, MapPin } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { useTickets, useDashboardStats } from '@/features/dashboard/hooks/useDashboardData';
+import { Modal } from '@/shared/components/ui/Modal';
+import { AdvancedTicketForm } from '@/features/dashboard/components/AdvancedTicketForm';
+import { TicketDetailView } from '@/features/dashboard/components/ticket-details/TicketDetailView';
+import { useState } from 'react';
 
 export default function TicketsPage() {
-    const { tickets, loading: ticketsLoading } = useTickets();
+    const [searchTerm, setSearchTerm] = useState('');
+    const { tickets, loading: ticketsLoading, refetch } = useTickets(searchTerm) as any;
     const { stats, loading: statsLoading } = useDashboardStats();
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedTicket, setSelectedTicket] = useState<any>(null);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
     const isLoading = ticketsLoading || statsLoading;
 
@@ -23,7 +31,10 @@ export default function TicketsPage() {
                     </h1>
                     <p className="text-muted-foreground text-sm font-medium">Gestiona las órdenes, arreglos y entregas pendientes de todas tus sedes.</p>
                 </div>
-                <button className="bg-orange-500 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-orange-500/30 hover:bg-orange-600 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3 group">
+                <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="bg-orange-500 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-orange-500/30 hover:bg-orange-600 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3 group"
+                >
                     <Plus size={20} className="group-hover:rotate-90 transition-transform" />
                     Crear Ticket
                 </button>
@@ -36,8 +47,10 @@ export default function TicketsPage() {
                             <Search className="text-slate-300" size={20} />
                             <input
                                 type="text"
-                                placeholder="Buscar por cliente, folio o prenda..."
+                                placeholder="Buscar por Folio de Nota, Nombre o Teléfono..."
                                 className="bg-transparent border-none outline-none text-[15px] w-full font-bold text-foreground placeholder:text-slate-300"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
                         <button className="flex items-center gap-3 px-8 py-4 bg-white rounded-2xl border border-slate-100 hover:bg-orange-50 hover:border-orange-500/20 transition-all font-black text-[11px] uppercase tracking-widest text-slate-600 shadow-sm group">
@@ -61,8 +74,15 @@ export default function TicketsPage() {
                         </div>
                     ) : tickets.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {tickets.map((t) => (
-                                <TicketCard key={t.id} ticket={t} />
+                            {tickets.map((t: any) => (
+                                <TicketCard
+                                    key={t.id}
+                                    ticket={t}
+                                    onClick={() => {
+                                        setSelectedTicket(t);
+                                        setIsDetailModalOpen(true);
+                                    }}
+                                />
                             ))}
                         </div>
                     ) : (
@@ -93,6 +113,38 @@ export default function TicketsPage() {
                     )}
                 </div>
             </div>
+
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title="Nueva Orden de Servicio"
+                className="max-w-5xl"
+            >
+                <AdvancedTicketForm
+                    onClose={() => setIsModalOpen(false)}
+                    onSuccess={() => {
+                        setIsModalOpen(false);
+                        refetch?.();
+                    }}
+                />
+            </Modal>
+
+            <Modal
+                isOpen={isDetailModalOpen}
+                onClose={() => setIsDetailModalOpen(false)}
+                title={`Detalles de Orden - ${selectedTicket?.ticket_number}`}
+                className="max-w-5xl"
+            >
+                {selectedTicket && (
+                    <TicketDetailView
+                        ticket={selectedTicket}
+                        onUpdate={() => {
+                            setIsDetailModalOpen(false);
+                            refetch?.();
+                        }}
+                    />
+                )}
+            </Modal>
         </div>
     );
 }
@@ -109,7 +161,7 @@ function MiniTicketStat({ label, value, color, bg }: { label: string, value: str
     );
 }
 
-function TicketCard({ ticket }: { ticket: any }) {
+function TicketCard({ ticket, onClick }: { ticket: any, onClick: () => void }) {
     const statusMap: Record<string, { label: string, color: string, bg: string }> = {
         received: { label: 'Recibido', color: 'text-amber-600', bg: 'bg-amber-100' },
         processing: { label: 'En Proceso', color: 'text-orange-600', bg: 'bg-orange-100' },
@@ -120,7 +172,10 @@ function TicketCard({ ticket }: { ticket: any }) {
     const status = statusMap[ticket.status] || statusMap.received;
 
     return (
-        <div className="p-8 bg-white border border-slate-100 rounded-[2rem] hover:shadow-2xl hover:shadow-orange-500/10 transition-all group">
+        <div
+            onClick={onClick}
+            className="p-8 bg-white border border-slate-100 rounded-[2rem] hover:shadow-2xl hover:shadow-orange-500/10 transition-all group cursor-pointer"
+        >
             <div className="flex justify-between items-start mb-6">
                 <div className="space-y-1">
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">{ticket.ticket_number}</span>

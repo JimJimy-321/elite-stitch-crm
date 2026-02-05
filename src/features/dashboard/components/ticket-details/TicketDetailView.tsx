@@ -48,7 +48,7 @@ export function TicketDetailView({ ticket, onUpdate }: Props) {
 
     const handleDeliver = async () => {
         if (ticket.balance_due > 0) {
-            setError("No se puede entregar un ticket con saldo pendiente.");
+            setError("No se puede entregar una nota con saldo pendiente.");
             return;
         }
         try {

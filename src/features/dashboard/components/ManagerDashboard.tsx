@@ -200,9 +200,18 @@ export function ManagerDashboard({ user }: Props) {
                 <AdvancedTicketForm onClose={() => setIsCreateModalOpen(false)} onSuccess={() => { setIsCreateModalOpen(false); refetch(); }} />
             </Modal>
 
-            <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title={`Detalles - Nota ${selectedTicket?.ticket_number}`} className="max-w-5xl">
+            <Modal isOpen={isDetailModalOpen} onClose={() => { setIsDetailModalOpen(false); setSelectedTicket(null); }} title={`Detalles - Nota ${selectedTicket?.ticket_number}`} className="max-w-5xl">
                 {selectedTicket && (
-                    <TicketDetailView ticket={selectedTicket} onUpdate={() => { setIsDetailModalOpen(false); refetch(); }} />
+                    <TicketDetailView
+                        ticket={selectedTicket}
+                        onUpdate={async () => {
+                            const newTickets = await refetch();
+                            if (selectedTicket) {
+                                const updated = newTickets.find((t: any) => t.id === selectedTicket.id);
+                                if (updated) setSelectedTicket(updated);
+                            }
+                        }}
+                    />
                 )}
             </Modal>
         </div>

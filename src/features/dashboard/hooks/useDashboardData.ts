@@ -33,8 +33,10 @@ export function useTickets(search?: string) {
         try {
             const data = await dashboardService.getTickets(search);
             setTickets(data);
+            return data;
         } catch (err) {
             setError(err);
+            return [];
         } finally {
             setLoading(false);
         }

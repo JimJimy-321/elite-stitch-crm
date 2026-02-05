@@ -55,7 +55,7 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
         ],
         manager: [
             { icon: LayoutDashboard, label: 'Operativo', href: '/dashboard' },
-            { icon: Ticket, label: 'Tickets', href: '/dashboard/tickets' },
+            { icon: Ticket, label: 'Notas', href: '/dashboard/tickets' },
             { icon: Users, label: 'Clientes', href: '/dashboard/clients' },
             { icon: Wallet, label: 'Caja', href: '/dashboard/finance' },
             { icon: MessageSquare, label: 'Mensajes', href: '/dashboard/messages' },

@@ -27,7 +27,7 @@ export default function TicketsPage() {
                         <div className="p-2 bg-orange-500/10 rounded-xl border border-orange-500/20">
                             <Ticket className="text-orange-600" size={28} />
                         </div>
-                        Tickets de Servicio
+                        Notas de Servicio
                     </h1>
                     <p className="text-muted-foreground text-sm font-medium">Gestiona las órdenes, arreglos y entregas pendientes de todas tus sedes.</p>
                 </div>
@@ -36,7 +36,7 @@ export default function TicketsPage() {
                     className="bg-orange-500 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-orange-500/30 hover:bg-orange-600 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3 group"
                 >
                     <Plus size={20} className="group-hover:rotate-90 transition-transform" />
-                    Crear Ticket
+                    Nueva Nota
                 </button>
             </div>
 
@@ -76,7 +76,7 @@ export default function TicketsPage() {
                             <div className="h-4 w-48 bg-slate-100 rounded"></div>
                         </div>
                     ) : tickets.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                             {tickets.map((t: any) => (
                                 <TicketCard
                                     key={t.id}
@@ -103,13 +103,13 @@ export default function TicketsPage() {
                             <div className="space-y-3 max-w-sm px-6">
                                 <h3 className="text-2xl font-black text-foreground tracking-tight">Tu mesa de trabajo está limpia</h3>
                                 <p className="text-sm font-medium text-muted-foreground leading-relaxed">
-                                    No hay tickets activos en este momento. Registra un nuevo servicio para comenzar a trackear tus entregas con <span className="text-orange-600 font-bold underline decoration-orange-500/30 decoration-4">SastrePro Intelligence</span>.
+                                    No hay notas activas en este momento. Registra un nuevo servicio para comenzar a trackear tus entregas con <span className="text-orange-600 font-bold underline decoration-orange-500/30 decoration-4">SastrePro Intelligence</span>.
                                 </p>
                             </div>
 
                             <button className="mt-12 flex items-center gap-3 px-10 py-4 bg-foreground text-background rounded-2xl font-black text-[11px] uppercase tracking-[0.25em] hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-foreground/20 group/btn">
                                 <Sparkles size={18} className="text-orange-500 animate-pulse" />
-                                Registrar Primer Ticket
+                                Registrar Primera Nota
                                 <ChevronRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
                             </button>
                         </div>
@@ -134,16 +134,19 @@ export default function TicketsPage() {
 
             <Modal
                 isOpen={isDetailModalOpen}
-                onClose={() => setIsDetailModalOpen(false)}
-                title={`Detalles de Orden - ${selectedTicket?.ticket_number}`}
+                onClose={() => { setIsDetailModalOpen(false); setSelectedTicket(null); }}
+                title={`Detalles de Nota - ${selectedTicket?.ticket_number}`}
                 className="max-w-5xl"
             >
                 {selectedTicket && (
                     <TicketDetailView
                         ticket={selectedTicket}
-                        onUpdate={() => {
-                            setIsDetailModalOpen(false);
-                            refetch?.();
+                        onUpdate={async () => {
+                            const newTickets = await refetch();
+                            if (selectedTicket) {
+                                const updated = newTickets.find((t: any) => t.id === selectedTicket.id);
+                                if (updated) setSelectedTicket(updated);
+                            }
                         }}
                     />
                 )}
@@ -177,7 +180,7 @@ function TicketCard({ ticket, onClick }: { ticket: any, onClick: () => void }) {
     return (
         <div
             onClick={onClick}
-            className="p-8 bg-white border border-slate-100 rounded-[2rem] hover:shadow-2xl hover:shadow-orange-500/10 transition-all group cursor-pointer"
+            className="p-5 bg-white border border-slate-100 rounded-[2rem] hover:shadow-2xl hover:shadow-orange-500/10 transition-all group cursor-pointer"
         >
             <div className="flex justify-between items-start mb-6">
                 <div className="space-y-1">

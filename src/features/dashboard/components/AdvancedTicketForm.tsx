@@ -51,7 +51,7 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
     ).slice(0, 5);
 
     const [items, setItems] = useState<any[]>([
-        { id: Date.now(), garment: '', service: '', description: '', price: 0, priority: 'normal' }
+        { id: Date.now(), garment: '', service: '', description: '', price: 0, priority: 'NORMAL' }
     ]);
 
     const [payment, setPayment] = useState({
@@ -71,7 +71,7 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
 
     const discountAmount = calculateDiscount();
     const total = Math.max(0, subtotal - discountAmount);
-    const balance = total - payment.amount;
+    const balance = Math.max(0, total - payment.amount);
 
     const handleApplyDiscount = async () => {
         setDiscountError(null);
@@ -90,7 +90,7 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
     };
 
     const addItem = () => {
-        setItems([...items, { id: Date.now(), garment: '', service: '', description: '', price: 0, priority: 'normal' }]);
+        setItems([...items, { id: Date.now(), garment: '', service: '', description: '', price: 0, priority: 'NORMAL' }]);
     };
 
     const removeItem = (id: number) => {
@@ -100,13 +100,18 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
     };
 
     const updateItem = (id: number, field: string, value: any) => {
-        let processedValue = value;
-        if (field === 'price' || field === 'amount') {
-            processedValue = value === '' ? 0 : Number(value);
-        } else if (typeof value === 'string') {
-            processedValue = value.toUpperCase();
-        }
-        setItems(items.map(i => i.id === id ? { ...i, [field]: processedValue } : i));
+        setItems(prevItems => prevItems.map(i => {
+            if (i.id !== id) return i;
+
+            let processedValue = value;
+            if (field === 'price') {
+                processedValue = value === '' ? 0 : Number(value);
+            } else if (typeof value === 'string' && field !== 'priority') {
+                processedValue = value.toUpperCase();
+            }
+
+            return { ...i, [field]: processedValue };
+        }));
     };
 
     const handleKeyDown = (e: React.KeyboardEvent, nextFieldId?: string) => {
@@ -344,9 +349,8 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
                                         value={item.priority}
                                         onChange={(e) => updateItem(item.id, 'priority', e.target.value)}
                                     >
-                                        <option value="normal">NORMAL</option>
-                                        <option value="urgente">URGENTE</option>
-                                        <option value="express">EXPRESS</option>
+                                        <option value="NORMAL">NORMAL</option>
+                                        <option value="EXPRESS">EXPRESS</option>
                                     </select>
                                     <div className="relative">
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-[11px]">$</span>
@@ -420,7 +424,7 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
                                 value={payment.amount || ''}
                                 onChange={(e) => {
                                     const val = Number(e.target.value);
-                                    setPayment({ ...payment, amount: val > total ? total : val });
+                                    setPayment({ ...payment, amount: val });
                                 }}
                                 placeholder="0"
                             />
@@ -445,7 +449,7 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
                 <div className="pt-6 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="flex gap-10">
                         <div>
-                            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-1">Subtotal</p>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-1">Total Parcial</p>
                             <p className="text-lg font-black text-slate-400 font-mono">${subtotal.toLocaleString()}</p>
                         </div>
                         <div>

@@ -60,14 +60,15 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
         method: 'efectivo'
     });
 
-    const subtotal = items.reduce((acc, item) => acc + (Number(item.price) || 0), 0);
+    const subtotal = items.reduce((acc, item) => acc + (parseFloat(String(item.price)) || 0), 0);
 
     const calculateDiscount = () => {
         if (!appliedDiscount) return 0;
+        const discValue = parseFloat(String(appliedDiscount.value)) || 0;
         if (appliedDiscount.discount_type === 'percentage') {
-            return (subtotal * appliedDiscount.value) / 100;
+            return (subtotal * discValue) / 100;
         }
-        return appliedDiscount.value;
+        return discValue;
     };
 
     const discountAmount = calculateDiscount();
@@ -106,7 +107,8 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
 
             let processedValue = value;
             if (field === 'price') {
-                processedValue = value === '' ? 0 : Number(value);
+                // Asegurar que guardamos como número pero permitimos vacío para UX
+                processedValue = value === '' ? 0 : parseFloat(value);
             } else if (typeof value === 'string' && field !== 'priority') {
                 processedValue = value.toUpperCase();
             }
@@ -310,11 +312,20 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Sucursal</label>
                     <div className="relative">
                         <select
-                            disabled
-                            className="w-full bg-slate-100 border-2 border-slate-100 rounded-2xl px-5 h-14 font-bold text-slate-500 appearance-none cursor-not-allowed"
+                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 h-14 font-bold text-slate-700 outline-none focus:border-orange-500 appearance-none cursor-pointer"
                             value={selectedBranch?.id || ''}
+                            onChange={(e) => {
+                                const branch = branches.find(b => b.id === e.target.value);
+                                if (branch) setSelectedBranch(branch);
+                            }}
                         >
-                            <option value={selectedBranch?.id}>{selectedBranch?.name || 'Cargando...'}</option>
+                            {branches.length === 0 ? (
+                                <option value="">Cargando...</option>
+                            ) : (
+                                branches.map(b => (
+                                    <option key={b.id} value={b.id}>{b.name.toUpperCase()}</option>
+                                ))
+                            )}
                         </select>
                     </div>
                 </div>
@@ -438,7 +449,12 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
                                 type="text"
                                 className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-5 h-12 outline-none focus:ring-2 focus:ring-orange-500 transition-all font-black uppercase text-xs"
                                 value={discountCode}
-                                onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                                onChange={(e) => {
+                                    setDiscountCode(e.target.value.toUpperCase());
+                                    setDiscountError(null);
+                                    if (appliedDiscount) setAppliedDiscount(null);
+                                }}
+                                onBlur={handleApplyDiscount}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
                                         e.preventDefault();

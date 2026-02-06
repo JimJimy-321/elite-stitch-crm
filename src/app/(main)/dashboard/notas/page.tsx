@@ -3,21 +3,23 @@
 import React from 'react';
 import { Ticket, Plus, Search, Filter, Sparkles, Activity, Clock, ChevronRight, User as UserIcon, MapPin } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-import { useTickets, useDashboardStats } from '@/features/dashboard/hooks/useDashboardData';
+import { useNotas, useDashboardStats } from '@/features/dashboard/hooks/useDashboardData';
 import { Modal } from '@/shared/components/ui/Modal';
-import { AdvancedTicketForm } from '@/features/dashboard/components/AdvancedTicketForm';
-import { TicketDetailView } from '@/features/dashboard/components/ticket-details/TicketDetailView';
+import { AdvancedNotaForm } from '@/features/dashboard/components/AdvancedNotaForm';
+import { NotaDetailView } from '@/features/dashboard/components/nota-details/NotaDetailView';
+import { useDebounce } from '@/shared/hooks/useDebounce';
 import { useState } from 'react';
 
-export default function TicketsPage() {
+export default function NotasPage() {
     const [searchTerm, setSearchTerm] = useState('');
-    const { tickets, loading: ticketsLoading, refetch } = useTickets(searchTerm) as any;
+    const debouncedSearch = useDebounce(searchTerm, 500);
+    const { notas, loading: notasLoading, refetch } = useNotas(debouncedSearch) as any;
     const { stats, loading: statsLoading } = useDashboardStats();
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedTicket, setSelectedTicket] = useState<any>(null);
+    const [selectedNota, setSelectedNota] = useState<any>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-    const isLoading = ticketsLoading || statsLoading;
+    const isLoading = notasLoading || statsLoading;
 
     return (
         <div className="space-y-10 animate-fade-in">
@@ -64,10 +66,10 @@ export default function TicketsPage() {
 
                     {/* Stats bar */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-                        <MiniTicketStat label="Recibidos" value={stats?.received?.toString() || "0"} color="text-amber-500" bg="bg-amber-50" />
-                        <MiniTicketStat label="En Proceso" value={stats?.processing?.toString() || "0"} color="text-orange-500" bg="bg-orange-50" />
-                        <MiniTicketStat label="Listos" value={stats?.ready?.toString() || "0"} color="text-emerald-500" bg="bg-emerald-50" />
-                        <MiniTicketStat label="Entregados" value={stats?.delivered?.toString() || "0"} color="text-slate-500" bg="bg-slate-50" />
+                        <MiniNotaStat label="Recibidos" value={stats?.received?.toString() || "0"} color="text-amber-500" bg="bg-amber-50" />
+                        <MiniNotaStat label="En Proceso" value={stats?.processing?.toString() || "0"} color="text-orange-500" bg="bg-orange-50" />
+                        <MiniNotaStat label="Listos" value={stats?.ready?.toString() || "0"} color="text-emerald-500" bg="bg-emerald-50" />
+                        <MiniNotaStat label="Entregados" value={stats?.delivered?.toString() || "0"} color="text-slate-500" bg="bg-slate-50" />
                     </div>
 
                     {isLoading ? (
@@ -75,14 +77,14 @@ export default function TicketsPage() {
                             <div className="w-16 h-16 bg-slate-100 rounded-full mb-4"></div>
                             <div className="h-4 w-48 bg-slate-100 rounded"></div>
                         </div>
-                    ) : tickets.length > 0 ? (
+                    ) : notas.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {tickets.map((t: any) => (
-                                <TicketCard
-                                    key={t.id}
-                                    ticket={t}
+                            {notas.map((n: any) => (
+                                <NotaCard
+                                    key={n.id}
+                                    nota={n}
                                     onClick={() => {
-                                        setSelectedTicket(t);
+                                        setSelectedNota(n);
                                         setIsDetailModalOpen(true);
                                     }}
                                 />
@@ -123,7 +125,7 @@ export default function TicketsPage() {
                 title="Nueva Orden de Servicio"
                 className="max-w-5xl"
             >
-                <AdvancedTicketForm
+                <AdvancedNotaForm
                     onClose={() => setIsModalOpen(false)}
                     onSuccess={() => {
                         setIsModalOpen(false);
@@ -134,18 +136,18 @@ export default function TicketsPage() {
 
             <Modal
                 isOpen={isDetailModalOpen}
-                onClose={() => { setIsDetailModalOpen(false); setSelectedTicket(null); }}
-                title={`Detalles de Nota - ${selectedTicket?.ticket_number}`}
+                onClose={() => { setIsDetailModalOpen(false); setSelectedNota(null); }}
+                title={`Detalles de Nota - ${selectedNota?.ticket_number}`}
                 className="max-w-5xl"
             >
-                {selectedTicket && (
-                    <TicketDetailView
-                        ticket={selectedTicket}
+                {selectedNota && (
+                    <NotaDetailView
+                        nota={selectedNota}
                         onUpdate={async () => {
-                            const newTickets = await refetch();
-                            if (selectedTicket) {
-                                const updated = newTickets.find((t: any) => t.id === selectedTicket.id);
-                                if (updated) setSelectedTicket(updated);
+                            const newNotas = await refetch();
+                            if (selectedNota) {
+                                const updated = newNotas.find((n: any) => n.id === selectedNota.id);
+                                if (updated) setSelectedNota(updated);
                             }
                         }}
                     />
@@ -155,7 +157,7 @@ export default function TicketsPage() {
     );
 }
 
-function MiniTicketStat({ label, value, color, bg }: { label: string, value: string, color: string, bg: string }) {
+function MiniNotaStat({ label, value, color, bg }: { label: string, value: string, color: string, bg: string }) {
     return (
         <div className={cn(
             "p-6 rounded-[1.75rem] border border-slate-100 text-center transition-all shadow-sm hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1 group",
@@ -167,7 +169,7 @@ function MiniTicketStat({ label, value, color, bg }: { label: string, value: str
     );
 }
 
-function TicketCard({ ticket, onClick }: { ticket: any, onClick: () => void }) {
+function NotaCard({ nota, onClick }: { nota: any, onClick: () => void }) {
     const statusMap: Record<string, { label: string, color: string, bg: string }> = {
         received: { label: 'Recibido', color: 'text-amber-600', bg: 'bg-amber-100' },
         processing: { label: 'En Proceso', color: 'text-orange-600', bg: 'bg-orange-100' },
@@ -175,7 +177,7 @@ function TicketCard({ ticket, onClick }: { ticket: any, onClick: () => void }) {
         delivered: { label: 'Entregado', color: 'text-slate-600', bg: 'bg-slate-100' }
     };
 
-    const status = statusMap[ticket.status] || statusMap.received;
+    const status = statusMap[nota.status] || statusMap.received;
 
     return (
         <div
@@ -184,8 +186,8 @@ function TicketCard({ ticket, onClick }: { ticket: any, onClick: () => void }) {
         >
             <div className="flex justify-between items-start mb-6">
                 <div className="space-y-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">{ticket.ticket_number}</span>
-                    <h4 className="font-black text-lg text-foreground truncate max-w-[150px]">{ticket.notes || 'Arreglo general'}</h4>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">{nota.ticket_number}</span>
+                    <h4 className="font-black text-lg text-foreground truncate max-w-[150px]">{nota.notes || 'Arreglo general'}</h4>
                 </div>
                 <div className={cn("px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest", status.bg, status.color)}>
                     {status.label}
@@ -195,22 +197,22 @@ function TicketCard({ ticket, onClick }: { ticket: any, onClick: () => void }) {
             <div className="space-y-4 mb-8">
                 <div className="flex items-center gap-3 text-slate-500">
                     <UserIcon size={16} className="text-orange-500" />
-                    <span className="text-sm font-bold truncate">{ticket.client?.full_name || 'Sin cliente'}</span>
+                    <span className="text-sm font-bold truncate">{nota.client?.full_name || 'Sin cliente'}</span>
                 </div>
                 <div className="flex items-center gap-3 text-slate-500">
                     <MapPin size={16} className="text-orange-500" />
-                    <span className="text-sm font-bold truncate">{ticket.branch?.name || 'Sucursal Principal'}</span>
+                    <span className="text-sm font-bold truncate">{nota.branch?.name || 'Sucursal Principal'}</span>
                 </div>
                 <div className="flex items-center gap-3 text-slate-500">
                     <Clock size={16} className="text-orange-500" />
-                    <span className="text-sm font-bold">{new Date(ticket.delivery_date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}</span>
+                    <span className="text-sm font-bold">{new Date(nota.delivery_date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}</span>
                 </div>
             </div>
 
             <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
                 <div>
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-300 block mb-1">Total</span>
-                    <span className="text-xl font-black text-foreground">${Number(ticket.total_amount).toLocaleString('es-MX')}</span>
+                    <span className="text-xl font-black text-foreground">${Number(nota.total_amount).toLocaleString('es-MX')}</span>
                 </div>
                 <button className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 hover:bg-orange-500 hover:text-white transition-all shadow-inner">
                     <ChevronRight size={20} />

@@ -3,18 +3,18 @@ import { createClient } from '@/lib/supabase/client';
 const supabase = createClient();
 
 export const dashboardService = {
-    async checkTicketExists(ticketNumber: string) {
+    async checkNotaExists(notaNumber: string) {
         const { data, error } = await supabase
             .from('tickets')
             .select('id')
-            .eq('ticket_number', ticketNumber)
+            .eq('ticket_number', notaNumber)
             .maybeSingle();
 
         if (error) throw error;
         return !!data;
     },
 
-    async getTickets(search?: string) {
+    async getNotas(search?: string) {
         let query = supabase
             .from('tickets')
             .select(`
@@ -26,15 +26,23 @@ export const dashboardService = {
 
         if (search) {
             // Busqueda por Nota (exacto o parte), Nombre cliente, o Telefono
-            query = query.or(`ticket_number.ilike.%${search}%, notes.ilike.%${search}%`);
-            // Nota: Para buscar en el cliente necesitamos filtrar los resultados o hacer un join complejo.
-            // Por simplicidad en este MVP, buscaremos en tickets y luego filtraremos o usaremos una función RPC si es necesario.
+            // Nota: Para búsquedas en tablas relacionadas vía .or(), Supabase tiene limitaciones
+            // Usamos una aproximación eficiente: si es número buscamos por nota/teléfono, si es texto por nombre
+            const isNumeric = /^\d+$/.test(search);
+            if (isNumeric) {
+                query = query.or(`ticket_number.ilike.%${search}%`);
+            } else {
+                // Para buscar por nombre de cliente que está en otra tabla, usualmente se requiere una vista 
+                // o buscar clientes primero. Pero por simplicidad y eficiencia en Supabase:
+                query = query.ilike('notes', `%${search}%`);
+            }
         }
 
-        const { data, error } = await query.order('created_at', { ascending: false });
+        const { data, error } = await query.order('created_at', { ascending: false }).limit(50);
 
         if (error) throw error;
 
+        // Post-filtrado ligero para lo que Supabase no permite en .or() con joins complejos sin vistas
         if (search) {
             return data.filter((t: any) =>
                 t.ticket_number?.includes(search) ||
@@ -46,11 +54,29 @@ export const dashboardService = {
         return data;
     },
 
-    async getClients() {
+    async getClients(search?: string) {
+        let query = supabase
+            .from('clients')
+            .select('*');
+
+        if (search) {
+            query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`);
+        }
+
+        const { data, error } = await query
+            .order('created_at', { ascending: false })
+            .limit(20);
+
+        if (error) throw error;
+        return data;
+    },
+
+    async createClient(clientData: { full_name: string, phone: string, email?: string, organization_id: string, last_branch_id?: string }) {
         const { data, error } = await supabase
             .from('clients')
-            .select('*')
-            .order('created_at', { ascending: false });
+            .insert(clientData)
+            .select()
+            .single();
 
         if (error) throw error;
         return data;
@@ -175,20 +201,20 @@ export const dashboardService = {
         return data;
     },
 
-    async createAdvancedTicket(ticketData: any, items: any[], payment: any) {
-        // 1. Crear el Ticket base
+    async createAdvancedNota(notaData: any, items: any[], payment: any) {
+        // 1. Crear la Nota base
         const { data: ticket, error: tError } = await supabase
             .from('tickets')
             .insert({
-                ticket_number: ticketData.ticket_number,
-                branch_id: ticketData.branch_id,
-                client_id: ticketData.client_id,
-                delivery_date: ticketData.delivery_date,
-                notes: ticketData.notes,
-                total_amount: ticketData.total_amount,
-                balance_due: ticketData.balance_due,
-                discount_id: ticketData.discount_id,
-                discount_amount: ticketData.discount_amount,
+                ticket_number: notaData.ticket_number,
+                branch_id: notaData.branch_id,
+                client_id: notaData.client_id,
+                delivery_date: notaData.delivery_date,
+                notes: notaData.notes,
+                total_amount: notaData.total_amount,
+                balance_due: notaData.balance_due,
+                discount_id: notaData.discount_id,
+                discount_amount: notaData.discount_amount,
                 status: 'received'
             })
             .select()
@@ -220,7 +246,7 @@ export const dashboardService = {
                     amount: payment.amount,
                     payment_method: payment.method,
                     payment_type: 'anticipo',
-                    branch_id: ticketData.branch_id
+                    branch_id: notaData.branch_id
                 });
             if (pError) throw pError;
         }
@@ -309,11 +335,11 @@ export const dashboardService = {
         };
     },
 
-    async addPayment(ticketId: string, paymentData: { amount: number, method: string, type: 'abono' | 'liquidacion', branch_id: string }) {
+    async addPayment(notaId: string, paymentData: { amount: number, method: string, type: 'abono' | 'liquidacion', branch_id: string }) {
         const { data: payment, error: pError } = await supabase
             .from('ticket_payments')
             .insert({
-                ticket_id: ticketId,
+                ticket_id: notaId,
                 amount: paymentData.amount,
                 payment_method: paymentData.method,
                 payment_type: paymentData.type,
@@ -324,13 +350,13 @@ export const dashboardService = {
 
         if (pError) throw pError;
 
-        const { data: ticket } = await supabase.from('tickets').select('balance_due').eq('id', ticketId).single();
+        const { data: ticket } = await supabase.from('tickets').select('balance_due').eq('id', notaId).single();
         const newBalance = Math.max(0, Number(ticket?.balance_due || 0) - paymentData.amount);
 
         const { error: tError } = await supabase
             .from('tickets')
             .update({ balance_due: newBalance })
-            .eq('id', ticketId);
+            .eq('id', notaId);
 
         if (tError) throw tError;
         return payment;
@@ -346,7 +372,7 @@ export const dashboardService = {
             .single();
         if (iError) throw iError;
 
-        // 2. Fetch all items for this ticket to determine ticket status
+        // 2. Fetch all items for this nota to determine nota status
         const { data: allItems, error: aError } = await supabase
             .from('ticket_items')
             .select('status')
@@ -354,20 +380,20 @@ export const dashboardService = {
 
         if (aError) throw aError;
 
-        // Determine new ticket status
-        let newTicketStatus = 'received';
+        // Determine new nota status
+        let newNotaStatus = 'received';
         const states = allItems.map(i => i.status);
 
         if (states.every(s => s === 'finished')) {
-            newTicketStatus = 'ready';
+            newNotaStatus = 'ready';
         } else if (states.some(s => s === 'in_process' || s === 'finished')) {
-            newTicketStatus = 'processing';
+            newNotaStatus = 'processing';
         }
 
-        // 3. Update the ticket
+        // 3. Update the nota
         const { error: tError } = await supabase
             .from('tickets')
-            .update({ status: newTicketStatus })
+            .update({ status: newNotaStatus })
             .eq('id', item.ticket_id);
 
         if (tError) throw tError;
@@ -375,11 +401,11 @@ export const dashboardService = {
         return item;
     },
 
-    async deliverTicket(ticketId: string) {
+    async deliverNota(notaId: string) {
         const { error } = await supabase
             .from('tickets')
             .update({ status: 'delivered', updated_at: new Date().toISOString() })
-            .eq('id', ticketId);
+            .eq('id', notaId);
         if (error) throw error;
         return true;
     }

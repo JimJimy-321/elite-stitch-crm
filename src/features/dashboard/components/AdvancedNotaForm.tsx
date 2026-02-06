@@ -2,31 +2,33 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Save, X, User, Phone, Calendar, Scissors, Tag, CreditCard, AlertCircle } from 'lucide-react';
-import { useClients, useBranches, useGarments, useServices, useAdvancedTickets } from '../hooks/useDashboardData';
+import { useClients, useBranches, useGarments, useServices, useAdvancedNotas } from '../hooks/useDashboardData';
 import { dashboardService } from '../services/dashboardService';
 import { cn } from '@/shared/lib/utils';
 import { translateError } from '@/shared/lib/error-handler';
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { useDebounce } from '@/shared/hooks/useDebounce';
 
-interface AdvancedTicketFormProps {
+interface AdvancedNotaFormProps {
     onClose: () => void;
     onSuccess: () => void;
 }
 
-export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormProps) {
+export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) {
     const { user } = useAuthStore();
-    const { clients } = useClients();
+    const [clientSearch, setClientSearch] = useState('');
+    const debouncedClientSearch = useDebounce(clientSearch, 500);
+    const { clients } = useClients(debouncedClientSearch);
     const { branches } = useBranches();
     const { garments } = useGarments();
     const { services } = useServices();
-    const { createTicket, checkTicketExists, loading: isSubmitting } = useAdvancedTickets();
+    const { createNota, checkNotaExists, loading: isSubmitting } = useAdvancedNotas();
     const [submittingError, setSubmittingError] = useState<string | null>(null);
-    const [ticketNumberError, setTicketNumberError] = useState<string | null>(null);
-    const [isValidatingTicket, setIsValidatingTicket] = useState(false);
+    const [notaNumberError, setNotaNumberError] = useState<string | null>(null);
+    const [isValidatingNota, setIsValidatingNota] = useState(false);
 
-    const [ticketNumber, setTicketNumber] = useState<string>('');
+    const [notaNumber, setNotaNumber] = useState<string>('');
     const [selectedClient, setSelectedClient] = useState<any>(null);
-    const [clientSearch, setClientSearch] = useState('');
     const [showClientResults, setShowClientResults] = useState(false);
 
     // Auto-select branch from user
@@ -47,10 +49,7 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
     const [appliedDiscount, setAppliedDiscount] = useState<any>(null);
     const [discountError, setDiscountError] = useState<string | null>(null);
 
-    const filteredClients = clients.filter(c =>
-        c.full_name?.toLowerCase().includes(clientSearch.toLowerCase()) ||
-        c.phone?.includes(clientSearch)
-    ).slice(0, 5);
+    const filteredClients = clients.slice(0, 5);
 
     const [items, setItems] = useState<any[]>([
         { id: Date.now(), garment: '', service: '', description: '', price: 0, priority: 'normal' }
@@ -116,19 +115,19 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
         }));
     };
 
-    const validateTicketNumber = async (val: string) => {
+    const validateNotaNumber = async (val: string) => {
         if (!val || val.length === 0) return;
-        setIsValidatingTicket(true);
-        setTicketNumberError(null);
+        setIsValidatingNota(true);
+        setNotaNumberError(null);
         try {
-            const exists = await checkTicketExists(val);
+            const exists = await checkNotaExists(val);
             if (exists) {
-                setTicketNumberError("EL NÚMERO DE NOTA YA EXISTE");
+                setNotaNumberError("EL NÚMERO DE NOTA YA EXISTE");
             }
         } catch (err) {
             console.error(err);
         } finally {
-            setIsValidatingTicket(false);
+            setIsValidatingNota(false);
         }
     };
 
@@ -146,12 +145,12 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
         e.preventDefault();
         setSubmittingError(null);
 
-        if (!ticketNumber || ticketNumber.length > 6) {
+        if (!notaNumber || notaNumber.length > 6) {
             setSubmittingError("Ingresa un número de nota válido (1-6 dígitos)");
             return;
         }
 
-        if (ticketNumberError) {
+        if (notaNumberError) {
             setSubmittingError("Corrige el número de nota antes de finalizar");
             return;
         }
@@ -161,8 +160,8 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
             return;
         }
 
-        const ticketData = {
-            ticket_number: ticketNumber,
+        const notaData = {
+            ticket_number: notaNumber,
             branch_id: selectedBranch?.id || branches[0]?.id,
             client_id: selectedClient.id,
             delivery_date: deliveryDate,
@@ -187,7 +186,7 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
         };
 
         try {
-            await createTicket(ticketData, itemData, paymentData);
+            await createNota(notaData, itemData, paymentData);
             onSuccess();
         } catch (err: any) {
             console.error(err);
@@ -209,37 +208,41 @@ export function AdvancedTicketForm({ onClose, onSuccess }: AdvancedTicketFormPro
                     <label className="text-[10px] font-black uppercase tracking-widest text-orange-500 ml-2">Número de Nota</label>
                     <div className="relative group">
                         <input
-                            id="field-ticket-number"
+                            id="field-nota-number"
                             type="text"
                             maxLength={6}
                             placeholder="000000"
                             required
                             className={cn(
                                 "w-full bg-white border-2 rounded-2xl px-10 h-14 font-black text-lg tracking-[0.2em] outline-none transition-all text-right",
-                                ticketNumberError ? "border-red-500 bg-red-50" : "border-slate-100 focus:border-orange-500"
+                                notaNumberError ? "border-red-500 bg-red-50" : "border-slate-100 focus:border-orange-500"
                             )}
-                            value={ticketNumber}
+                            value={notaNumber}
                             onChange={(e) => {
-                                setTicketNumber(e.target.value.replace(/\D/g, ''));
-                                setTicketNumberError(null);
+                                const val = e.target.value.trim().replace(/\D/g, '');
+                                setNotaNumber(val);
+                                setNotaNumberError(null);
                             }}
-                            onBlur={(e) => validateTicketNumber(e.target.value)}
+                            onBlur={(e) => {
+                                const val = e.target.value.trim();
+                                if (val) validateNotaNumber(val);
+                            }}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
-                                    validateTicketNumber(ticketNumber);
+                                    validateNotaNumber(notaNumber);
                                     handleKeyDown(e, 'field-client-search');
                                 }
                             }}
                         />
-                        <Tag className={cn("absolute left-4 top-1/2 -translate-y-1/2 transition-colors", ticketNumberError ? "text-red-400" : "text-orange-400")} size={18} />
-                        {isValidatingTicket && (
+                        <Tag className={cn("absolute left-4 top-1/2 -translate-y-1/2 transition-colors", notaNumberError ? "text-red-400" : "text-orange-400")} size={18} />
+                        {isValidatingNota && (
                             <div className="absolute right-4 top-1/2 -translate-y-1/2">
                                 <div className="w-4 h-4 border-2 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
                             </div>
                         )}
                     </div>
-                    {ticketNumberError && (
-                        <p className="text-[10px] font-black text-red-500 px-2 animate-in fade-in slide-in-from-top-1">{ticketNumberError}</p>
+                    {notaNumberError && (
+                        <p className="text-[10px] font-black text-red-500 px-2 animate-in fade-in slide-in-from-top-1">{notaNumberError}</p>
                     )}
                 </div>
 

@@ -1,114 +1,90 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
-    Plus,
-    Scissors,
-    CheckCircle2,
-    Search,
-    AlertTriangle,
-    History,
-    Calendar,
-    ChevronRight,
-    Package,
-    Clock,
+    Ticket,
+    Users,
     TrendingUp,
+    Clock,
+    Package,
+    AlertTriangle,
+    Search,
+    ChevronRight,
+    Calendar,
     ArrowUpRight,
-    ArrowDownRight
+    Scissors,
+    History,
+    CheckCircle2,
+    Plus,
+    Activity
 } from 'lucide-react';
-import { useDailyReport, useTickets, useDashboardStats, useAdvancedTickets } from '../hooks/useDashboardData';
+import { cn, formatCurrency } from '@/shared/lib/utils';
+import { useNotas, useAdvancedNotas, useDashboardStats } from '../hooks/useDashboardData';
+import { NotaDetailView } from './nota-details/NotaDetailView';
+import { AdvancedNotaForm } from './AdvancedNotaForm';
 import { Modal } from '@/shared/components/ui/Modal';
-import { TicketDetailView } from './ticket-details/TicketDetailView';
-import { AdvancedTicketForm } from './AdvancedTicketForm';
-import { useState } from 'react';
-import {
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    XAxis,
-    YAxis,
-    BarChart,
-    Bar
-} from 'recharts';
-import { formatCurrency, cn } from '@/shared/lib/utils';
+import { useDebounce } from '@/shared/hooks/useDebounce';
 
 interface Props {
-    user: any;
+    user?: any;
 }
 
-const operationalData = [
-    { name: 'Lun', tickets: 12, completados: 8 },
-    { name: 'Mar', tickets: 15, completados: 12 },
-    { name: 'Mie', tickets: 10, completados: 9 },
-    { name: 'Jue', tickets: 18, completados: 14 },
-    { name: 'Vie', tickets: 22, completados: 18 },
-    { name: 'Sab', tickets: 25, completados: 20 },
-    { name: 'Dom', tickets: 8, completados: 7 },
-];
-
-export function ManagerDashboard({ user }: Props) {
+export function ManagerDashboard({ user: initialUser }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [selectedTicket, setSelectedTicket] = useState<any>(null);
+    const debouncedSearch = useDebounce(searchTerm, 500);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-
-    const { report, loading: reportLoading } = useDailyReport(user?.assigned_branch_id);
-    const { tickets, loading: ticketsLoading, refetch } = useTickets(searchTerm);
+    const [isNewNotaModalOpen, setIsNewNotaModalOpen] = useState(false);
+    const [selectedNota, setSelectedNota] = useState<any>(null);
     const { stats, loading: statsLoading } = useDashboardStats();
 
-    const firstName = user?.full_name?.split(' ')[0] || 'Encargado';
-    const summary = report?.summary || { totalCash: 0, totalCard: 0, totalTransfer: 0, totalExpenses: 0 };
-    const totalVenta = summary.totalCash + summary.totalCard + summary.totalTransfer;
+    const { notas, loading: notasLoading, refetch } = useNotas(debouncedSearch);
 
-    const isLoading = reportLoading || ticketsLoading || statsLoading;
+    const isLoading = notasLoading || statsLoading;
 
     // Lógica de Prioridades
     const today = new Date().toISOString().split('T')[0];
-    const urgentTickets = tickets.filter(t =>
+    const urgentNotas = notas.filter(t =>
         t.status !== 'delivered' &&
         (t.delivery_date === today || t.items?.some((i: any) => i.priority === 'express'))
     ).slice(0, 10);
-    const overdueTickets = tickets.filter(t => t.status !== 'delivered' && t.delivery_date < today).slice(0, 5);
-    const abandonedTickets = tickets.filter(t => {
+    const overdueNotas = notas.filter(t => t.status !== 'delivered' && t.delivery_date < today).slice(0, 5);
+    const abandonedNotas = notas.filter(t => {
         const lastUpdate = new Date(t.updated_at);
         const diffDays = Math.ceil((new Date().getTime() - lastUpdate.getTime()) / (1000 * 3600 * 24));
         return t.status === 'ready' && diffDays >= 30;
     });
 
+    // KPI Calc
+    const totalVenta = notas.reduce((acc, t) => acc + (t.total_amount || 0), 0);
+
+
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-            {/* Command Center Header */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                <div className="flex flex-col gap-2">
-                    <h1 className="text-4xl font-black tracking-tight text-foreground flex items-center gap-4">
-                        <span className="p-2 bg-orange-500 rounded-2xl shadow-xl shadow-orange-500/20">
-                            <Scissors className="text-white" size={24} />
-                        </span>
-                        Command Center
+        <div className="space-y-10 animate-fade-in pb-20">
+            {/* Header / Search */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="space-y-2">
+                    <h1 className="text-4xl font-black tracking-tighter text-slate-900 flex items-center gap-4">
+                        Centro de Control <span className="text-orange-500">Operativo</span>
                     </h1>
-                    <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        Sede: {firstName} · {new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
-                    </p>
+                    <p className="text-slate-500 font-bold text-sm uppercase tracking-widest">SastrePro Intelligence v3.0</p>
                 </div>
 
-                <div className="flex items-center gap-4 flex-1 max-w-2xl">
-                    <div className="relative flex-1 group">
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 bg-white px-6 py-4 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 w-full md:w-96 focus-within:ring-4 focus-within:ring-orange-500/10 transition-all">
+                        <Search className="text-slate-300" size={20} />
                         <input
                             type="text"
-                            placeholder="TECLEA NOTA, NOMBRE O TELÉFONO..."
-                            className="w-full bg-white border-2 border-slate-100 rounded-2xl px-12 py-5 outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all font-black text-sm tracking-widest uppercase placeholder:text-slate-300 shadow-sm"
+                            placeholder="Buscar notas o clientes..."
+                            className="bg-transparent border-none outline-none text-sm font-bold w-full uppercase placeholder:text-slate-300"
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => setSearchTerm(e.target.value.toUpperCase())}
                         />
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-orange-500 transition-colors" size={20} />
                     </div>
                     <button
-                        onClick={() => setIsCreateModalOpen(true)}
-                        className="bg-orange-500 text-white px-8 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center gap-3 shadow-2xl shadow-orange-500/30 hover:bg-orange-600 transition-all active:scale-95 flex-shrink-0"
+                        onClick={() => setIsNewNotaModalOpen(true)}
+                        className="bg-orange-500 text-white p-4 rounded-2xl shadow-xl shadow-orange-500/30 hover:scale-110 active:scale-95 transition-all"
                     >
-                        <Plus size={20} />
-                        Nueva Nota
+                        <Plus size={24} />
                     </button>
                 </div>
             </div>
@@ -116,54 +92,60 @@ export function ManagerDashboard({ user }: Props) {
             {/* Dashboard Speed Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <KPICard title="Recibidos Hoy" value={stats?.received || "0"} icon={Package} color="orange" border="border-orange-500" />
-                <KPICard title="Por Entregar" value={overdueTickets.length.toString()} icon={Clock} color="blue" border="border-blue-500" />
-                <KPICard title="Abandonados (30d+)" value={abandonedTickets.length.toString()} icon={AlertTriangle} color="purple" border="border-purple-500" />
+                <KPICard title="Por Entregar" value={overdueNotas.length.toString()} icon={Clock} color="blue" border="border-blue-500" />
+                <KPICard title="Abandonados (30d+)" value={abandonedNotas.length.toString()} icon={AlertTriangle} color="purple" border="border-purple-500" />
                 <KPICard title="Caja Total" value={formatCurrency(totalVenta)} icon={TrendingUp} color="emerald" border="border-emerald-500" />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Active Work Grid */}
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                        <h3 className="font-black text-slate-400 uppercase text-[10px] tracking-[0.3em]">Cola de Trabajo Activa</h3>
-                        <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-3 py-1 rounded-full">{tickets.length} Órdenes</span>
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-10">
+                {/* Main Queue */}
+                <div className="xl:col-span-3 space-y-6">
+                    <div className="flex items-center justify-between px-4">
+                        <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 flex items-center gap-3">
+                            <Activity size={16} className="text-orange-500" /> Cola de Trabajo Activa
+                        </h2>
+                        <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-3 py-1 rounded-full">{notas.length} Órdenes</span>
                     </div>
 
-                    {isLoading ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {[1, 2, 3, 4].map(i => <div key={i} className="h-48 bg-slate-50 rounded-[2rem] animate-pulse" />)}
-                        </div>
-                    ) : tickets.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                            {tickets.slice(0, 9).map((t: any) => (
-                                <QuickTicketCard
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
+                        {isLoading ? (
+                            Array(8).fill(0).map((_, i) => <div key={i} className="h-40 bg-slate-100 rounded-[1.5rem] animate-pulse" />)
+                        ) : notas.length > 0 ? (
+                            notas.slice(0, 12).map((t: any) => (
+                                <QuickNotaCard
                                     key={t.id}
-                                    ticket={t}
+                                    nota={t}
                                     onClick={() => {
-                                        setSelectedTicket(t);
+                                        setSelectedNota(t);
                                         setIsDetailModalOpen(true);
                                     }}
                                 />
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="py-20 text-center border-2 border-dashed border-slate-100 rounded-[2.5rem] bg-slate-50/30">
-                            <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Sin órdenes activas</p>
-                        </div>
-                    )}
+                            ))
+                        ) : (
+                            <div className="col-span-full py-20 text-center bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-100">
+                                <Package className="mx-auto text-slate-200 mb-4" size={48} />
+                                <p className="text-[11px] font-black uppercase text-slate-400 tracking-widest">No hay notas activas</p>
+                            </div>
+                        )}
+                    </div>
+
+                    <button className="w-full py-6 text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 hover:text-orange-600 transition-all group flex items-center justify-center gap-3">
+                        Ver todas las notas <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                    </button>
                 </div>
 
-                {/* Priority Sidebar */}
+                {/* Sidebar Priority */}
                 <div className="space-y-8">
-                    {/* Express HOY */}
-                    <div className="glass-card p-8 border-none shadow-2xl bg-white rounded-[2.5rem]">
-                        <h3 className="font-black text-foreground uppercase text-[11px] tracking-[0.2em] mb-6 flex items-center justify-between">
-                            Express Hoy
+                    {/* Urgentes */}
+                    <div className="glass-card p-8 border-none shadow-2xl bg-white rounded-[2.5rem] relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full -mr-16 -mt-16 blur-2xl" />
+                        <h3 className="font-black text-slate-900 uppercase text-[11px] tracking-[0.2em] mb-6 flex items-center gap-3">
+                            Express / Hoy
                             <span className="w-2 h-2 bg-orange-500 rounded-full animate-ping" />
                         </h3>
                         <div className="space-y-4">
-                            {urgentTickets.length > 0 ? urgentTickets.map((t: any) => (
-                                <div key={t.id} onClick={() => { setSelectedTicket(t); setIsDetailModalOpen(true); }} className="p-4 bg-orange-50/50 border border-orange-100 rounded-2xl hover:bg-orange-100 transition-all cursor-pointer group">
+                            {urgentNotas.length > 0 ? urgentNotas.map((t: any) => (
+                                <div key={t.id} onClick={() => { setSelectedNota(t); setIsDetailModalOpen(true); }} className="p-4 bg-orange-50/50 border border-orange-100 rounded-2xl hover:bg-orange-100 transition-all cursor-pointer group">
                                     <div className="flex justify-between items-center mb-1">
                                         <span className="text-[10px] font-black text-orange-600 uppercase">NOTA {t.ticket_number}</span>
                                         <History size={14} className="text-orange-400" />
@@ -180,12 +162,12 @@ export function ManagerDashboard({ user }: Props) {
                     </div>
 
                     {/* Retrasados */}
-                    {overdueTickets.length > 0 && (
+                    {overdueNotas.length > 0 && (
                         <div className="glass-card p-8 border-none shadow-2xl bg-rose-50 rounded-[2.5rem]">
                             <h3 className="font-black text-rose-600 uppercase text-[11px] tracking-[0.2em] mb-6">Retrasados / Vencidos</h3>
                             <div className="space-y-4">
-                                {overdueTickets.map((t: any) => (
-                                    <div key={t.id} onClick={() => { setSelectedTicket(t); setIsDetailModalOpen(true); }} className="p-4 bg-white/80 border border-rose-100 rounded-2xl hover:shadow-lg transition-all cursor-pointer group">
+                                {overdueNotas.map((t: any) => (
+                                    <div key={t.id} onClick={() => { setSelectedNota(t); setIsDetailModalOpen(true); }} className="p-4 bg-white/80 border border-rose-100 rounded-2xl hover:shadow-lg transition-all cursor-pointer group">
                                         <div className="flex justify-between items-center mb-1">
                                             <span className="text-[10px] font-black text-rose-600 uppercase">NOTA {t.ticket_number}</span>
                                             <AlertTriangle size={14} className="text-rose-400" />
@@ -201,109 +183,117 @@ export function ManagerDashboard({ user }: Props) {
             </div>
 
             {/* Modals */}
-            <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Nueva Orden de Servicio" className="max-w-5xl">
-                <AdvancedTicketForm onClose={() => setIsCreateModalOpen(false)} onSuccess={() => { setIsCreateModalOpen(false); refetch(); }} />
-            </Modal>
-
-            <Modal isOpen={isDetailModalOpen} onClose={() => { setIsDetailModalOpen(false); setSelectedTicket(null); }} title={`Detalles - Nota ${selectedTicket?.ticket_number}`} className="max-w-5xl">
-                {selectedTicket && (
-                    <TicketDetailView
-                        ticket={selectedTicket}
+            <Modal
+                isOpen={isDetailModalOpen}
+                onClose={() => { setIsDetailModalOpen(false); setSelectedNota(null); }}
+                title={`Detalles - Nota ${selectedNota?.ticket_number}`}
+                className="max-w-5xl"
+            >
+                {selectedNota && (
+                    <NotaDetailView
+                        nota={selectedNota}
                         onUpdate={async () => {
-                            const newTickets = await refetch();
-                            if (selectedTicket) {
-                                const updated = newTickets.find((t: any) => t.id === selectedTicket.id);
-                                if (updated) setSelectedTicket(updated);
+                            const newNotas = await refetch();
+                            if (selectedNota) {
+                                const updated = newNotas.find((t: any) => t.id === selectedNota.id);
+                                if (updated) setSelectedNota(updated);
                             }
                         }}
                     />
                 )}
             </Modal>
+
+            <Modal
+                isOpen={isNewNotaModalOpen}
+                onClose={() => setIsNewNotaModalOpen(false)}
+                title="Nueva Nota de Servicio"
+                className="max-w-5xl"
+            >
+                <AdvancedNotaForm
+                    onClose={() => setIsNewNotaModalOpen(false)}
+                    onSuccess={() => {
+                        setIsNewNotaModalOpen(false);
+                        refetch();
+                    }}
+                />
+            </Modal>
         </div>
     );
 }
 
-function QuickTicketCard({ ticket, onClick }: { ticket: any, onClick: () => void }) {
+function KPICard({ title, value, icon: Icon, color, border }: any) {
+    const colorClasses: Record<string, string> = {
+        orange: "bg-orange-50 text-orange-600",
+        blue: "bg-blue-50 text-blue-600",
+        purple: "bg-purple-50 text-purple-600",
+        emerald: "bg-emerald-50 text-emerald-600"
+    };
+
+    return (
+        <div className={cn("glass-card p-8 bg-white border-t-4 shadow-xl shadow-slate-200/50 rounded-[2.5rem] transition-all hover:scale-[1.02]", border)}>
+            <div className="flex items-center justify-between mb-4">
+                <div className={cn("p-4 rounded-2xl", colorClasses[color])}>
+                    <Icon size={24} />
+                </div>
+                <ArrowUpRight className="text-slate-200" size={20} />
+            </div>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-1">{title}</p>
+            <h3 className="text-3xl font-black text-slate-900 tracking-tighter">{value}</h3>
+        </div>
+    );
+}
+
+function QuickNotaCard({ nota, onClick }: { nota: any, onClick: () => void }) {
     const statusMap: Record<string, { label: string, color: string, bg: string }> = {
         received: { label: 'Recibido', color: 'text-amber-600', bg: 'bg-amber-100' },
         processing: { label: 'En Proceso', color: 'text-orange-600', bg: 'bg-orange-100' },
         ready: { label: 'Listo', color: 'text-emerald-600', bg: 'bg-emerald-100' },
         delivered: { label: 'Entregado', color: 'text-slate-600', bg: 'bg-slate-100' }
     };
-    const status = statusMap[ticket.status] || statusMap.received;
+    const status = statusMap[nota.status] || statusMap.received;
 
     return (
-        <div onClick={onClick} className="p-5 bg-white border border-slate-100 rounded-[2rem] hover:shadow-xl hover:shadow-orange-500/5 transition-all group cursor-pointer relative overflow-hidden">
-            <div className="flex justify-between items-start mb-4">
+        <div onClick={onClick} className="p-4 bg-white border border-slate-100 rounded-[1.5rem] hover:shadow-xl hover:shadow-orange-500/5 transition-all group cursor-pointer relative overflow-hidden">
+            <div className="flex justify-between items-start mb-3">
                 <div>
-                    <span className="text-[9px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100 uppercase tracking-widest mb-1 shadow-sm block w-fit">NOTA {ticket.ticket_number}</span>
-                    <h4 className="font-black text-[15px] text-slate-800 truncate max-w-[120px] tracking-tight">{ticket.client?.full_name}</h4>
+                    <span className="text-[8px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100 uppercase tracking-widest mb-1 shadow-sm block w-fit">NOTA {nota.ticket_number}</span>
+                    <h4 className="font-black text-[13px] text-slate-800 truncate max-w-[110px] tracking-tight">{nota.client?.full_name}</h4>
                 </div>
-                <div className={cn("px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest shadow-sm", status.bg, status.color)}>
+                <div className={cn("px-2 py-1 rounded-lg text-[7px] font-black uppercase tracking-widest shadow-sm", status.bg, status.color)}>
                     {status.label}
                 </div>
             </div>
 
-            {ticket.items?.some((i: any) => i.priority === 'express') && (
+            {nota.items?.some((i: any) => i.priority === 'express') && (
                 <div className="absolute top-0 right-0">
-                    <div className="bg-red-500 text-white text-[7px] font-black px-4 py-1 rotate-45 translate-x-3 -translate-y-1 shadow-lg uppercase tracking-widest">
+                    <div className="bg-red-500 text-white text-[6px] font-black px-3 py-0.5 rotate-45 translate-x-3 -translate-y-1 shadow-lg uppercase tracking-widest">
                         Express
                     </div>
                 </div>
             )}
 
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                    <div className="flex -space-x-1.5">
-                        {ticket.items?.slice(0, 2).map((item: any, i: number) => (
-                            <div key={i} className="w-7 h-7 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-[9px] font-bold text-slate-400">
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-1.5">
+                    <div className="flex -space-x-1">
+                        {nota.items?.slice(0, 2).map((item: any, i: number) => (
+                            <div key={i} className="w-6 h-6 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-[8px] font-bold text-slate-400">
                                 {item.garment_name?.[0] || 'P'}
                             </div>
                         ))}
                     </div>
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{ticket.items?.length || 0} pzs</span>
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{nota.items?.length || 0} pzs</span>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Calendar size={12} className="text-orange-500" />
-                    <span className="text-[9px] font-black text-slate-500 uppercase">{new Date(ticket.delivery_date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}</span>
+                <div className="flex items-center gap-1.5">
+                    <Calendar size={10} className="text-orange-500" />
+                    <span className="text-[8px] font-black text-slate-500 uppercase">{new Date(nota.delivery_date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}</span>
                 </div>
             </div>
 
-            <div className="pt-3 border-t border-slate-50 flex items-center justify-between">
-                <span className="text-[9px] font-black text-slate-300 uppercase">Saldo</span>
-                <span className={cn("text-[13px] font-black", ticket.balance_due > 0 ? "text-amber-500" : "text-emerald-500")}>
-                    {formatCurrency(ticket.balance_due)}
+            <div className="pt-2 border-t border-slate-50 flex items-center justify-between">
+                <span className="text-[8px] font-black text-slate-300 uppercase">Saldo</span>
+                <span className={cn("text-[11px] font-black", nota.balance_due > 0 ? "text-amber-500" : "text-emerald-500")}>
+                    {formatCurrency(nota.balance_due)}
                 </span>
-            </div>
-        </div>
-    );
-}
-
-function KPICard({ title, value, change, isPositive, icon: Icon, color, border }: any) {
-    const colorClasses = {
-        orange: "bg-orange-500/10 text-orange-600 border-orange-500/20",
-        blue: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-        purple: "bg-purple-500/10 text-purple-600 border-purple-500/20",
-        emerald: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-    }[color as string] || "bg-orange-500/10 text-orange-600 border-orange-500/20";
-
-    return (
-        <div className={cn("glass-card p-8 flex flex-col gap-6 border-l-4 shadow-xl hover:scale-[1.02] transition-all", border)}>
-            <div className="flex items-center justify-between">
-                <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm", colorClasses)}>
-                    <Icon size={24} />
-                </div>
-                <div className={cn(
-                    "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-black tracking-tight",
-                    isPositive ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
-                )}>
-                    {isPositive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                    {change}
-                </div>
-            </div>
-            <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-2">{title}</p>
-                <p className="text-3xl font-black text-foreground tracking-tighter">{value}</p>
             </div>
         </div>
     );

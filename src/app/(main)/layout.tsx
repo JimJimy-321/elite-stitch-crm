@@ -19,7 +19,7 @@ export default function DashboardLayout({
   const [collapsed, setCollapsed] = useState(false);
   const { user } = useAuthStore();
 
-  const isSearchHidden = pathname === '/dashboard' || pathname?.startsWith('/dashboard/tickets');
+  const isSearchHidden = pathname === '/dashboard' || pathname?.startsWith('/dashboard/notas');
 
   // Inicializar sincronización con Supabase
   useSupabaseAuth();
@@ -47,7 +47,7 @@ export default function DashboardLayout({
               <Search className="text-slate-300 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Buscar tickets, clientes o facturas..."
+                placeholder="Buscar notas, clientes o facturas..."
                 className="bg-transparent border-none outline-none text-sm text-foreground placeholder:text-slate-300 w-full font-bold"
               />
             </div>

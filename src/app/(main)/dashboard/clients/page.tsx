@@ -1,12 +1,18 @@
 "use client";
 
-import React from 'react';
-import { Users, UserPlus, Search, Phone, Mail, MoreHorizontal, ShieldCheck } from 'lucide-react';
+import { Users, UserPlus, Search, Phone, Mail, MoreHorizontal, ShieldCheck, User } from 'lucide-react';
 import { useClients } from '@/features/dashboard/hooks/useDashboardData';
 import { cn } from '@/shared/lib/utils';
+import { Modal } from '@/shared/components/ui/Modal';
+import { ClientFormModal } from '@/features/dashboard/components/ClientFormModal';
+import { useDebounce } from '@/shared/hooks/useDebounce';
+import { useState } from 'react';
 
 export default function ClientsPage() {
-    const { clients, loading } = useClients();
+    const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearch = useDebounce(searchTerm, 500);
+    const { clients, loading, refetch } = useClients(debouncedSearch);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -20,7 +26,10 @@ export default function ClientsPage() {
                     </h1>
                     <p className="text-muted-foreground text-sm font-medium">Base de datos centralizada de clientes y sus medidas personalizadas.</p>
                 </div>
-                <button className="bg-orange-500 text-white py-4 px-8 flex items-center gap-3 group shadow-2xl shadow-orange-500/30 rounded-2xl hover:bg-orange-600 active:scale-95 transition-all">
+                <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="bg-orange-500 text-white py-4 px-8 flex items-center gap-3 group shadow-2xl shadow-orange-500/30 rounded-2xl hover:bg-orange-600 active:scale-95 transition-all"
+                >
                     <UserPlus size={20} className="group-hover:rotate-12 transition-transform" />
                     <span className="text-[11px] font-black uppercase tracking-[0.15em]">Registrar Cliente</span>
                 </button>
@@ -33,7 +42,9 @@ export default function ClientsPage() {
                         <input
                             type="text"
                             placeholder="Buscar por nombre, teléfono o email..."
-                            className="bg-transparent border-none outline-none text-sm w-full font-bold text-foreground placeholder:text-slate-300"
+                            className="bg-transparent border-none outline-none text-sm w-full font-bold text-foreground placeholder:text-slate-300 uppercase"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
                 </div>
@@ -59,11 +70,11 @@ export default function ClientsPage() {
                                     <tr key={client.id} className="group hover:bg-orange-50/30 transition-colors">
                                         <td className="px-8 py-6">
                                             <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center font-black text-slate-400 group-hover:bg-orange-500 group-hover:text-white transition-all shadow-inner">
-                                                    {client.full_name.charAt(0)}
+                                                <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center border border-slate-200 shadow-inner group-hover:bg-orange-500 transition-all">
+                                                    <User size={20} className="text-slate-400 group-hover:text-white" />
                                                 </div>
                                                 <div>
-                                                    <p className="font-black text-slate-900 leading-tight">{client.full_name}</p>
+                                                    <p className="font-black text-slate-900 leading-tight uppercase">{client.full_name}</p>
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Registrado el {new Date(client.created_at).toLocaleDateString()}</p>
                                                 </div>
                                             </div>
@@ -109,16 +120,37 @@ export default function ClientsPage() {
                         <div className="w-24 h-24 bg-orange-50 rounded-[2.5rem] flex items-center justify-center mb-8 border border-orange-100 shadow-inner group hover:scale-110 transition-transform duration-500">
                             <Users size={48} className="text-orange-500 group-hover:animate-pulse" />
                         </div>
-                        <h3 className="text-2xl font-black text-foreground tracking-tight">Tu lista de clientes está vacía</h3>
+                        <h3 className="text-2xl font-black text-foreground tracking-tight">
+                            {searchTerm ? `No hay resultados para "${searchTerm}"` : "Tu lista de clientes está vacía"}
+                        </h3>
                         <p className="text-muted-foreground text-sm font-medium max-w-sm mt-3 leading-relaxed">
-                            Los clientes registrados aquí podrán recibir actualizaciones de sus pedidos vía <span className="text-orange-600 font-bold underline decoration-orange-500/30 decoration-4">WhatsApp automáticamente</span>.
+                            {searchTerm
+                                ? "Intenta con otros criterios de búsqueda como nombre o teléfono."
+                                : "Los clientes registrados aquí podrán recibir actualizaciones de sus pedidos vía WhatsApp automáticamente."}
                         </p>
-                        <button className="mt-10 px-8 py-3 bg-white border border-slate-100 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-orange-600 hover:border-orange-500/30 hover:bg-orange-50 rounded-xl transition-all shadow-sm">
-                            Importar desde Excel
-                        </button>
+                        {!searchTerm && (
+                            <button className="mt-10 px-8 py-3 bg-white border border-slate-100 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-orange-600 hover:border-orange-500/30 hover:bg-orange-50 rounded-xl transition-all shadow-sm">
+                                Importar desde Excel
+                            </button>
+                        )}
                     </div>
                 )}
             </div>
+
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title="Nuevo Registro de Cliente"
+                className="max-w-xl"
+            >
+                <ClientFormModal
+                    onClose={() => setIsModalOpen(false)}
+                    onSuccess={() => {
+                        setIsModalOpen(false);
+                        refetch();
+                    }}
+                />
+            </Modal>
         </div>
     );
 }

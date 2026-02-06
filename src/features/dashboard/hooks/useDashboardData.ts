@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from 'react';
 import { dashboardService } from '../services/dashboardService';
 
@@ -23,16 +25,16 @@ export function useDashboardStats() {
     return { stats, loading, error };
 }
 
-export function useTickets(search?: string) {
-    const [tickets, setTickets] = useState<any[]>([]);
+export function useNotas(search?: string) {
+    const [notas, setNotas] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<any>(null);
 
-    const fetchTickets = async () => {
+    const fetchNotas = async () => {
         setLoading(true);
         try {
-            const data = await dashboardService.getTickets(search);
-            setTickets(data);
+            const data = await dashboardService.getNotas(search);
+            setNotas(data);
             return data;
         } catch (err) {
             setError(err);
@@ -43,32 +45,40 @@ export function useTickets(search?: string) {
     };
 
     useEffect(() => {
-        fetchTickets();
+        fetchNotas();
     }, [search]);
 
-    return { tickets, loading, error, refetch: fetchTickets };
+    return { notas, loading, error, refetch: fetchNotas };
 }
 
-export function useClients() {
+export function useClients(search?: string) {
     const [clients, setClients] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<any>(null);
 
-    useEffect(() => {
-        async function fetchClients() {
-            try {
-                const data = await dashboardService.getClients();
-                setClients(data);
-            } catch (err) {
-                setError(err);
-            } finally {
-                setLoading(false);
-            }
+    const fetchClients = async () => {
+        setLoading(true);
+        try {
+            const data = await dashboardService.getClients(search);
+            setClients(data);
+        } catch (err) {
+            setError(err);
+        } finally {
+            setLoading(false);
         }
-        fetchClients();
-    }, []);
+    };
 
-    return { clients, loading, error };
+    useEffect(() => {
+        fetchClients();
+    }, [search]);
+
+    const createClient = async (data: any) => {
+        const result = await dashboardService.createClient(data);
+        await fetchClients();
+        return result;
+    };
+
+    return { clients, loading, error, createClient, refetch: fetchClients };
 }
 
 export function useBranches() {
@@ -196,13 +206,13 @@ export function useServices() {
     return { services, loading };
 }
 
-export function useAdvancedTickets() {
+export function useAdvancedNotas() {
     const [loading, setLoading] = useState(false);
 
-    const createTicket = async (ticketData: any, items: any[], payment: any) => {
+    const createNota = async (notaData: any, items: any[], payment: any) => {
         setLoading(true);
         try {
-            return await dashboardService.createAdvancedTicket(ticketData, items, payment);
+            return await dashboardService.createAdvancedNota(notaData, items, payment);
         } finally {
             setLoading(false);
         }
@@ -217,29 +227,29 @@ export function useAdvancedTickets() {
         }
     };
 
-    const collectPayment = async (ticketId: string, amount: number, method: string, type: 'abono' | 'liquidacion', branchId: string) => {
+    const collectPayment = async (notaId: string, amount: number, method: string, type: 'abono' | 'liquidacion', branchId: string) => {
         setLoading(true);
         try {
-            return await dashboardService.addPayment(ticketId, { amount, method, type, branch_id: branchId });
+            return await dashboardService.addPayment(notaId, { amount, method, type, branch_id: branchId });
         } finally {
             setLoading(false);
         }
     };
 
-    const deliver = async (ticketId: string) => {
+    const deliver = async (notaId: string) => {
         setLoading(true);
         try {
-            return await dashboardService.deliverTicket(ticketId);
+            return await dashboardService.deliverNota(notaId);
         } finally {
             setLoading(false);
         }
     };
 
-    const checkTicketExists = async (ticketNumber: string) => {
-        return await dashboardService.checkTicketExists(ticketNumber);
+    const checkNotaExists = async (notaNumber: string) => {
+        return await dashboardService.checkNotaExists(notaNumber);
     };
 
-    return { createTicket, updateStatus, collectPayment, deliver, checkTicketExists, loading };
+    return { createNota, updateStatus, collectPayment, deliver, checkNotaExists, loading };
 }
 
 export function useDailyReport(branchId?: string) {

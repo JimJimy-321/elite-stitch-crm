@@ -32,7 +32,7 @@ export default function FinancePage() {
                 </div>
                 <div className="flex items-center gap-3 bg-white border border-slate-100 px-6 py-3 rounded-2xl shadow-xl shadow-slate-200/50">
                     <Calendar size={20} className="text-orange-500" />
-                    <span className="text-sm font-black text-foreground uppercase tracking-widest px-2 border-l border-slate-100 italic">Octubre 2023</span>
+                    <span className="text-sm font-black text-foreground uppercase tracking-widest px-2 border-l border-slate-100 italic">{new Date().toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}</span>
                 </div>
             </div>
 

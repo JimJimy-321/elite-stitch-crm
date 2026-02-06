@@ -12,18 +12,18 @@ import {
     ShieldCheck
 } from 'lucide-react';
 import { cn, formatCurrency } from '@/shared/lib/utils';
-import { useAdvancedTickets } from '../../hooks/useDashboardData';
+import { useAdvancedNotas } from '../../hooks/useDashboardData';
 import { translateError } from '@/shared/lib/error-handler';
 
 interface Props {
-    ticket: any;
+    nota: any;
     onUpdate: () => void;
 }
 
-export function TicketDetailView({ ticket, onUpdate }: Props) {
-    const { updateStatus, collectPayment, deliver, loading } = useAdvancedTickets();
+export function NotaDetailView({ nota, onUpdate }: Props) {
+    const { updateStatus, collectPayment, deliver, loading } = useAdvancedNotas();
     const [error, setError] = useState<string | null>(null);
-    const [paymentAmount, setPaymentAmount] = useState<number>(ticket.balance_due);
+    const [paymentAmount, setPaymentAmount] = useState<number>(nota.balance_due);
     const [paymentMethod, setPaymentMethod] = useState<string>('efectivo');
 
     const handleUpdateStatus = async (itemId: string, newStatus: string) => {
@@ -38,8 +38,8 @@ export function TicketDetailView({ ticket, onUpdate }: Props) {
     const handlePayment = async () => {
         if (paymentAmount <= 0) return;
         try {
-            const type = paymentAmount >= ticket.balance_due ? 'liquidacion' : 'abono';
-            await collectPayment(ticket.id, paymentAmount, paymentMethod, type, ticket.branch_id);
+            const type = paymentAmount >= nota.balance_due ? 'liquidacion' : 'abono';
+            await collectPayment(nota.id, paymentAmount, paymentMethod, type, nota.branch_id);
             onUpdate();
         } catch (err) {
             setError(translateError(err));
@@ -47,19 +47,19 @@ export function TicketDetailView({ ticket, onUpdate }: Props) {
     };
 
     const handleDeliver = async () => {
-        if (ticket.balance_due > 0) {
+        if (nota.balance_due > 0) {
             setError("No se puede entregar una nota con saldo pendiente.");
             return;
         }
         try {
-            await deliver(ticket.id);
+            await deliver(nota.id);
             onUpdate();
         } catch (err) {
             setError(translateError(err));
         }
     };
 
-    const allFinished = ticket.items?.every((i: any) => i.status === 'finished');
+    const allFinished = nota.items?.every((i: any) => i.status === 'finished');
 
     return (
         <div className="space-y-8 max-h-[85vh] overflow-y-auto px-4 pb-10">
@@ -77,27 +77,27 @@ export function TicketDetailView({ ticket, onUpdate }: Props) {
                     <div className="flex items-center gap-3">
                         <div className={cn(
                             "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm",
-                            ticket.status === 'delivered' ? "bg-slate-500 text-white" :
-                                ticket.status === 'ready' ? "bg-emerald-500 text-white" :
-                                    ticket.status === 'processing' ? "bg-orange-500 text-white" : "bg-amber-500 text-white"
+                            nota.status === 'delivered' ? "bg-slate-500 text-white" :
+                                nota.status === 'ready' ? "bg-emerald-500 text-white" :
+                                    nota.status === 'processing' ? "bg-orange-500 text-white" : "bg-amber-500 text-white"
                         )}>
-                            {ticket.status === 'delivered' ? 'Entregado' :
-                                ticket.status === 'ready' ? 'Listo' :
-                                    ticket.status === 'processing' ? 'En Proceso' : 'Recibido'}
+                            {nota.status === 'delivered' ? 'Entregado' :
+                                nota.status === 'ready' ? 'Listo' :
+                                    nota.status === 'processing' ? 'En Proceso' : 'Recibido'}
                         </div>
-                        <span className="text-xl font-black text-slate-800 tracking-tighter">{ticket.ticket_number}</span>
+                        <span className="text-xl font-black text-slate-800 tracking-tighter">{nota.ticket_number}</span>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-4">
                     <div className="text-right">
                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Total</span>
-                        <span className="text-2xl font-black text-slate-900">{formatCurrency(ticket.total_amount)}</span>
+                        <span className="text-2xl font-black text-slate-900">{formatCurrency(nota.total_amount)}</span>
                     </div>
-                    {ticket.balance_due > 0 ? (
+                    {nota.balance_due > 0 ? (
                         <div className="text-right border-l border-slate-200 pl-4">
                             <span className="text-[10px] font-black uppercase tracking-widest text-amber-500 block">Saldo</span>
-                            <span className="text-2xl font-black text-amber-600">{formatCurrency(ticket.balance_due)}</span>
+                            <span className="text-2xl font-black text-amber-600">{formatCurrency(nota.balance_due)}</span>
                         </div>
                     ) : (
                         <div className="bg-emerald-50 px-4 py-3 rounded-2xl border border-emerald-100 flex items-center gap-2">
@@ -112,7 +112,7 @@ export function TicketDetailView({ ticket, onUpdate }: Props) {
             <div className="space-y-4">
                 <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Prendas en Orden</h3>
                 <div className="grid gap-4">
-                    {ticket.items?.map((item: any) => (
+                    {nota.items?.map((item: any) => (
                         <div key={item.id} className="glass-card bg-white p-6 border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6 group hover:shadow-xl transition-all">
                             <div className="flex items-center gap-5">
                                 <div className={cn(
@@ -171,7 +171,7 @@ export function TicketDetailView({ ticket, onUpdate }: Props) {
 
             {/* Acciones de Pago y Entrega */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {ticket.balance_due > 0 ? (
+                {nota.balance_due > 0 ? (
                     <div className="bg-slate-900 rounded-[2rem] p-6 text-white space-y-4 shadow-2xl overflow-hidden relative">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full -mr-16 -mt-16 blur-3xl" />
                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500 flex items-center gap-3">
@@ -188,7 +188,7 @@ export function TicketDetailView({ ticket, onUpdate }: Props) {
                                         value={paymentAmount}
                                         onChange={(e) => {
                                             const val = Number(e.target.value);
-                                            setPaymentAmount(val > ticket.balance_due ? ticket.balance_due : val);
+                                            setPaymentAmount(val > nota.balance_due ? nota.balance_due : val);
                                         }}
                                     />
                                 </div>
@@ -226,30 +226,30 @@ export function TicketDetailView({ ticket, onUpdate }: Props) {
 
                 <div className={cn(
                     "rounded-[2rem] p-6 space-y-4 shadow-2xl flex flex-col justify-between transition-all border-4",
-                    ticket.status === 'delivered' ? "bg-slate-50 border-slate-100" : (allFinished && ticket.balance_due <= 0 ? "bg-white border-emerald-500 shadow-emerald-500/10" : "bg-white border-slate-50 opacity-60")
+                    nota.status === 'delivered' ? "bg-slate-50 border-slate-100" : (allFinished && nota.balance_due <= 0 ? "bg-white border-emerald-500 shadow-emerald-500/10" : "bg-white border-slate-50 opacity-60")
                 )}>
                     <div className="space-y-2">
                         <h3 className={cn(
                             "text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3",
-                            ticket.status === 'delivered' ? "text-slate-400" : "text-emerald-600"
+                            nota.status === 'delivered' ? "text-slate-400" : "text-emerald-600"
                         )}>
                             <PackageCheck size={16} /> Entrega al Cliente
                         </h3>
                         <p className="text-[11px] font-bold text-slate-400 leading-tight">
-                            {ticket.status === 'delivered'
+                            {nota.status === 'delivered'
                                 ? 'Esta orden ya fue entregada satisfactoriamente.'
                                 : (allFinished ? 'Todo listo. Procede con la entrega física.' : 'Aún hay prendas en proceso de costura.')
                             }
                         </p>
                     </div>
 
-                    {ticket.status !== 'delivered' && (
+                    {nota.status !== 'delivered' && (
                         <button
-                            disabled={!allFinished || ticket.balance_due > 0 || loading}
+                            disabled={!allFinished || nota.balance_due > 0 || loading}
                             onClick={handleDeliver}
                             className={cn(
                                 "w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl",
-                                allFinished && ticket.balance_due <= 0
+                                allFinished && nota.balance_due <= 0
                                     ? "bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-500/30 active:scale-95"
                                     : "bg-slate-100 text-slate-400 cursor-not-allowed"
                             )}

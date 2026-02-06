@@ -29,17 +29,22 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
                 className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm animate-in fade-in duration-300"
                 onClick={onClose}
             />
-            <div className={cn("relative w-full max-w-lg glass-card bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-300", className)}>
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold tracking-tight text-foreground">{title}</h2>
+            <div className={cn(
+                "relative w-full max-w-lg glass-card bg-card p-0 shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh] overflow-hidden rounded-[2.5rem]",
+                className
+            )}>
+                <div className="flex items-center justify-between p-8 border-b border-slate-50 shrink-0">
+                    <h2 className="text-2xl font-black tracking-tight text-foreground">{title}</h2>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-secondary rounded-xl text-muted transition-colors"
+                        className="p-2 hover:bg-slate-100 rounded-2xl text-slate-400 transition-colors"
                     >
-                        <X size={20} />
+                        <X size={24} />
                     </button>
                 </div>
-                {children}
+                <div className="flex-1 overflow-y-auto p-8 pt-4">
+                    {children}
+                </div>
             </div>
         </div>
     );

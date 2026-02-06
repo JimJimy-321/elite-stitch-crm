@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Save, X, User, Phone, Calendar, Scissors, Tag, CreditCard, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Save, X, User, Phone, Calendar, Scissors, Tag, CreditCard, AlertCircle, MapPin } from 'lucide-react';
 import { useClients, useBranches, useGarments, useServices, useAdvancedNotas } from '../hooks/useDashboardData';
 import { dashboardService } from '../services/dashboardService';
 import { cn } from '@/shared/lib/utils';
@@ -36,12 +36,17 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
 
     useEffect(() => {
         if (branches.length > 0) {
-            const branch = user?.assigned_branch_id
-                ? branches.find(b => b.id === user.assigned_branch_id)
+            // Buscamos la sucursal del usuario
+            const assignedId = user?.assigned_branch_id;
+            const branch = assignedId
+                ? branches.find(b => b.id === assignedId)
                 : branches[0];
-            if (branch) setSelectedBranch(branch);
+
+            if (branch && (!selectedBranch || selectedBranch.id !== branch.id)) {
+                setSelectedBranch(branch);
+            }
         }
-    }, [user, branches]);
+    }, [user, branches, selectedBranch]);
 
     const [deliveryDate, setDeliveryDate] = useState<string>('');
     const [notes, setNotes] = useState<string>('');

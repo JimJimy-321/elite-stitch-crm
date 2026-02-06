@@ -14,20 +14,10 @@ import { translateError } from '@/shared/lib/error-handler';
 const clientSchema = z.object({
     full_name: z.string().min(3, "EL NOMBRE DEBE TENER AL MENOS 3 CARACTERES"),
     phone: z.string().refine((val) => {
+        const digits = val.replace(/\D/g, '');
+        if (digits.length !== 10) return false;
         try {
-            const phoneNumber = parsePhoneNumber(val, 'MX');
-            if (!phoneNumber) return false;
-
-            // Validar que sea de 10 dígitos (MX standard)
-            if (phoneNumber.nationalNumber.length !== 10) return false;
-
-            // Validar que sea válido para la región
-            if (!isValidNumber(val, 'MX')) return false;
-
-            // Intentar validar que sea celular (MOBILE o FIXED_LINE_OR_MOBILE)
-            // Nota: En México muchos números son FIXED_LINE_OR_MOBILE en la base de datos de libphonenumber
-            const type = phoneNumber.getType();
-            return type === 'MOBILE' || type === 'FIXED_LINE_OR_MOBILE';
+            return isValidNumber(digits, 'MX');
         } catch (e) {
             return false;
         }

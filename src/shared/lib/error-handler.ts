@@ -7,6 +7,7 @@ export const errorTranslations: Record<string, string> = {
     "Database error querying schema": "Error crítico: Fallo al consultar el esquema de la base de datos.",
     "JWT expired": "Tu sesión ha expirado. Por favor, inicia sesión de nuevo.",
     "User already exists": "El usuario ya existe.",
+    "duplicate key value violates unique constraint \"unique_client_phone_org\"": "Este número de teléfono ya está registrado con otro cliente.",
 };
 
 export function translateError(error: any): string {

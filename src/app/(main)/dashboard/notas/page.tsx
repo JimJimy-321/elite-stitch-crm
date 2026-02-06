@@ -182,7 +182,7 @@ function NotaCard({ nota, onClick }: { nota: any, onClick: () => void }) {
     return (
         <div
             onClick={onClick}
-            className="p-5 bg-white border border-slate-100 rounded-[2rem] hover:shadow-2xl hover:shadow-orange-500/10 transition-all group cursor-pointer"
+            className="p-5 bg-white border-2 border-orange-50 rounded-[2rem] hover:border-orange-200 hover:shadow-2xl hover:shadow-orange-500/10 transition-all group cursor-pointer"
         >
             <div className="flex justify-between items-start mb-6">
                 <div className="space-y-1">

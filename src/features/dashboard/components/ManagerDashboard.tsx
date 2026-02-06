@@ -230,7 +230,7 @@ function KPICard({ title, value, icon: Icon, color, border }: any) {
     };
 
     return (
-        <div className={cn("glass-card p-8 bg-white border-t-4 shadow-xl shadow-slate-200/50 rounded-[2.5rem] transition-all hover:scale-[1.02]", border)}>
+        <div className={cn("glass-card p-8 bg-white border-2 border-orange-100 shadow-xl shadow-slate-200/50 rounded-[2.5rem] transition-all hover:scale-[1.02]", border)}>
             <div className="flex items-center justify-between mb-4">
                 <div className={cn("p-4 rounded-2xl", colorClasses[color])}>
                     <Icon size={24} />
@@ -253,7 +253,7 @@ function QuickNotaCard({ nota, onClick }: { nota: any, onClick: () => void }) {
     const status = statusMap[nota.status] || statusMap.received;
 
     return (
-        <div onClick={onClick} className="p-4 bg-white border border-slate-100 rounded-[1.5rem] hover:shadow-xl hover:shadow-orange-500/5 transition-all group cursor-pointer relative overflow-hidden">
+        <div onClick={onClick} className="p-4 bg-white border-2 border-orange-50 rounded-[1.5rem] hover:border-orange-200 hover:shadow-xl hover:shadow-orange-500/5 transition-all group cursor-pointer relative overflow-hidden">
             <div className="flex justify-between items-start mb-3">
                 <div>
                     <span className="text-[8px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100 uppercase tracking-widest mb-1 shadow-sm block w-fit">NOTA {nota.ticket_number}</span>

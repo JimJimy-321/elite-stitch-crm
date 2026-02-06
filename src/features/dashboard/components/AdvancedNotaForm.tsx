@@ -312,21 +312,21 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Sucursal</label>
                     <div className="relative">
                         <select
-                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 h-14 font-bold text-slate-700 outline-none focus:border-orange-500 appearance-none cursor-pointer"
+                            disabled
+                            className="w-full bg-slate-100 border-2 border-slate-100 rounded-2xl px-5 h-14 font-bold text-slate-500 appearance-none cursor-not-allowed"
                             value={selectedBranch?.id || ''}
-                            onChange={(e) => {
-                                const branch = branches.find(b => b.id === e.target.value);
-                                if (branch) setSelectedBranch(branch);
-                            }}
                         >
                             {branches.length === 0 ? (
                                 <option value="">Cargando...</option>
                             ) : (
-                                branches.map(b => (
-                                    <option key={b.id} value={b.id}>{b.name.toUpperCase()}</option>
-                                ))
+                                branches
+                                    .filter(b => !user?.assigned_branch_id || b.id === user.assigned_branch_id)
+                                    .map(b => (
+                                        <option key={b.id} value={b.id}>{b.name.toUpperCase()}</option>
+                                    ))
                             )}
                         </select>
+                        <MapPin className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                     </div>
                 </div>
 

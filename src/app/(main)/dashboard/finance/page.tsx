@@ -1,23 +1,53 @@
-"use client";
-
-import React from 'react';
-import { DollarSign, TrendingUp, TrendingDown, Wallet, Calendar, ArrowUpRight, ArrowDownRight, Activity, Receipt, CreditCard } from 'lucide-react';
+import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+import { getDailyCashSummary } from '@/features/dashboard/actions/cash-actions';
+import { ExpenseModal } from '@/features/dashboard/components/caja/ExpenseModal';
+import { CloseDayModal } from '@/features/dashboard/components/caja/CloseDayModal';
+import { MovementsList } from '@/features/dashboard/components/caja/MovementsList';
+import { ExportReportButton } from '@/features/dashboard/components/caja/ExportReportButton'; // Importado
+import { Wallet, Calendar, Activity, Receipt, ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown, DollarSign, CreditCard } from 'lucide-react';
 import { cn, formatCurrency } from '@/shared/lib/utils';
-import { useFinanceStats, useDailyReport } from '@/features/dashboard/hooks/useDashboardData';
-import { useAuthStore } from '@/features/auth/store/authStore';
 
-export default function FinancePage() {
-    const { user } = useAuthStore();
-    const { stats, loading: statsLoading } = useFinanceStats();
-    const { report, loading: reportLoading } = useDailyReport(user?.assigned_branch_id);
+export const dynamic = 'force-dynamic';
 
-    const isLoading = statsLoading || reportLoading;
+export default async function FinancePage() {
+    const supabase = await createClient();
 
-    if (isLoading) return <div className="p-20 text-center animate-pulse font-black text-slate-300 uppercase tracking-widest">Cargando Inteligencia Financiera...</div>;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) redirect('/auth/login');
 
-    const summary = report?.summary || { totalCash: 0, totalCard: 0, totalTransfer: 0, totalExpenses: 0 };
-    const movements = [...(report?.payments || []), ...(report?.expenses || [])]
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    // Obtener perfil para saber sucursal
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('assigned_branch_id, role, organization_id')
+        .eq('id', user.id)
+        .single();
+
+    if (!profile || !profile.assigned_branch_id) {
+        return (
+            <div className="p-20 text-center font-bold text-slate-400">
+                NO HAY SUCURSAL ASIGNADA
+            </div>
+        );
+    }
+
+    // Fix: Obtener fecha en zona horaria de México (UTC-6) para evitar salto de día prematuro a las 6PM
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+    const { data: cashData, success } = await getDailyCashSummary(profile.assigned_branch_id, today);
+
+    if (!success || !cashData) {
+        return <div className="p-20 text-center text-red-500">Error al cargar datos financieros.</div>;
+    }
+
+    const { summary, movements, isClosed } = cashData;
+
+    // Calcular totales para los stats superiores
+    const totalIncomeDay = summary.cashIncome + summary.cardIncome + summary.transferIncome;
+
+    // Meta Mensual (Hardcoded por ahora, luego vendrá de settings)
+    const MONTHLY_GOAL = 50000;
+    const monthlyProgress = Math.min((summary.monthlyTotal / MONTHLY_GOAL) * 100, 100);
+
     return (
         <div className="space-y-8 animate-fade-in">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -30,85 +60,98 @@ export default function FinancePage() {
                     </h1>
                     <p className="text-muted-foreground text-sm font-medium">Monitoreo en tiempo real de ingresos, egresos y salud fiscal de tu negocio.</p>
                 </div>
-                <div className="flex items-center gap-3 bg-white border border-slate-100 px-6 py-3 rounded-2xl shadow-xl shadow-slate-200/50">
-                    <Calendar size={20} className="text-orange-500" />
-                    <span className="text-sm font-black text-foreground uppercase tracking-widest px-2 border-l border-slate-100 italic">{new Date().toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}</span>
+                <div className="flex items-center gap-3">
+                    {/* Integration of Action Buttons */}
+                    {!isClosed && (
+                        <>
+                            <ExpenseModal branchId={profile.assigned_branch_id} userId={user.id} />
+                            <CloseDayModal branchId={profile.assigned_branch_id} calculatedCash={summary.cashBalance} />
+                        </>
+                    )}
+                    {isClosed && (
+                        <div className="px-4 py-2 bg-green-100 text-green-800 rounded-md font-bold border border-green-200 flex items-center gap-2">
+                            <span>🔒 Caja Cerrada</span>
+                        </div>
+                    )}
+
+                    <div className="flex items-center gap-3 bg-white border border-slate-100 px-6 py-3 rounded-2xl shadow-xl shadow-slate-200/50 ml-4">
+                        <Calendar size={20} className="text-orange-500" />
+                        <span className="text-sm font-black text-slate-800 uppercase tracking-widest px-2 border-l border-slate-100 italic capitalize">
+                            {new Intl.DateTimeFormat('es-MX', { month: 'long', year: 'numeric' }).format(new Date())}
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            {/* Quick Stats */}
+            {/* Quick Stats del Día */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <FinanceStat label="Ingresos Totales" value={formatCurrency(stats?.totalIncome || 0)} trend="+0%" positive border="border-l-indigo-500" />
-                <FinanceStat label="Gastos Operativos" value={formatCurrency(stats?.totalExpenses || 0)} trend="0%" negative border="border-l-rose-500" />
-                <FinanceStat label="Cuentas por Cobrar" value={formatCurrency(stats?.totalReceivable || 0)} trend="+0%" positive primary border="border-l-orange-500" />
+                <FinanceStat label="Ingresos Hoy" value={formatCurrency(totalIncomeDay)} trend="Día" positive border="border-l-indigo-500" />
+                <FinanceStat label="Gastos Hoy" value={formatCurrency(summary.totalExpenses)} trend="Día" negative border="border-l-rose-500" />
+                <FinanceStat label="Efectivo Teórico" value={formatCurrency(summary.cashBalance)} trend="Caja" positive primary border="border-l-orange-500" />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                {/* Daily Cash Flow */}
+                {/* Daily Cash Flow -> Usando componente reutilizado o adaptado */}
                 <div className="xl:col-span-2 glass-card border-none shadow-2xl overflow-hidden bg-white rounded-[2rem]">
                     <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-                        <h3 className="font-black text-foreground flex items-center gap-3 text-lg tracking-tight">
+                        <h3 className="font-black text-slate-800 flex items-center gap-3 text-lg tracking-tight">
                             <div className="p-2 bg-orange-500/10 rounded-lg">
                                 <Activity size={20} className="text-orange-600" />
                             </div>
                             Monitor de Caja Diario
                         </h3>
-                        <button className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600 bg-orange-50 hover:bg-orange-100 px-6 py-3 rounded-xl border border-orange-200 transition-all shadow-sm">
-                            Exportar Reporte
-                        </button>
+                        <ExportReportButton
+                            date={today}
+                            summary={summary}
+                            movements={movements}
+                        />
                     </div>
+
                     <div className="p-10 space-y-10">
-                        <div className="flex flex-col gap-6">
-                            <div className="flex justify-between items-end">
-                                <div className="space-y-1">
-                                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Progreso Meta Mensual</span>
-                                    <p className="text-2xl font-black text-foreground">$50,000.00 <span className="text-slate-300 font-medium">Objetivo</span></p>
-                                </div>
-                                <span className="text-xl font-black text-orange-600">85%</span>
-                            </div>
-                            <div className="h-6 bg-slate-100 rounded-full overflow-hidden border border-slate-200 shadow-inner p-1">
-                                <div className="h-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-400 w-[85%] rounded-full shadow-lg shadow-orange-500/20 animate-pulse" />
-                            </div>
+                        {/* KPI Grid detallado */}
+                        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 pt-4">
+                            <MiniStat label="Saldo Inicial" value={formatCurrency(summary.openingBalance || 0)} icon={<Wallet size={14} />} subtle />
+                            <MiniStat label="Efectivo" value={formatCurrency(summary.cashIncome)} icon={<DollarSign size={14} />} />
+                            <MiniStat label="Tarjeta" value={formatCurrency(summary.cardIncome)} icon={<CreditCard size={14} />} />
+                            <MiniStat label="Gastos" value={formatCurrency(summary.totalExpenses)} icon={<Receipt size={14} />} />
                         </div>
 
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 pt-4">
-                            <MiniStat label="Efectivo" value={formatCurrency(summary.totalCash)} icon={<DollarSign size={14} />} />
-                            <MiniStat label="Tarjeta" value={formatCurrency(summary.totalCard)} icon={<CreditCard size={14} />} />
-                            <MiniStat label="Transferencias" value={formatCurrency(summary.totalTransfer)} icon={<TrendingUp size={14} />} />
-                            <MiniStat label="Gastos" value={formatCurrency(summary.totalExpenses)} icon={<Receipt size={14} />} />
+                        {/* Visualización de Progreso (Meta Mensual) */}
+                        <div className="flex flex-col gap-6 pt-4 border-t border-slate-100">
+                            <div className="flex justify-between items-end">
+                                <div className="space-y-1">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Meta Mensual</span>
+                                    <p className="text-2xl font-black text-slate-800 flex items-baseline gap-2">
+                                        {formatCurrency(summary.monthlyTotal)}
+                                        <span className="text-slate-300 text-lg font-medium">/ {formatCurrency(MONTHLY_GOAL)}</span>
+                                    </p>
+                                </div>
+                                <span className="text-xl font-black text-orange-600">{Math.round(monthlyProgress)}%</span>
+                            </div>
+                            <div className="h-6 bg-slate-100 rounded-full overflow-hidden border border-slate-200 shadow-inner p-1">
+                                {/* Barra de progreso */}
+                                <div
+                                    className="h-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-400 rounded-full shadow-lg shadow-orange-500/20 transition-all duration-1000 ease-out"
+                                    style={{ width: `${monthlyProgress}%` }}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Recent Movements */}
+                {/* Recent Movements -> Usando MovementsList adaptado o incrustado */}
                 <div className="glass-card flex flex-col border-none shadow-2xl bg-white rounded-[2rem] overflow-hidden">
                     <div className="p-8 border-b border-slate-50 bg-slate-50/30">
-                        <h3 className="font-black text-foreground flex items-center gap-3 text-lg tracking-tight">
+                        <h3 className="font-black text-slate-800 flex items-center gap-3 text-lg tracking-tight">
                             <div className="p-2 bg-orange-500/10 rounded-lg">
                                 <Receipt size={20} className="text-orange-600" />
                             </div>
                             Últimos Movimientos
                         </h3>
                     </div>
-                    <div className="p-4 flex-1">
-                        <div className="space-y-3">
-                            {movements.length > 0 ? movements.slice(0, 5).map((m: any) => (
-                                <MovementItem
-                                    key={m.id}
-                                    type={m.payment_type ? 'income' : 'expense'}
-                                    label={m.payment_type ? `Pago - Folio ${m.ticket_id.split('-')[0]}` : (m.description || 'Gasto Operativo')}
-                                    amount={m.payment_type ? `+${formatCurrency(m.amount)}` : `-${formatCurrency(m.amount)}`}
-                                    time={new Date(m.created_at).toLocaleTimeString()}
-                                />
-                            )) : (
-                                <p className="text-center py-10 text-xs font-bold text-slate-300 uppercase tracking-widest">Sin movimientos hoy</p>
-                            )}
-                        </div>
+                    <div className="p-0 flex-1 overflow-auto max-h-[500px]">
+                        <MovementsList incomes={movements.incomes} expenses={movements.expenses} />
                     </div>
-                    <button className="p-8 text-[11px] font-black uppercase tracking-[0.25em] text-slate-400 hover:text-orange-600 hover:bg-orange-50 transition-all border-t border-slate-50 flex items-center justify-center gap-3 group">
-                        Ver historial completo
-                        <ArrowUpRight size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                    </button>
                 </div>
             </div>
         </div>
@@ -118,58 +161,53 @@ export default function FinancePage() {
 function FinanceStat({ label, value, trend, positive, negative, primary, border }: any) {
     return (
         <div className={cn(
-            "glass-card p-10 group relative overflow-hidden border-none shadow-2xl bg-white transition-all hover:scale-[1.02] duration-500",
-            border,
-            "border-l-8"
+            "glass-card p-8 bg-white border-2 border-slate-100 shadow-xl shadow-slate-200/50 rounded-[2.5rem] transition-all hover:scale-[1.02] group",
+            primary && "border-orange-100"
         )}>
-            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 mb-6">{label}</p>
-            <div className="flex items-end justify-between gap-4">
-                <h2 className={cn("text-4xl font-black tracking-tighter text-foreground group-hover:text-orange-600 transition-colors")}>{value}</h2>
-                <div className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-black shadow-sm",
-                    positive && "text-emerald-600 bg-emerald-50 border-emerald-100",
-                    negative && "text-rose-600 bg-rose-50 border-rose-100"
+            <div className="flex items-center justify-between mb-4">
+                <div className={cn("p-4 rounded-2xl transition-colors",
+                    primary ? "bg-orange-50 text-orange-600" :
+                        positive ? "bg-emerald-50 text-emerald-600" :
+                            negative ? "bg-rose-50 text-rose-600" :
+                                "bg-slate-50 text-slate-600"
                 )}>
-                    {positive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                    {primary ? <Wallet size={24} /> :
+                        positive ? <TrendingUp size={24} /> :
+                            negative ? <TrendingDown size={24} /> :
+                                <Activity size={24} />
+                    }
+                </div>
+                <div className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest",
+                    positive && "text-emerald-600 bg-emerald-50",
+                    negative && "text-rose-600 bg-rose-50",
+                    primary && "text-orange-600 bg-orange-50"
+                )}>
                     {trend}
                 </div>
             </div>
+
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">{label}</p>
+            <h3 className="text-4xl font-black text-slate-900 tracking-tighter">{value}</h3>
         </div>
     );
 }
 
-function MiniStat({ label, value, icon }: any) {
+function MiniStat({ label, value, icon, subtle }: any) {
     return (
-        <div className="space-y-2 p-5 bg-slate-50 hover:bg-white border border-slate-100 rounded-2xl transition-all shadow-inner hover:shadow-xl hover:shadow-slate-200/50 group">
-            <div className="flex items-center gap-2 text-slate-400 group-hover:text-orange-500 transition-colors">
-                {icon}
-                <p className="text-[9px] font-black uppercase tracking-[0.2em]">{label}</p>
+        <div className={cn(
+            "bg-white border-2 border-slate-50 p-6 rounded-3xl hover:border-orange-100 transition-all group shadow-sm hover:shadow-md",
+            subtle && "bg-slate-50/50 border-transparent shadow-none"
+        )}>
+            <div className="flex items-center gap-3 mb-2">
+                <div className={cn("text-slate-300 group-hover:text-orange-500 transition-colors", subtle && "text-slate-400")}>
+                    {icon}
+                </div>
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">{label}</span>
             </div>
-            <p className="text-xl font-black text-foreground tracking-tight">{value}</p>
+            <p className={cn("text-xl font-black text-slate-800 tracking-tight", subtle && "text-slate-600")}>{value}</p>
         </div>
     );
 }
 
-function MovementItem({ type, label, amount, time }: any) {
-    return (
-        <div className="flex items-center justify-between p-5 rounded-[1.5rem] bg-white border border-transparent hover:border-slate-100 hover:bg-slate-50/50 hover:shadow-lg hover:shadow-slate-200/30 transition-all group cursor-default">
-            <div className="flex items-center gap-5">
-                <div className={cn(
-                    "w-12 h-12 rounded-2xl flex items-center justify-center border transition-all shadow-sm",
-                    type === 'income' ? "bg-emerald-50 border-emerald-100 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white" : "bg-rose-50 border-rose-100 text-rose-500 group-hover:bg-rose-500 group-hover:text-white"
-                )}>
-                    {type === 'income' ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />}
-                </div>
-                <div>
-                    <p className="text-[15px] font-black text-foreground tracking-tight group-hover:text-orange-600 transition-colors truncate max-w-[150px]">{label}</p>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{time}</p>
-                </div>
-            </div>
-            <span className={cn(
-                "text-lg font-black tracking-tight",
-                type === 'income' ? "text-emerald-500" : "text-rose-500"
-            )}>{amount}</span>
-        </div>
-    );
-}
 

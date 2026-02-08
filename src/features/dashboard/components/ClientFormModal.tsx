@@ -30,20 +30,21 @@ type ClientFormValues = z.infer<typeof clientSchema>;
 interface ClientFormModalProps {
     onClose: () => void;
     onSuccess: (client: any) => void;
+    initialData?: any;
 }
 
-export function ClientFormModal({ onClose, onSuccess }: ClientFormModalProps) {
+export function ClientFormModal({ onClose, onSuccess, initialData }: ClientFormModalProps) {
     const { user } = useAuthStore();
-    const { createClient } = useClients();
+    const { createClient, updateClient } = useClients();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [serverError, setServerError] = useState<string | null>(null);
 
     const { register, handleSubmit, formState: { errors } } = useForm<ClientFormValues>({
         resolver: zodResolver(clientSchema),
         defaultValues: {
-            full_name: '',
-            phone: '',
-            email: ''
+            full_name: initialData?.full_name || '',
+            phone: initialData?.phone || '',
+            email: initialData?.email || ''
         }
     });
 
@@ -51,15 +52,19 @@ export function ClientFormModal({ onClose, onSuccess }: ClientFormModalProps) {
         setIsSubmitting(true);
         setServerError(null);
         try {
-            const newClient = await createClient({
-                full_name: data.full_name.toUpperCase(),
+            const clientPayload = {
+                full_name: data.full_name.trim().toUpperCase(),
                 phone: data.phone.replace(/\D/g, ''),
-                email: data.email?.toLowerCase(),
+                email: data.email?.toLowerCase() || null,
                 organization_id: user?.organization_id,
                 last_branch_id: user?.assigned_branch_id,
-                preferences: { vip: false }
-            });
-            onSuccess(newClient);
+            };
+
+            const result = initialData?.id
+                ? await updateClient(initialData.id, clientPayload)
+                : await createClient({ ...clientPayload, preferences: { vip: false } });
+
+            onSuccess(result);
         } catch (err: any) {
             setServerError(translateError(err));
         } finally {
@@ -148,7 +153,7 @@ export function ClientFormModal({ onClose, onSuccess }: ClientFormModalProps) {
                     ) : (
                         <>
                             <Save size={18} />
-                            Guardar Cliente
+                            {initialData?.id ? 'Actualizar Cliente' : 'Guardar Cliente'}
                         </>
                     )}
                 </button>

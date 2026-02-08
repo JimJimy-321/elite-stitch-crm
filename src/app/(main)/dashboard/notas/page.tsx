@@ -9,12 +9,14 @@ import { AdvancedNotaForm } from '@/features/dashboard/components/AdvancedNotaFo
 import { NotaDetailView } from '@/features/dashboard/components/nota-details/NotaDetailView';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import { useState } from 'react';
+import { useAuthStore } from '@/features/auth/store/authStore';
 
 export default function NotasPage() {
     const [searchTerm, setSearchTerm] = useState('');
+    const { user } = useAuthStore();
     const debouncedSearch = useDebounce(searchTerm, 500);
     const { notas, loading: notasLoading, refetch } = useNotas(debouncedSearch) as any;
-    const { stats, loading: statsLoading } = useDashboardStats();
+    const { stats, loading: statsLoading, refetch: refetchStats } = useDashboardStats(user?.assigned_branch_id);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedNota, setSelectedNota] = useState<any>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -123,13 +125,14 @@ export default function NotasPage() {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 title="Nueva Orden de Servicio"
-                className="max-w-5xl"
+                className="max-w-7xl"
             >
                 <AdvancedNotaForm
                     onClose={() => setIsModalOpen(false)}
-                    onSuccess={() => {
+                    onSuccess={async () => {
                         setIsModalOpen(false);
-                        refetch?.();
+                        await refetch?.();
+                        await refetchStats();
                     }}
                 />
             </Modal>
@@ -138,7 +141,7 @@ export default function NotasPage() {
                 isOpen={isDetailModalOpen}
                 onClose={() => { setIsDetailModalOpen(false); setSelectedNota(null); }}
                 title={`Detalles de Nota - ${selectedNota?.ticket_number}`}
-                className="max-w-5xl"
+                className="max-w-7xl"
             >
                 {selectedNota && (
                     <NotaDetailView

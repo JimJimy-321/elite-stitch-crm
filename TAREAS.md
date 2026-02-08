@@ -33,4 +33,8 @@
 - [x] **Artifact Final:** Resumen de la transformación completa.
 
 ---
+## 🛠️ Fase 6: Mantenimiento Post-Producción (EN PROCESO)
+- [x] **Fix: Reactividad de KPIs:** Las cifras de control (Recibidos, En Proceso, etc.) ahora se actualizan inmediatamente al crear o editar notas.
+
+---
 *Este archivo se actualiza dinámicamente según el progreso.*

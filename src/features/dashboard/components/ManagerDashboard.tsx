@@ -19,7 +19,7 @@ import {
     Activity
 } from 'lucide-react';
 import { cn, formatCurrency } from '@/shared/lib/utils';
-import { useNotas, useAdvancedNotas, useDashboardStats } from '../hooks/useDashboardData';
+import { useNotas, useAdvancedNotas, useDashboardStats, useDailyFinancials, useActiveWorkQueue } from '../hooks/useDashboardData';
 import { NotaDetailView } from './nota-details/NotaDetailView';
 import { AdvancedNotaForm } from './AdvancedNotaForm';
 import { Modal } from '@/shared/components/ui/Modal';
@@ -35,11 +35,13 @@ export function ManagerDashboard({ user: initialUser }: Props) {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isNewNotaModalOpen, setIsNewNotaModalOpen] = useState(false);
     const [selectedNota, setSelectedNota] = useState<any>(null);
-    const { stats, loading: statsLoading } = useDashboardStats();
+    const { stats, loading: statsLoading, refetch: refetchStats } = useDashboardStats(initialUser?.assigned_branch_id);
+    const { financials, loading: finLoading, refetch: refetchFin } = useDailyFinancials(initialUser?.assigned_branch_id);
+    const { queue: activeQueue, loading: queueLoading, refetch: refetchQueue } = useActiveWorkQueue(initialUser?.assigned_branch_id);
 
     const { notas, loading: notasLoading, refetch } = useNotas(debouncedSearch);
 
-    const isLoading = notasLoading || statsLoading;
+    const isLoading = notasLoading || statsLoading || finLoading || queueLoading;
 
     // Lógica de Prioridades
     const today = new Date().toISOString().split('T')[0];
@@ -55,7 +57,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
     });
 
     // KPI Calc
-    const totalVenta = notas.reduce((acc, t) => acc + (t.total_amount || 0), 0);
+    // const totalVenta = notas.reduce((acc, t) => acc + (t.total_amount || 0), 0);
 
 
     return (
@@ -94,7 +96,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                 <KPICard title="Recibidos Hoy" value={stats?.received || "0"} icon={Package} color="orange" border="border-orange-500" />
                 <KPICard title="Por Entregar" value={overdueNotas.length.toString()} icon={Clock} color="blue" border="border-blue-500" />
                 <KPICard title="Abandonados (30d+)" value={abandonedNotas.length.toString()} icon={AlertTriangle} color="purple" border="border-purple-500" />
-                <KPICard title="Caja Total" value={formatCurrency(totalVenta)} icon={TrendingUp} color="emerald" border="border-emerald-500" />
+                <KPICard title="Ingresos Hoy" value={formatCurrency(financials?.income || 0)} icon={TrendingUp} color="emerald" border="!border-orange-500 border-2" />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-10">
@@ -104,7 +106,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                         <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 flex items-center gap-3">
                             <Activity size={16} className="text-orange-500" /> Cola de Trabajo Activa
                         </h2>
-                        <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-3 py-1 rounded-full">{notas.length} Órdenes</span>
+                        <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-3 py-1 rounded-full">{activeQueue.length} Órdenes</span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
@@ -150,7 +152,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                                         <span className="text-[10px] font-black text-orange-600 uppercase">NOTA {t.ticket_number}</span>
                                         <History size={14} className="text-orange-400" />
                                     </div>
-                                    <p className="text-xs font-black text-slate-800 truncate">{t.client?.full_name}</p>
+                                    <p className="text-xs font-black text-slate-800 truncate uppercase">{t.client?.full_name}</p>
                                     <p className="text-[10px] text-orange-600 font-bold mt-1 uppercase tracking-tight">
                                         {t.items?.some((i: any) => i.priority === 'express') ? 'SERVICIO EXPRESS' : 'PARA HOY'}
                                     </p>
@@ -172,7 +174,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                                             <span className="text-[10px] font-black text-rose-600 uppercase">NOTA {t.ticket_number}</span>
                                             <AlertTriangle size={14} className="text-rose-400" />
                                         </div>
-                                        <p className="text-xs font-black text-slate-800 truncate">{t.client?.full_name}</p>
+                                        <p className="text-xs font-black text-slate-800 truncate uppercase">{t.client?.full_name}</p>
                                         <p className="text-[10px] text-rose-500 font-bold mt-1 uppercase">FECHA VENCIDA</p>
                                     </div>
                                 ))}
@@ -187,13 +189,14 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                 isOpen={isDetailModalOpen}
                 onClose={() => { setIsDetailModalOpen(false); setSelectedNota(null); }}
                 title={`Detalles - Nota ${selectedNota?.ticket_number}`}
-                className="max-w-5xl"
+                className="max-w-7xl"
             >
                 {selectedNota && (
                     <NotaDetailView
                         nota={selectedNota}
                         onUpdate={async () => {
                             const newNotas = await refetch();
+                            await refetchStats();
                             if (selectedNota) {
                                 const updated = newNotas.find((t: any) => t.id === selectedNota.id);
                                 if (updated) setSelectedNota(updated);
@@ -207,13 +210,16 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                 isOpen={isNewNotaModalOpen}
                 onClose={() => setIsNewNotaModalOpen(false)}
                 title="Nueva Nota de Servicio"
-                className="max-w-5xl"
+                className="max-w-7xl"
             >
                 <AdvancedNotaForm
                     onClose={() => setIsNewNotaModalOpen(false)}
-                    onSuccess={() => {
+                    onSuccess={async () => {
                         setIsNewNotaModalOpen(false);
-                        refetch();
+                        await refetch();
+                        await refetchStats();
+                        await refetchFin();
+                        await refetchQueue();
                     }}
                 />
             </Modal>
@@ -257,7 +263,7 @@ function QuickNotaCard({ nota, onClick }: { nota: any, onClick: () => void }) {
             <div className="flex justify-between items-start mb-3">
                 <div>
                     <span className="text-[8px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100 uppercase tracking-widest mb-1 shadow-sm block w-fit">NOTA {nota.ticket_number}</span>
-                    <h4 className="font-black text-[13px] text-slate-800 truncate max-w-[110px] tracking-tight">{nota.client?.full_name}</h4>
+                    <h4 className="font-black text-[13px] text-slate-800 truncate max-w-[110px] tracking-tight uppercase">{nota.client?.full_name}</h4>
                 </div>
                 <div className={cn("px-2 py-1 rounded-lg text-[7px] font-black uppercase tracking-widest shadow-sm", status.bg, status.color)}>
                     {status.label}

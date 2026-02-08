@@ -18,7 +18,7 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
     const { user } = useAuthStore();
     const [clientSearch, setClientSearch] = useState('');
     const debouncedClientSearch = useDebounce(clientSearch, 500);
-    const { clients } = useClients(debouncedClientSearch);
+    const { clients } = useClients(debouncedClientSearch.toUpperCase());
     const { branches } = useBranches();
     const { garments } = useGarments();
     const { services } = useServices();
@@ -113,7 +113,7 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
             let processedValue = value;
             if (field === 'price') {
                 // Asegurar que guardamos como número pero permitimos vacío para UX
-                processedValue = value === '' ? 0 : parseFloat(value);
+                processedValue = value === '' ? 0 : Math.max(0, parseFloat(value));
             } else if (typeof value === 'string' && field !== 'priority') {
                 processedValue = value.toUpperCase();
             }
@@ -202,15 +202,17 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-8 max-h-[85vh] overflow-y-auto px-2 pb-10">
+        <form onSubmit={handleSubmit} className="space-y-10 px-4 pb-12 pt-2">
             {submittingError && (
-                <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex items-center gap-3 text-red-600 animate-in fade-in slide-in-from-top-2">
-                    <AlertCircle size={18} />
+                <div className="bg-red-50 border border-red-100 p-5 rounded-2xl flex items-center gap-4 text-red-600 animate-in fade-in slide-in-from-top-2">
+                    <AlertCircle size={20} />
                     <p className="text-[11px] font-black uppercase tracking-tight">{submittingError}</p>
                 </div>
             )}
 
+            {/* SECCIÓN SUPERIOR: DATOS DE CABECERA (4 COLUMNAS) */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 bg-slate-50/50 rounded-[2.5rem] border border-slate-100">
+                {/* 1. FOLIO */}
                 <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-orange-500 ml-2">Número de Nota</label>
                     <div className="relative group">
@@ -221,8 +223,8 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
                             placeholder="000000"
                             required
                             className={cn(
-                                "w-full bg-white border-2 rounded-2xl px-10 h-14 font-black text-lg tracking-[0.2em] outline-none transition-all text-right",
-                                notaNumberError ? "border-red-500 bg-red-50" : "border-slate-100 focus:border-orange-500"
+                                "w-full bg-white border-2 rounded-2xl px-10 h-14 font-black text-lg tracking-[0.2em] outline-none transition-all text-right shadow-sm focus:border-orange-500",
+                                notaNumberError ? "border-red-500 bg-red-50" : "border-slate-100"
                             )}
                             value={notaNumber}
                             onChange={(e) => {
@@ -253,15 +255,16 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
                     )}
                 </div>
 
+                {/* 2. CLIENTE */}
                 <div className="space-y-2 relative">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Cliente</label>
                     <div className="relative group">
                         <input
                             id="field-client-search"
                             type="text"
-                            placeholder="BUSCAR POR NOMBRE O TEL..."
+                            placeholder="BUSCAR CLIENTE..."
                             autoComplete="off"
-                            className="w-full bg-white border-2 border-slate-100 rounded-2xl px-10 h-14 font-bold text-slate-700 focus:border-orange-500 outline-none transition-all uppercase"
+                            className="w-full bg-white border-2 border-slate-100 rounded-2xl px-10 h-14 font-bold text-slate-700 focus:border-orange-500 outline-none transition-all uppercase shadow-sm"
                             value={selectedClient ? selectedClient.full_name : clientSearch}
                             onChange={(e) => {
                                 setClientSearch(e.target.value.toUpperCase());
@@ -271,7 +274,7 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
                             onFocus={() => setShowClientResults(true)}
                             onKeyDown={(e) => handleKeyDown(e, 'field-delivery-date')}
                         />
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={18} />
 
                         {(selectedClient || clientSearch) && (
                             <button
@@ -280,7 +283,7 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
                                     setSelectedClient(null);
                                     setClientSearch('');
                                 }}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500 transition-colors"
                             >
                                 <X size={16} />
                             </button>
@@ -300,25 +303,26 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
                                             setShowClientResults(false);
                                         }}
                                     >
-                                        <span className="font-black text-slate-800 text-xs uppercase">{c.full_name}</span>
+                                        <span className="font-black text-slate-800 text-[11px] uppercase">{c.full_name?.toUpperCase()}</span>
                                         <span className="text-[10px] font-bold text-slate-400">{c.phone}</span>
                                     </button>
                                 ))
                             ) : (
                                 <div className="p-5 text-center space-y-2">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase">No se encontraron clientes</p>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-[9px]">No se encontraron clientes</p>
                                 </div>
                             )}
                         </div>
                     )}
                 </div>
 
+                {/* 3. SUCURSAL */}
                 <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Sucursal</label>
                     <div className="relative">
                         <select
                             disabled
-                            className="w-full bg-slate-100 border-2 border-slate-100 rounded-2xl px-5 h-14 font-bold text-slate-500 appearance-none cursor-not-allowed"
+                            className="w-full bg-slate-100 border-2 border-slate-100 rounded-2xl px-12 h-14 font-black text-slate-500 appearance-none cursor-not-allowed text-[11px] tracking-widest shadow-inner uppercase"
                             value={selectedBranch?.id || ''}
                         >
                             {branches.length === 0 ? (
@@ -331,10 +335,11 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
                                     ))
                             )}
                         </select>
-                        <MapPin className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                     </div>
                 </div>
 
+                {/* 4. FECHA */}
                 <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Fecha de entrega</label>
                     <div className="relative group">
@@ -342,11 +347,11 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
                             id="field-delivery-date"
                             type="date"
                             required
-                            className="w-full bg-white border-2 border-slate-100 rounded-2xl px-10 h-14 font-bold text-slate-700 focus:border-orange-500 outline-none transition-all"
+                            className="w-full bg-white border-2 border-slate-100 rounded-2xl px-12 h-14 font-black text-slate-800 focus:border-orange-500 outline-none transition-all shadow-sm"
                             value={deliveryDate}
                             onChange={(e) => setDeliveryDate(e.target.value)}
                         />
-                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={18} />
                     </div>
                 </div>
             </div>
@@ -420,6 +425,7 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
                                             id={`item-price-${item.id}`}
                                             type="number"
                                             placeholder="0"
+                                            min="0"
                                             className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-6 pr-4 h-11 text-[12px] font-black outline-none focus:border-orange-500 text-right"
                                             value={item.price || ''}
                                             required
@@ -452,7 +458,7 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
                         <div className="flex gap-2">
                             <input
                                 type="text"
-                                className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-5 h-12 outline-none focus:ring-2 focus:ring-orange-500 transition-all font-black uppercase text-xs"
+                                className="flex-1 bg-white/10 border border-white/20 rounded-2xl px-5 h-12 outline-none focus:ring-2 focus:ring-orange-500 transition-all font-black uppercase text-xs text-white placeholder:text-slate-500"
                                 value={discountCode}
                                 onChange={(e) => {
                                     setDiscountCode(e.target.value.toUpperCase());
@@ -487,7 +493,8 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
                             <input
                                 id="field-payment-amount"
                                 type="number"
-                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 h-12 outline-none focus:ring-2 focus:ring-orange-500 transition-all font-black text-right pr-10"
+                                min="0"
+                                className="w-full bg-white/10 border border-white/20 rounded-2xl px-5 h-12 outline-none focus:ring-2 focus:ring-orange-500 transition-all font-black text-right pr-10 text-white"
                                 value={payment.amount || ''}
                                 onChange={(e) => {
                                     const val = Number(e.target.value);
@@ -502,7 +509,7 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
                     <div className="space-y-4">
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Método de Pago</label>
                         <select
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 h-12 outline-none focus:ring-2 focus:ring-orange-500 transition-all font-black text-xs text-white [&>option]:bg-slate-900 [&>option]:text-white"
+                            className="w-full bg-white/10 border border-white/20 rounded-2xl px-5 h-12 outline-none focus:ring-2 focus:ring-orange-500 transition-all font-black text-xs text-white [&>option]:bg-slate-900 [&>option]:text-white"
                             value={payment.method}
                             onChange={(e) => setPayment({ ...payment, method: e.target.value })}
                         >
@@ -515,10 +522,6 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
 
                 <div className="pt-6 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="flex gap-10">
-                        <div>
-                            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-1">Total Parcial</p>
-                            <p className="text-lg font-black text-slate-400 font-mono">${subtotal.toLocaleString()}</p>
-                        </div>
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500 mb-1">Saldo Pendiente</p>
                             <p className={cn("text-3xl font-black tracking-tighter", balance > 0 ? "text-amber-400" : "text-emerald-400")}>

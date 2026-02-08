@@ -25,17 +25,13 @@ export const dashboardService = {
             `);
 
         if (search) {
-            // Busqueda por Nota (exacto o parte), Nombre cliente, o Telefono
-            // Nota: Para búsquedas en tablas relacionadas vía .or(), Supabase tiene limitaciones
-            // Usamos una aproximación eficiente: si es número buscamos por nota/teléfono, si es texto por nombre
-            const isNumeric = /^\d+$/.test(search);
+            const searchNormalized = search.toUpperCase();
+            const isNumeric = /^\d+$/.test(searchNormalized);
             if (isNumeric) {
-                query = query.or(`ticket_number.ilike.%${search}%`);
-            } else {
-                // Para buscar por nombre de cliente que está en otra tabla, usualmente se requiere una vista 
-                // o buscar clientes primero. Pero por simplicidad y eficiencia en Supabase:
-                query = query.ilike('notes', `%${search}%`);
+                query = query.or(`ticket_number.ilike.%${searchNormalized}%`);
             }
+            // En caso de texto, no filtramos en SQL para permitir que el filtro de JS
+            // busque en el nombre del cliente (join), ya que Supabase no permite .or() en joins.
         }
 
         const { data, error } = await query.order('created_at', { ascending: false }).limit(50);
@@ -44,10 +40,11 @@ export const dashboardService = {
 
         // Post-filtrado ligero para lo que Supabase no permite en .or() con joins complejos sin vistas
         if (search) {
+            const searchNormalized = search.toUpperCase();
             return data.filter((t: any) =>
-                t.ticket_number?.includes(search) ||
-                t.client?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-                t.client?.phone?.includes(search)
+                t.ticket_number?.toUpperCase().includes(searchNormalized) ||
+                t.client?.full_name?.toUpperCase().includes(searchNormalized) ||
+                t.client?.phone?.includes(searchNormalized)
             );
         }
 
@@ -60,7 +57,8 @@ export const dashboardService = {
             .select('*');
 
         if (search) {
-            query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`);
+            const s = search.toUpperCase();
+            query = query.or(`full_name.ilike.%${s}%,phone.ilike.%${s}%,email.ilike.%${s}%`);
         }
 
         const { data, error } = await query
@@ -82,6 +80,44 @@ export const dashboardService = {
         return data;
     },
 
+    async updateClient(id: string, clientData: any) {
+        const { data, error } = await supabase
+            .from('clients')
+            .update(clientData)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    async deleteClient(id: string) {
+        // Verificar que no tenga tickets activos
+        const { data: activeTickets, error: checkError } = await supabase
+            .from('tickets')
+            .select('id, ticket_number, status')
+            .eq('client_id', id)
+            .neq('status', 'delivered');
+
+        if (checkError) throw checkError;
+
+        if (activeTickets && activeTickets.length > 0) {
+            throw new Error(
+                `No se puede eliminar el cliente porque tiene ${activeTickets.length} ${activeTickets.length === 1 ? 'orden activa' : 'órdenes activas'
+                }. Debe entregarlas o reasignarlas primero.`
+            );
+        }
+
+        const { error } = await supabase
+            .from('clients')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        return true;
+    },
+
     async getBranches() {
         const { data, error } = await supabase
             .from('branches')
@@ -92,10 +128,16 @@ export const dashboardService = {
         return data;
     },
 
-    async getStats() {
-        const { data: tickets, error } = await supabase
+    async getStats(branchId?: string) {
+        let query = supabase
             .from('tickets')
-            .select('status, total_amount');
+            .select('status, total_amount, branch_id');
+
+        if (branchId) {
+            query = query.eq('branch_id', branchId);
+        }
+
+        const { data: tickets, error } = await query;
 
         if (error) throw error;
 
@@ -408,5 +450,81 @@ export const dashboardService = {
             .eq('id', notaId);
         if (error) throw error;
         return true;
+    },
+
+    async getDailyFinancials(branchId?: string) {
+        const today = new Date().toISOString().split('T')[0];
+
+        // 1. Ingresos en efectivo/tarjeta/transferencia de HOY (ticket_payments)
+        let paymentsQuery = supabase
+            .from('ticket_payments')
+            .select('amount, payment_method')
+            .gte('created_at', `${today}T00:00:00`)
+            .lte('created_at', `${today}T23:59:59`);
+
+        if (branchId) paymentsQuery = paymentsQuery.eq('branch_id', branchId);
+
+        const { data: payments, error: pError } = await paymentsQuery;
+        if (pError) throw pError;
+
+        // 2. Gastos de HOY
+        let expensesQuery = supabase
+            .from('expenses')
+            .select('amount')
+            .gte('created_at', `${today}T00:00:00`)
+            .lte('created_at', `${today}T23:59:59`);
+
+        if (branchId) expensesQuery = expensesQuery.eq('branch_id', branchId);
+
+        const { data: expenses, error: eError } = await expensesQuery;
+        if (eError) throw eError;
+
+        // 3. Venta Neta (Tickets creados HOY) - Informativo
+        let ticketsQuery = supabase
+            .from('tickets')
+            .select('total_amount')
+            .gte('created_at', `${today}T00:00:00`)
+            .lte('created_at', `${today}T23:59:59`);
+
+        if (branchId) ticketsQuery = ticketsQuery.eq('branch_id', branchId);
+
+        const { data: tickets, error: tError } = await ticketsQuery;
+        if (tError) throw tError;
+
+        // Cálculos
+        const income = payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+        const expense = expenses?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+        const dailySales = tickets?.reduce((sum, t) => sum + Number(t.total_amount), 0) || 0;
+
+        return {
+            income,
+            expense,
+            netCash: income - expense, // Caja Real Teórica
+            dailySales // Venta contratada hoy
+        };
+    },
+
+    async getActiveWorkQueue(branchId?: string) {
+        // Traer TODOS los tickets que NO estén entregados
+        // Sin límite de 50 para tener el conteo real
+        let query = supabase
+            .from('tickets')
+            .select(`
+                *,
+                client:clients(full_name, phone),
+                branch:branches(name),
+                items:ticket_items(*)
+            `)
+            .neq('status', 'delivered');
+
+        if (branchId) {
+            query = query.eq('branch_id', branchId);
+        }
+
+        // Ordenar: Lo más antiguo primero (FIFO) o por fecha de entrega
+        const { data, error } = await query.order('delivery_date', { ascending: true });
+
+        if (error) throw error;
+        return data;
     }
 };

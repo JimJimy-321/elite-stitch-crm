@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, UserPlus, Search, Phone, Mail, MoreHorizontal, ShieldCheck, User } from 'lucide-react';
+import { Users, UserPlus, Search, Phone, Mail, MoreHorizontal, ShieldCheck, User, Edit2, Trash2 } from 'lucide-react';
 import { useClients } from '@/features/dashboard/hooks/useDashboardData';
 import { cn } from '@/shared/lib/utils';
 import { Modal } from '@/shared/components/ui/Modal';
@@ -11,8 +11,32 @@ import { useState } from 'react';
 export default function ClientsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearch = useDebounce(searchTerm, 500);
-    const { clients, loading, refetch } = useClients(debouncedSearch);
+    const { clients, loading, refetch, deleteClient } = useClients(debouncedSearch);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedClient, setSelectedClient] = useState<any>(null);
+    const [activeMenu, setActiveMenu] = useState<string | null>(null);
+
+    const handleEdit = (client: any) => {
+        setSelectedClient(client);
+        setIsModalOpen(true);
+        setActiveMenu(null);
+    };
+
+    const handleDelete = async (client: any) => {
+        if (confirm(`¿ESTÁS SEGURO DE ELIMINAR A ${client.full_name.toUpperCase()}?`)) {
+            try {
+                await deleteClient(client.id);
+            } catch (err: any) {
+                alert(err.message || "Error al eliminar cliente");
+            }
+        }
+        setActiveMenu(null);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setSelectedClient(null);
+    };
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -105,10 +129,43 @@ export default function ClientsPage() {
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="px-8 py-6">
-                                            <button className="w-10 h-10 rounded-xl border border-slate-100 flex items-center justify-center text-slate-300 hover:text-orange-500 hover:border-orange-500/30 hover:bg-orange-50 transition-all shadow-sm">
+                                        <td className="px-8 py-6 relative">
+                                            <button
+                                                onClick={() => setActiveMenu(activeMenu === client.id ? null : client.id)}
+                                                className={cn(
+                                                    "w-10 h-10 rounded-xl border flex items-center justify-center transition-all shadow-sm",
+                                                    activeMenu === client.id
+                                                        ? "border-orange-500 bg-orange-50 text-orange-600"
+                                                        : "border-slate-100 text-slate-300 hover:text-orange-500 hover:border-orange-500/30 hover:bg-orange-50"
+                                                )}
+                                            >
                                                 <MoreHorizontal size={18} />
                                             </button>
+
+                                            {activeMenu === client.id && (
+                                                <>
+                                                    <div
+                                                        className="fixed inset-0 z-10"
+                                                        onClick={() => setActiveMenu(null)}
+                                                    />
+                                                    <div className="absolute right-8 top-16 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                                        <button
+                                                            onClick={() => handleEdit(client)}
+                                                            className="w-full px-5 py-4 text-left hover:bg-orange-50 text-slate-600 flex items-center gap-3 transition-colors border-b border-slate-50"
+                                                        >
+                                                            <Edit2 size={16} className="text-orange-500" />
+                                                            <span className="text-[10px] font-black uppercase tracking-widest">Modificar</span>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(client)}
+                                                            className="w-full px-5 py-4 text-left hover:bg-red-50 text-red-500 flex items-center gap-3 transition-colors"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                            <span className="text-[10px] font-black uppercase tracking-widest">Eliminar</span>
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
@@ -139,14 +196,15 @@ export default function ClientsPage() {
 
             <Modal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                title="Nuevo Registro de Cliente"
+                onClose={handleCloseModal}
+                title={selectedClient ? "Modificar Cliente" : "Nuevo Registro de Cliente"}
                 className="max-w-xl"
             >
                 <ClientFormModal
-                    onClose={() => setIsModalOpen(false)}
+                    initialData={selectedClient}
+                    onClose={handleCloseModal}
                     onSuccess={() => {
-                        setIsModalOpen(false);
+                        handleCloseModal();
                         refetch();
                     }}
                 />

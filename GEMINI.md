@@ -314,6 +314,34 @@ test('should calculate total with tax', () => {
 - **Fix**: Verificar que `src/proxy.ts` (o el middleware) coincida con el ID de Supabase activo en Vercel.
 - **Aplicar en**: Setup inicial de middleware.
 
+### 2026-02-06: Estandarización de Datos a MAYÚSCULAS
+- **Error**: Clientes guardados con mezcla de mayúsculas/minúsculas (ej: "Jim Jimmy", "Cliente Uno") causaban fallos en búsquedas case-sensitive.
+- **Fix**: 
+  - Forzar `.toUpperCase()` en inputs de cliente (`ClientFormModal.tsx`)
+  - Normalizar búsquedas en `dashboardService.ts` con `.toUpperCase()`
+  - Migración SQL: `UPDATE clients SET full_name = UPPER(full_name);`
+  - Forzar visualización en MAYÚSCULAS en todos los componentes
+- **Aplicar en**: Cualquier campo que requiera búsquedas exactas o visualización consistente (nombres, códigos, identificadores)
+
+### 2026-02-06: Error de Hidratación por Idioma de HTML
+- **Error**: "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties" causado por `lang="en"` cuando el contenido es español.
+- **Fix**: Cambiar `lang="en"` a `lang="es"` en `app/layout.tsx` para evitar que el navegador intente traducir automáticamente
+- **Aplicar en**: Siempre configurar `lang` en el layout raíz según el idioma principal de la aplicación
+
+### 2026-02-06: Protección de Integridad Referencial (CRÍTICO)
+- **Error**: Eliminar clientes con tickets activos dejaba registros huérfanos (`client_id: null`), corrompiendo la base de datos.
+- **Fix Multi-Capa**:
+  1. **Aplicación**: Validación en `dashboardService.deleteClient()` que verifica tickets activos antes de eliminar
+  2. **Base de Datos**: Migración para agregar `ON DELETE RESTRICT` en foreign key `tickets.client_id`
+  3. **Reparación**: Crear cliente placeholder "CLIENTE ELIMINADO" y reasignar tickets huérfanos
+  4. **UX**: Mostrar mensaje específico: "No se puede eliminar el cliente porque tiene X orden(es) activa(s)"
+- **Aplicar en**: TODAS las relaciones de foreign keys críticas. SIEMPRE verificar integridad referencial antes de DELETE operations.
+
+### 2026-02-06: Cliente Placeholder para Datos Históricos
+- **Error**: Tickets huérfanos sin cliente válido después de eliminaciones accidentales.
+- **Fix**: Crear cliente especial `id='00000000-0000-0000-0000-000000000001'` con nombre "CLIENTE ELIMINADO" para mantener integridad de datos históricos
+- **Aplicar en**: Cualquier sistema que necesite mantener registros históricos incluso si las entidades relacionadas se eliminan
+
 ---
 
 *Este archivo es el cerebro de la fábrica. Cada error documentado la hace más fuerte.*

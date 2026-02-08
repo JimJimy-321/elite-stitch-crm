@@ -2,27 +2,33 @@
 
 import { useState, useEffect } from 'react';
 import { dashboardService } from '../services/dashboardService';
+import { useAuthStore } from '@/features/auth/store/authStore'; // Ensure this is available if needed, but the hooks here are generic enough
 
-export function useDashboardStats() {
+
+export function useDashboardStats(branchId?: string) {
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<any>(null);
 
-    useEffect(() => {
-        async function fetchStats() {
-            try {
-                const data = await dashboardService.getStats();
-                setStats(data);
-            } catch (err) {
-                setError(err);
-            } finally {
-                setLoading(false);
-            }
+    const fetchStats = async () => {
+        setLoading(true);
+        try {
+            const data = await dashboardService.getStats();
+            setStats(data);
+            return data;
+        } catch (err) {
+            setError(err);
+            return null;
+        } finally {
+            setLoading(false);
         }
+    };
+
+    useEffect(() => {
         fetchStats();
     }, []);
 
-    return { stats, loading, error };
+    return { stats, loading, error, refetch: fetchStats };
 }
 
 export function useNotas(search?: string) {
@@ -78,7 +84,18 @@ export function useClients(search?: string) {
         return result;
     };
 
-    return { clients, loading, error, createClient, refetch: fetchClients };
+    const updateClient = async (id: string, data: any) => {
+        const result = await dashboardService.updateClient(id, data);
+        await fetchClients();
+        return result;
+    };
+
+    const deleteClient = async (id: string) => {
+        await dashboardService.deleteClient(id);
+        await fetchClients();
+    };
+
+    return { clients, loading, error, createClient, updateClient, deleteClient, refetch: fetchClients };
 }
 
 export function useBranches() {
@@ -272,4 +289,46 @@ export function useFinanceStats() {
     }, []);
 
     return { stats, loading };
+}
+
+export function useDailyFinancials(branchId?: string) {
+    const [financials, setFinancials] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    const fetchFinancials = async () => {
+        setLoading(true);
+        try {
+            const data = await dashboardService.getDailyFinancials(branchId);
+            setFinancials(data);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchFinancials();
+    }, [branchId]);
+
+    return { financials, loading, refetch: fetchFinancials };
+}
+
+export function useActiveWorkQueue(branchId?: string) {
+    const [queue, setQueue] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchQueue = async () => {
+        setLoading(true);
+        try {
+            const data = await dashboardService.getActiveWorkQueue(branchId);
+            setQueue(data);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchQueue();
+    }, [branchId]);
+
+    return { queue, loading, refetch: fetchQueue };
 }

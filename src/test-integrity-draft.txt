@@ -1,0 +1,72 @@
+
+import { dashboardService } from './src/features/dashboard/services/dashboardService';
+import { createClient } from './src/features/dashboard/services/authService'; // Assuming auth is handled or we use a service
+
+// Mocking or using actual service?
+// Since this is a specialized environment, I can try to run a small script if I can execute it.
+// The environment allows `npm run dev` etc. 
+// I probably can't run this directly with `ts-node` without setup.
+
+// Better approach: Create a new test file in `src/scripts/test-integrity.ts` and run it via `npx tsx src/scripts/test-integrity.ts`.
+
+async function testIntegrity() {
+    console.log("Starting Integrity Test...");
+
+    try {
+        // 1. Create Test Client
+        console.log("Creating Test Client...");
+        const client = await dashboardService.createClient({
+            full_name: "TEST INTEGRITY CLIENT",
+            phone: "5555555555",
+            organization_id: "00000000-0000-0000-0000-000000000000" // Need a valid org ID? dashboardService.createClient triggers insert.
+            // Wait, createClient in dashboardService doesn't take org_id in the signature shown in the file view?
+            // Let me check the file content of dashboardService again.
+        });
+        
+        if (!client) throw new Error("Failed to create client");
+        console.log("Client Created:", client.id);
+
+        // 2. Create Active Ticket
+        console.log("Creating Active Ticket...");
+        const ticket = await dashboardService.createAdvancedNota({
+            ticket_number: `TEST-${Date.now()}`,
+            branch_id: "valid-branch-id", // Need a valid branch URL
+            client_id: client.id,
+            delivery_date: new Date().toISOString(),
+            notes: "Test Integrity",
+            total_amount: 100,
+            balance_due: 100,
+            discount_id: null,
+            discount_amount: 0
+        }, [], { amount: 0, method: 'efectivo' });
+        
+        console.log("Ticket Created:", ticket.id);
+
+        // 3. Try Delete (Should Fail)
+        console.log("Attempting Delete (Expected Failure)...");
+        try {
+            await dashboardService.deleteClient(client.id);
+            console.error("❌ FAIL: Client deleted despite active ticket!");
+        } catch (e: any) {
+            console.log("✅ SUCCESS: Delete blocked:", e.message);
+        }
+
+        // 4. Deliver Ticket (to make it inactive)
+        console.log("Delivering Ticket...");
+        await dashboardService.deliverNota(ticket.id);
+
+        // 5. Try Delete Again (Should Fail due to DB Constraint RESTRICT)
+        console.log("Attempting Delete with History (Expected DB Constraint Failure)...");
+        try {
+            await dashboardService.deleteClient(client.id);
+            console.error("❌ FAIL: Client deleted despite history!");
+        } catch (e: any) {
+             console.log("✅ SUCCESS: Delete blocked by DB/Logic:", e.message);
+        }
+
+    } catch (err) {
+        console.error("Test Error:", err);
+    }
+}
+
+// testIntegrity();

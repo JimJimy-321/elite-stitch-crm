@@ -114,7 +114,13 @@ export const dashboardService = {
             .delete()
             .eq('id', id);
 
-        if (error) throw error;
+        if (error) {
+            // Foreign key violation (Postgres code 23503)
+            if (error.code === '23503') {
+                throw new Error("No se puede eliminar el cliente porque tiene historial de tickets o deudas. Elimine los registros relacionados primero.");
+            }
+            throw error;
+        }
         return true;
     },
 

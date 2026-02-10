@@ -38,8 +38,8 @@ export async function getDailyCashSummary(branchId: string, date: string): Promi
 
         if (paymentsError) throw paymentsError;
 
-        // B. Obtener Gastos (Egresos) del día
-        const { data: expenses, error: expensesError } = await supabase
+        // B. Obtener Movimientos (Gastos e Ingresos Extra) del día
+        const { data: movements, error: movementsError } = await supabase
             .from('expenses')
             .select('*')
             .eq('branch_id', branchId)
@@ -47,9 +47,13 @@ export async function getDailyCashSummary(branchId: string, date: string): Promi
             .lt('created_at', endOfDay)
             .order('created_at', { ascending: false });
 
-        if (expensesError) throw expensesError;
+        if (movementsError) throw movementsError;
 
-        // C. Calcular Totales en Servidor
+        // Separar gastos e ingresos
+        const expenses = movements?.filter(m => m.type === 'expense' || !m.type) || [];
+        const extraIncomes = movements?.filter(m => m.type === 'income') || [];
+
+        // C. Calcular Totales
         const cashIncome = payments
             ?.filter((p) => p.payment_method === 'efectivo')
             .reduce((sum, p) => sum + Number(p.amount), 0) || 0;
@@ -62,11 +66,10 @@ export async function getDailyCashSummary(branchId: string, date: string): Promi
             ?.filter((p) => p.payment_method === 'transferencia')
             .reduce((sum, p) => sum + Number(p.amount), 0) || 0;
 
-        const totalExpenses = expenses
-            ?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+        const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+        const totalExtraIncome = extraIncomes.reduce((sum, i) => sum + Number(i.amount), 0);
 
         // D. Obtener Saldo Inicial (Corte Anterior)
-        // Buscamos el corte más reciente anterior a hoy
         const { data: lastCut } = await supabase
             .from('daily_reconciliations')
             .select('manual_cash_amount')
@@ -78,9 +81,10 @@ export async function getDailyCashSummary(branchId: string, date: string): Promi
 
         const openingBalance = lastCut?.manual_cash_amount || 0;
 
-        const cashBalance = (openingBalance + cashIncome) - totalExpenses;
+        // Cash Balance = (Saldo Inicial + Ingresos Efectivo + Ingresos Extra) - Gastos
+        const cashBalance = (openingBalance + cashIncome + totalExtraIncome) - totalExpenses;
 
-        // D. Verificar si ya existe corte
+        // Verificación de Corte Existente
         const { data: reconciliation } = await supabase
             .from('daily_reconciliations')
             .select('*')
@@ -88,38 +92,35 @@ export async function getDailyCashSummary(branchId: string, date: string): Promi
             .eq('date', date)
             .maybeSingle();
 
-        // E. Calcular Meta Mensual (Mes actual)
-        // Usamos el primer día del mes actual en UTC (06:00 UTC = 00:00 CST)
+        // Calcular Meta Mensual
         const [year, month] = date.split('-');
         const startOfMonth = `${year}-${month}-01T06:00:00.000Z`;
 
-        // Ingresos del mes
         const { data: monthlyPayments } = await supabase
             .from('ticket_payments')
             .select('amount')
-            .eq('branch_id', branchId)
             .eq('branch_id', branchId)
             .gte('created_at', startOfMonth)
             .lte('created_at', endOfDay);
 
         const monthlyTotal = monthlyPayments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
 
-
         return {
             success: true,
             data: {
                 movements: {
-                    incomes: payments || [],
-                    expenses: expenses || [],
+                    incomes: [...(payments || []), ...extraIncomes], // Mezclamos pagos y aportes
+                    expenses: expenses,
                 },
                 summary: {
                     cashIncome,
                     cardIncome,
                     transferIncome,
                     totalExpenses,
-                    openingBalance, // Nuevo campo
-                    cashBalance, // Efectivo Teórico en Caja
-                    monthlyTotal, // Nuevo campo para KPI de meta
+                    totalExtraIncome, // Nuevo
+                    openingBalance,
+                    cashBalance,
+                    monthlyTotal,
                 },
                 reconciliation: reconciliation || null,
                 isClosed: !!reconciliation,
@@ -132,30 +133,38 @@ export async function getDailyCashSummary(branchId: string, date: string): Promi
 }
 
 // ----------------------------------------------------------------------
-// 2. Registrar Gasto
+// 2. Registrar Gasto / Ingreso (Fondo)
 // ----------------------------------------------------------------------
 export async function registerExpense(data: {
     branch_id: string;
     amount: number;
-    concept: string;
+    concept: string; // 'Gasto' o 'Fondo de Caja'
     category: string;
     recorded_by: string;
+    type?: 'expense' | 'income'; // Nuevo campo opcional
+    date?: string;
 }): Promise<ActionResponse> {
     const supabase = await createClient();
 
     try {
         // Validar si la caja ya está cerrada
-        const today = new Date().toISOString().split('T')[0];
+        // Si se nos pasa una fecha específica, usamos esa. Si no, hoy (MX).
+        const targetDate = data.date ? new Date(data.date).toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }) : new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+
         const { data: existingClose } = await supabase
             .from('daily_reconciliations')
             .select('id')
             .eq('branch_id', data.branch_id)
-            .eq('date', today)
+            .eq('date', targetDate)
             .maybeSingle();
 
         if (existingClose) {
-            return { success: false, message: 'La caja de hoy ya está cerrada. No se pueden registrar más gastos.' };
+            return { success: false, message: `La caja del día ${targetDate} ya está cerrada. No se pueden registrar movimientos.` };
         }
+
+        // Si hay fecha, armamos el timestamp con hora 12:00 PM para evitar problemas de zona horaria al guardar
+        // Ojo: created_at es timestamptz.
+        const createdAt = data.date ? `${targetDate}T12:00:00-06:00` : new Date().toISOString();
 
         const { error } = await supabase.from('expenses').insert([{
             branch_id: data.branch_id,
@@ -163,15 +172,17 @@ export async function registerExpense(data: {
             concept: data.concept,
             category: data.category,
             recorded_by: data.recorded_by,
+            type: data.type || 'expense',
+            created_at: createdAt, // Usamos fecha forzada si existe
         }]);
 
         if (error) throw error;
 
         revalidatePath('/dashboard/finance');
-        return { success: true, message: 'Gasto registrado correctamente' };
+        return { success: true, message: 'Movimiento registrado correctamente' };
     } catch (error: any) {
         console.error('Error in registerExpense:', error);
-        return { success: false, message: 'Error al registrar gasto', error: error.message };
+        return { success: false, message: 'Error al registrar movimiento', error: error.message };
     }
 }
 
@@ -182,14 +193,13 @@ export async function closeDay(data: {
     branch_id: string;
     date: string; // YYYY-MM-DD
     manual_cash_amount: number;
-    manual_card_amount: number; // Opcional si solo controlan efectivo
+    manual_card_amount: number;
     manual_notes?: string;
-    calculated_cash: number; // El teórico que calculó el front/back
+    calculated_cash: number;
 }): Promise<ActionResponse> {
     const supabase = await createClient();
 
     try {
-        // Validar duplicados
         const { data: existing } = await supabase
             .from('daily_reconciliations')
             .select('id')
@@ -201,27 +211,23 @@ export async function closeDay(data: {
             return { success: false, message: 'Ya existe un corte de caja para esta fecha.' };
         }
 
-        // Calcular discrepancia
-        const discrepancy = data.manual_cash_amount - data.calculated_cash;
-        // status: si query == manual -> 'balanced', else 'discrepancy'
-        // Ojo: Esto es una simplificación. Lo ideal es que el backend recalcule 'calculated_cash' aquí mismo para seguridad.
-        // POor ahora confiamos en el parámetro para el MVP, pero idealmente llamamos a getDailyCashSummary internamente.
+        // FIX: Usar el valor calculado por el frontend como 'system_total' para evitar discrepancias por zona horaria
+        // El backend recalcula solo para auditoría interna si fuera necesario, pero para la tabla usamos lo que vio el usuario.
+        // const summaryResult = await getDailyCashSummary(data.branch_id, data.date);
+        // const systemCash = summaryResult.success ? summaryResult.data.summary.cashBalance : data.calculated_cash;
+        const systemCash = data.calculated_cash;
 
-        // Recálculo de seguridad (Recomendado)
-        const summaryResult = await getDailyCashSummary(data.branch_id, data.date);
-        const systemCash = summaryResult.success ? summaryResult.data.summary.cashBalance : data.calculated_cash;
-
+        // Calcular status (solo para info, la DB lo guarda)
         const finalDiscrepancy = data.manual_cash_amount - systemCash;
-        const status = Math.abs(finalDiscrepancy) < 1 ? 'balanced' : 'discrepancy'; // Tolerancia de $1
+        const status = Math.abs(finalDiscrepancy) < 1 ? 'balanced' : 'discrepancy';
 
         const { error } = await supabase.from('daily_reconciliations').insert([{
             branch_id: data.branch_id,
             date: data.date,
-            manual_total_amount: data.manual_cash_amount, // Asumiendo que 'total' se refiere al efectivo principal
+            manual_total_amount: data.manual_cash_amount,
             manual_cash_amount: data.manual_cash_amount,
             manual_card_amount: data.manual_card_amount,
-            system_total_amount: systemCash,
-            discrepancy: finalDiscrepancy,
+            system_total_amount: systemCash, // Usamos el valor del frontend
             status: status,
             manual_notes: data.manual_notes,
         }]);
@@ -233,5 +239,51 @@ export async function closeDay(data: {
     } catch (error: any) {
         console.error('Error in closeDay:', error);
         return { success: false, message: 'Error al cerrar caja', error: error.message };
+    }
+}
+
+// ----------------------------------------------------------------------
+// 5. Reabrir Caja (Eliminar Corte)
+// ----------------------------------------------------------------------
+export async function reopenDay(branchId: string, date: string): Promise<ActionResponse> {
+    const supabase = await createClient();
+
+    try {
+        const { error } = await supabase
+            .from('daily_reconciliations')
+            .delete()
+            .eq('branch_id', branchId)
+            .eq('date', date);
+
+        if (error) throw error;
+
+        revalidatePath('/dashboard/finance');
+        return { success: true, message: 'Caja reabierta correctamente' };
+    } catch (error: any) {
+        console.error('Error in reopenDay:', error);
+        return { success: false, message: 'Error al reabrir caja', error: error.message };
+    }
+}
+
+// ----------------------------------------------------------------------
+// 4. Obtener Historial de Cortes
+// ----------------------------------------------------------------------
+export async function getCashCutsHistory(branchId: string): Promise<ActionResponse> {
+    const supabase = await createClient();
+
+    try {
+        const { data: cuts, error } = await supabase
+            .from('daily_reconciliations')
+            .select('*')
+            .eq('branch_id', branchId)
+            .order('date', { ascending: false })
+            .limit(30);
+
+        if (error) throw error;
+
+        return { success: true, data: cuts };
+    } catch (error: any) {
+        console.error('Error in getCashCutsHistory:', error);
+        return { success: false, message: 'Error al obtener historial', error: error.message };
     }
 }

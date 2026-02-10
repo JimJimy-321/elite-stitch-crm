@@ -42,8 +42,21 @@ export function useSupabaseAuth() {
                 email: authUser?.email || '',
                 role: metadata.role as UserRole,
                 organization_id: metadata.organization_id,
-                assigned_branch_id: metadata.assigned_branch_id
+                assigned_branch_id: undefined // Fix: user type expects string | undefined, not null
             };
+
+            // Fetch fresh branch ID from profiles to ensure sync
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('assigned_branch_id')
+                .eq('id', userId)
+                .single();
+
+            if (profile) {
+                // Supabase returns null for empty columns, convert to undefined to match User type
+                userData.assigned_branch_id = profile.assigned_branch_id || undefined;
+            }
+
             setUser(userData);
             return userData;
         }
@@ -62,7 +75,7 @@ export function useSupabaseAuth() {
                 email: authUser?.email || '',
                 role: profile.role as UserRole,
                 organization_id: profile.organization_id,
-                assigned_branch_id: profile.assigned_branch_id
+                assigned_branch_id: profile.assigned_branch_id || undefined
             };
             setUser(userData);
             return userData;

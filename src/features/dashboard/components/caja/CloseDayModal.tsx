@@ -23,9 +23,10 @@ type CloseDayFormValues = z.infer<typeof closeDaySchema>;
 interface CloseDayModalProps {
     branchId: string;
     calculatedCash: number;
+    date: string;
 }
 
-export function CloseDayModal({ branchId, calculatedCash }: CloseDayModalProps) {
+export function CloseDayModal({ branchId, calculatedCash, date }: CloseDayModalProps) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
 
@@ -48,10 +49,12 @@ export function CloseDayModal({ branchId, calculatedCash }: CloseDayModalProps) 
 
         setLoading(true);
         try {
-            const today = new Date().toISOString().split('T')[0];
+            // Usar la fecha seleccionada pasada como prop
+            // const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+
             const res = await closeDay({
                 branch_id: branchId,
-                date: today,
+                date: date,
                 manual_cash_amount: data.manual_cash_amount,
                 manual_card_amount: data.manual_card_amount,
                 manual_notes: data.notes || '',
@@ -59,7 +62,7 @@ export function CloseDayModal({ branchId, calculatedCash }: CloseDayModalProps) 
             });
 
             if (!res.success) {
-                alert(res.message);
+                alert(`${res.message}: ${res.error || ''}`);
                 return;
             }
 
@@ -108,7 +111,7 @@ export function CloseDayModal({ branchId, calculatedCash }: CloseDayModalProps) 
                             <Input
                                 type="number"
                                 step="0.50"
-                                className="text-xl font-bold h-12"
+                                className="text-xl font-bold h-12 text-right"
                                 {...register('manual_cash_amount')}
                             />
                             <p className="text-xs text-muted-foreground">Cuenta billetes y monedas.</p>

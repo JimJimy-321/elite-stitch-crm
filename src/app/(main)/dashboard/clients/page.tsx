@@ -1,6 +1,7 @@
 "use client";
 
 import { Users, UserPlus, Search, Phone, Mail, MoreHorizontal, ShieldCheck, User, Edit2, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useClients } from '@/features/dashboard/hooks/useDashboardData';
 import { cn } from '@/shared/lib/utils';
 import { Modal } from '@/shared/components/ui/Modal';
@@ -26,8 +27,9 @@ export default function ClientsPage() {
         if (confirm(`¿ESTÁS SEGURO DE ELIMINAR A ${client.full_name.toUpperCase()}?`)) {
             try {
                 await deleteClient(client.id);
+                toast.success("Cliente eliminado correctamente");
             } catch (err: any) {
-                alert(err.message || "Error al eliminar cliente");
+                toast.error(err.message || "Error al eliminar cliente");
             }
         }
         setActiveMenu(null);

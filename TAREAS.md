@@ -35,6 +35,17 @@
 ---
 ## 🛠️ Fase 6: Mantenimiento Post-Producción (EN PROCESO)
 - [x] **Fix: Reactividad de KPIs:** Las cifras de control (Recibidos, En Proceso, etc.) ahora se actualizan inmediatamente al crear o editar notas.
+- [x] **Fix: Discrepancia Financiera ($17k vs Real):** Cambio de cálculo a `getDailyFinancials` para mostrar estrictamente "Ingresos Hoy" (Pagos recibidos del día).
+- [x] **Fix: Cola de Trabajo (1 vs 3):** Corrección de paginación en `getActiveWorkQueue` para mostrar la totalidad de tickets activos.
+- [x] **UI Polish:**
+    - [x] Bordes de énfasis naranja (`border-orange-500`) en KPIs críticos.
+    - [x] Renombrado de menú "Notas" a "Historial" para claridad operativa.
+    - [x] Verificación de Build (`npm run build`) exitosa.
+
+## 🔜 Fase 7: Validación & Estabilización (PENDIENTE)
+- [ ] **Monitoreo Financiero:** Validar alineación de "Ingresos Hoy" con corte de caja físico real (Día 1 de uso).
+- [ ] **Pruebas de Integridad:** Verificar que `deleteClient` impida borrar clientes con deuda/tickets activos (Protección implementada, falta testeo de campo).
+- [ ] **Despliegue a Producción:** Verificar variables de entorno en Vercel y desplegar.
 
 ---
 *Este archivo se actualiza dinámicamente según el progreso.*

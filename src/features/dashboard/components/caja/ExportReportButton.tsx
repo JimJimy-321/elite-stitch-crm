@@ -5,86 +5,111 @@ import { Download } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency } from '@/shared/lib/utils';
+import { CashCutState } from '@/features/dashboard/actions/cash-cut-actions';
 
 interface ExportReportButtonProps {
-    date: string;
-    summary: {
-        cashIncome: number;
-        cardIncome: number;
-        transferIncome: number;
-        totalExpenses: number;
-        cashBalance: number;
-        monthlyTotal: number;
-    };
-    movements: {
-        incomes: any[];
-        expenses: any[];
-    };
+    date?: string;
+    cashState?: CashCutState | null;
+    // Legacy support
+    summary?: any;
+    movements?: any;
 }
 
-export function ExportReportButton({ date, summary, movements }: ExportReportButtonProps) {
+export function ExportReportButton({ date, cashState, summary, movements }: ExportReportButtonProps) {
     const handleExport = () => {
         const doc = new jsPDF();
+        const reportDate = date || new Date().toLocaleDateString('es-MX');
 
         // Header
         doc.setFontSize(20);
         doc.setTextColor(249, 115, 22); // Orange in RGB
-        doc.text('SastrePro - Reporte Financiero', 14, 22);
+        doc.text('SastrePro - Corte Parcial', 14, 22);
 
         doc.setFontSize(12);
         doc.setTextColor(0);
-        doc.text(`Fecha del Reporte: ${new Date().toLocaleDateString('es-MX')}`, 14, 32);
+        doc.text(`Fecha: ${reportDate}`, 14, 32);
+
+        // Data Source
+        const data = cashState ? {
+            cashIncome: cashState.totals.cashSales + cashState.totals.incomesCash,
+            cardIncome: cashState.totals.cardSales,
+            transferIncome: cashState.totals.transferSales,
+            totalExpenses: cashState.totals.expensesCash,
+            cashBalance: cashState.totals.calculatedCash,
+            monthlyTotal: 0, // Not available in this context yet
+            incomes: cashState.transactions.payments.map((p: any) => ({
+                created_at: p.created_at,
+                payment_type: 'Venta',
+                payment_method: p.payment_method,
+                amount: p.amount,
+                notes: `Ticket #${p.ticket_id}`
+            })).concat(cashState.transactions.expenses.filter((e: any) => e.type === 'income').map((e: any) => ({
+                created_at: e.created_at,
+                payment_type: 'Ingreso',
+                payment_method: 'Efectivo',
+                amount: e.amount,
+                notes: e.concept
+            }))),
+            expenses: cashState.transactions.expenses.filter((e: any) => e.type === 'expense' || !e.type)
+        } : {
+            cashIncome: summary?.cashIncome || 0,
+            cardIncome: summary?.cardIncome || 0,
+            transferIncome: summary?.transferIncome || 0,
+            totalExpenses: summary?.totalExpenses || 0,
+            cashBalance: summary?.cashBalance || 0,
+            monthlyTotal: summary?.monthlyTotal || 0,
+            incomes: movements?.incomes || [],
+            expenses: movements?.expenses || []
+        };
 
         // Summary Section
         doc.setFillColor(245, 245, 245);
         doc.rect(14, 40, 182, 35, 'F');
 
         doc.setFontSize(14);
-        doc.text('Resumen del Día', 14, 48);
+        doc.text('Resumen del Periodo', 14, 48);
 
         doc.setFontSize(10);
-        doc.text(`Ingresos Efectivo: ${formatCurrency(summary.cashIncome)}`, 20, 58);
-        doc.text(`Ingresos Tarjeta: ${formatCurrency(summary.cardIncome)}`, 20, 64);
-        doc.text(`Transferencias: ${formatCurrency(summary.transferIncome)}`, 20, 70);
+        doc.text(`Ventas Efectivo: ${formatCurrency(data.cashIncome)}`, 20, 58);
+        doc.text(`Ventas Tarjeta: ${formatCurrency(data.cardIncome)}`, 20, 64);
+        doc.text(`Transferencias: ${formatCurrency(data.transferIncome)}`, 20, 70);
 
-        doc.text(`Gastos Totales: ${formatCurrency(summary.totalExpenses)}`, 110, 58);
-        doc.text(`Efectivo en Caja: ${formatCurrency(summary.cashBalance)}`, 110, 64);
-        doc.text(`Acumulado Mes: ${formatCurrency(summary.monthlyTotal)}`, 110, 70);
+        doc.text(`Gastos/Retiros: ${formatCurrency(data.totalExpenses)}`, 110, 58);
+        doc.text(`Efectivo Calculado: ${formatCurrency(data.cashBalance)}`, 110, 64);
 
         // Movements Table
         const rows = [
-            ...movements.incomes.map(m => [
-                new Date(m.created_at).toLocaleTimeString('es-MX'),
-                m.payment_type ? `Pago (${m.payment_type})` : 'Ingreso',
+            ...data.incomes.map((m: any) => [
+                new Date(m.created_at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+                m.notes || m.payment_type, // Concept
                 m.payment_method || 'N/A',
                 `+${formatCurrency(m.amount)}`,
-                m.notes || ''
             ]),
-            ...movements.expenses.map(e => [
-                new Date(e.created_at).toLocaleTimeString('es-MX'),
+            ...data.expenses.map((e: any) => [
+                new Date(e.created_at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
                 e.concept || 'Gasto',
                 'Efectivo',
                 `-${formatCurrency(e.amount)}`,
-                e.category || ''
             ])
-        ].sort((a, b) => (a[0] < b[0] ? 1 : -1)); // Simple sort by time string (approx)
+        ].sort((a, b) => (a[0] < b[0] ? 1 : -1));
 
         autoTable(doc, {
             startY: 85,
-            head: [['Hora', 'Concepto', 'Método', 'Monto', 'Notas']],
+            head: [['Hora', 'Concepto', 'Método', 'Monto']],
             body: rows,
             headStyles: { fillColor: [249, 115, 22] },
             alternateRowStyles: { fillColor: [250, 250, 250] },
             margin: { top: 85 },
         });
 
-        doc.save(`Corte_Caja_${date}.pdf`);
+        doc.save(`Corte_Parcial_${new Date().getTime()}.pdf`);
     };
 
     return (
         <Button
             onClick={handleExport}
             variant="outline"
+            disabled={!cashState && !summary}
             className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600 bg-orange-50 hover:bg-orange-100 border-orange-200 shadow-sm"
         >
             <Download size={14} className="mr-2" />

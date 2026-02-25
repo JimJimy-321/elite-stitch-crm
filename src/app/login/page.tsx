@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Scissors, Mail, Lock, Eye, EyeOff, ArrowRight, Github } from 'lucide-react';
+import { Scissors, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useSupabaseAuth } from '@/features/auth/hooks/useSupabaseAuth';
 import { translateError } from '@/shared/lib/error-handler';
 
@@ -163,12 +163,13 @@ export default function LoginPage() {
                         </button>
                     </form>
 
-                    <div className="mt-12 pt-12 border-t border-slate-50 space-y-6">
-                        <p className="text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Autenticación Segura Corporativa</p>
-                        <button className="w-full flex items-center justify-center gap-4 bg-white border border-slate-100 py-4.5 rounded-[1.25rem] hover:bg-slate-50 hover:border-slate-200 transition-all font-black text-[11px] uppercase tracking-widest text-slate-600 shadow-sm">
-                            <Github size={20} className="text-slate-900" />
-                            Acceder con GitHub Enterprise
-                        </button>
+                    <div className="mt-8 pt-8 border-t border-slate-50 flex justify-center">
+                        <a
+                            href="/privacy-policy"
+                            className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-orange-600 transition-colors"
+                        >
+                            Ver Aviso de Privacidad
+                        </a>
                     </div>
 
                     <p className="mt-12 text-center text-xs font-medium text-slate-500">

@@ -13,7 +13,10 @@ export async function GET(request: NextRequest) {
     if (mode && token) {
         if (mode === 'subscribe' && token === VERIFY_TOKEN) {
             console.log('WEBHOOK_VERIFIED');
-            return new NextResponse(challenge, { status: 200 });
+            return new Response(challenge, { 
+                status: 200, 
+                headers: { 'Content-Type': 'text/plain' }
+            });
         } else {
             return new NextResponse('Forbidden', { status: 403 });
         }

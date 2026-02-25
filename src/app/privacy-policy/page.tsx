@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Scissors, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { Scissors, ArrowLeft, ShieldCheck, Mail, Globe, MessageSquare, ExternalLink } from 'lucide-react';
 
 export default function PrivacyPolicyPage() {
     const router = useRouter();
@@ -28,97 +28,197 @@ export default function PrivacyPolicyPage() {
                         <ShieldCheck size={32} />
                         <h1 className="text-3xl font-black tracking-tight">Aviso de Privacidad</h1>
                     </div>
-                    <p className="text-orange-100 font-medium">SastrePro - Intelligence & CRM</p>
+                    <p className="text-orange-100 font-medium tracking-wide">SastrePro – CRM para Sastrerías</p>
                 </div>
 
                 {/* Content */}
                 <div className="p-8 sm:p-12 space-y-10">
                     <section>
-                        <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-4">Última actualización: 24 de febrero de 2026</p>
-                        <p className="text-slate-700 leading-relaxed text-lg">
-                            En <span className="text-orange-600 font-black">SastrePro</span>, la privacidad y seguridad de su información son nuestra prioridad fundamental. Este aviso detalla cómo recopilamos, utilizamos y protegemos sus datos personales en el marco de nuestra plataforma SaaS.
+                        <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-4">Última actualización: 24 de febrero de 2026</p>
+                        <p className="text-slate-700 leading-relaxed text-lg font-medium">
+                            En <span className="text-orange-600 font-black">SastrePro</span>, la privacidad y seguridad de la información son fundamentales. Este Aviso de Privacidad describe cómo recopilamos, utilizamos, almacenamos y protegemos los datos personales de los usuarios y de los clientes finales que interactúan mediante nuestra plataforma.
                         </p>
                     </section>
 
-                    <div className="grid gap-10">
-                        <div className="space-y-3">
+                    <div className="grid gap-12">
+                        {/* 1. Responsable */}
+                        <div className="space-y-4">
                             <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
-                                <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100 text-orange-600 text-sm">1</span>
+                                <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-orange-100 text-orange-600 text-xs font-black">1</span>
                                 Responsable del Tratamiento
                             </h3>
-                            <p className="text-slate-600 leading-relaxed pl-11">
-                                SastrePro CRM es el responsable del tratamiento de los datos personales proporcionados por los usuarios, asegurando su uso conforme a las normativas de protección de datos vigentes.
-                            </p>
+                            <div className="pl-11 space-y-3">
+                                <p className="text-slate-600 leading-relaxed">
+                                    SastrePro es responsable del tratamiento de los datos personales conforme a las leyes aplicables de protección de datos.
+                                </p>
+                                <div className="inline-flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-lg border border-slate-100">
+                                    <Mail size={16} className="text-orange-500" />
+                                    <span className="text-slate-900 font-bold text-sm">soporte@sastrepro.com</span>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="space-y-3">
+                        {/* 2. Datos Recopilados */}
+                        <div className="space-y-4">
                             <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
-                                <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100 text-orange-600 text-sm">2</span>
+                                <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-orange-100 text-orange-600 text-xs font-black">2</span>
                                 Datos Personales Recopilados
                             </h3>
-                            <div className="text-slate-600 leading-relaxed pl-11">
-                                Recopilamos la siguiente información para la prestación técnica del servicio:
-                                <ul className="list-disc mt-4 space-y-2 ml-4 marker:text-orange-500">
-                                    <li>Datos de contacto (Nombre, Correo Electrónico).</li>
-                                    <li>Números de teléfono vinculados al servicio de CRM.</li>
-                                    <li>Metadatos de mensajería generados a través de la integración con <span className="font-bold text-slate-900">WhatsApp Business API</span>.</li>
+                            <div className="pl-11 space-y-4 text-slate-600">
+                                <p>Recopilamos y tratamos los siguientes datos:</p>
+                                <ul className="space-y-3">
+                                    <li className="flex gap-3">
+                                        <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0" />
+                                        <p><span className="font-bold text-slate-900">Datos de identificación:</span> nombre y correo electrónico del usuario del sistema.</p>
+                                    </li>
+                                    <li className="flex gap-3">
+                                        <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0" />
+                                        <p><span className="font-bold text-slate-900">Datos de contacto de clientes finales:</span> número de teléfono y nombre del cliente.</p>
+                                    </li>
+                                    <li className="flex gap-3">
+                                        <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0" />
+                                        <div className="space-y-2">
+                                            <p><span className="font-bold text-slate-900">Información de mensajes (WhatsApp Business API - Meta):</span></p>
+                                            <ul className="pl-4 space-y-1 text-sm border-l-2 border-slate-100 ml-1">
+                                                <li>• Contenido de los mensajes.</li>
+                                                <li>• Fecha y hora de envío y recepción.</li>
+                                                <li>• Estado del mensaje (entregado, leído).</li>
+                                            </ul>
+                                        </div>
+                                    </li>
+                                    <li className="flex gap-3">
+                                        <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0" />
+                                        <p><span className="font-bold text-slate-900">Datos técnicos:</span> IP, navegador, logs de actividad.</p>
+                                    </li>
+                                    <li className="flex gap-3">
+                                        <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0" />
+                                        <p><span className="font-bold text-slate-900">Análisis IA:</span> clasificación de sentimiento (positivo, neutro o crítico).</p>
+                                    </li>
                                 </ul>
                             </div>
                         </div>
 
-                        <div className="space-y-3">
+                        {/* 3. Finalidad */}
+                        <div className="space-y-4">
                             <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
-                                <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100 text-orange-600 text-sm">3</span>
+                                <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-orange-100 text-orange-600 text-xs font-black">3</span>
                                 Finalidad del Tratamiento
                             </h3>
-                            <p className="text-slate-600 leading-relaxed pl-11">
-                                Sus datos se utilizan exclusivamente para los siguientes fines operativos:
-                            </p>
-                            <ul className="list-disc pl-15 mt-2 space-y-2 text-slate-600 marker:text-orange-500">
-                                <li>Gestión integral de clientes y seguimiento de órdenes de servicio (Notas).</li>
-                                <li>Habilitar la comunicación omnicanal a través de la integración oficial de WhatsApp.</li>
-                                <li>Optimización de procesos operativos mediante herramientas de Inteligencia Artificial.</li>
+                            <ul className="pl-11 space-y-3 text-slate-600">
+                                {[
+                                    "Gestión de clientes y órdenes de servicio (notas de sastrería).",
+                                    "Comunicación con clientes mediante la integración oficial con WhatsApp Business API de Meta Platforms, Inc.",
+                                    "Registro histórico de conversaciones para control de calidad y trazabilidad.",
+                                    "Generación de métricas de atención (tiempos de respuesta, mensajes atendidos).",
+                                    "Análisis automatizado mediante IA para clasificar el sentimiento de los mensajes.",
+                                    "Cumplimiento de obligaciones legales."
+                                ].map((item, i) => (
+                                    <li key={i} className="flex gap-3">
+                                        <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0" />
+                                        <p>{item}</p>
+                                    </li>
+                                ))}
                             </ul>
                         </div>
 
-                        <div className="space-y-3">
+                        {/* 4. Almacenamiento */}
+                        <div className="space-y-4">
                             <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
-                                <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100 text-orange-600 text-sm">4</span>
-                                Derechos ARCO
+                                <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-orange-100 text-orange-600 text-xs font-black">4</span>
+                                Almacenamiento y Conservación
                             </h3>
                             <p className="text-slate-600 leading-relaxed pl-11">
-                                Como titular de los datos, usted tiene derecho al <span className="font-bold">Acceso, Rectificación, Cancelación y Oposición</span> (Derechos ARCO). Para ejercer cualquier derecho o solicitar aclaraciones, puede enviar una solicitud formal a: <span className="text-orange-600 font-bold underline">soporte@sastrepro.com</span>.
+                                Los datos se almacenan en infraestructura segura en la nube y se conservan únicamente durante el tiempo necesario para cumplir con las finalidades descritas, o hasta que el usuario solicite su eliminación.
                             </p>
                         </div>
 
-                        <div className="space-y-3">
+                        {/* 5. Meta/WhatsApp */}
+                        <div className="space-y-4">
                             <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
-                                <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100 text-orange-600 text-sm">5</span>
-                                Integración con Terceros (Meta/WhatsApp)
+                                <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-orange-100 text-orange-600 text-xs font-black">5</span>
+                                Integración con Terceros (Meta / WhatsApp)
                             </h3>
-                            <p className="text-slate-600 leading-relaxed pl-11">
-                                Para la funcionalidad de mensajería, compartimos datos técnicos estrictamente necesarios con <span className="font-bold text-slate-900">Meta Platforms, Inc.</span> El uso de este servicio implica la aceptación de las políticas de privacidad propias de Meta y WhatsApp.
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Footer Policy */}
-                    <div className="pt-10 border-t border-slate-100">
-                        <div className="bg-slate-50 p-6 rounded-2xl flex items-start gap-4 border border-slate-200">
-                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm shrink-0 border border-slate-100">
-                                <Scissors size={20} className="text-orange-500" />
+                            <div className="pl-11 space-y-4">
+                                <p className="text-slate-600 leading-relaxed">
+                                    SastrePro utiliza la API oficial de WhatsApp Business API de Meta Platforms, Inc. para habilitar la mensajería dentro del CRM.
+                                </p>
+                                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 space-y-4">
+                                    <div className="flex items-start gap-4">
+                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm shrink-0">
+                                            <Globe size={20} className="text-orange-500" />
+                                        </div>
+                                        <p className="text-sm text-slate-600 leading-relaxed">
+                                            Los mensajes son transmitidos a través de los servidores de Meta y posteriormente almacenados en la base de datos de SastrePro para su consulta.
+                                        </p>
+                                    </div>
+                                    <div className="flex items-start gap-4">
+                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm shrink-0">
+                                            <MessageSquare size={20} className="text-orange-500" />
+                                        </div>
+                                        <p className="text-sm text-slate-600 leading-relaxed">
+                                            El número de WhatsApp y la cuenta comercial son propiedad del CLIENTE, no de SastrePro.
+                                        </p>
+                                    </div>
+                                    <a
+                                        href="https://www.whatsapp.com/legal/privacy-policy"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 text-xs font-black text-orange-600 uppercase tracking-widest hover:underline"
+                                    >
+                                        Política de Privacidad de WhatsApp
+                                        <ExternalLink size={14} />
+                                    </a>
+                                </div>
                             </div>
-                            <p className="text-slate-500 text-sm leading-relaxed">
-                                Este aviso es parte integrante de los Términos de Servicio de SastrePro. El uso de la plataforma constituye su aceptación de estas prácticas de manejo de información.
+                        </div>
+
+                        {/* 6. ARCO */}
+                        <div className="space-y-4">
+                            <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
+                                <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-orange-100 text-orange-600 text-xs font-black">6</span>
+                                Derechos ARCO y Eliminación de Datos
+                            </h3>
+                            <div className="pl-11 space-y-4 text-slate-600">
+                                <p>El titular de los datos puede ejercer sus derechos de Acceso, Rectificación, Cancelación y Oposición, así como solicitar la eliminación total de su información enviando un correo a:</p>
+                                <div className="inline-flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-lg border border-slate-100">
+                                    <Mail size={16} className="text-orange-500" />
+                                    <span className="text-slate-900 font-bold text-sm">soporte@sastrepro.com</span>
+                                </div>
+                                <p className="text-sm italic">La solicitud será atendida dentro de los plazos legales aplicables.</p>
+                            </div>
+                        </div>
+
+                        {/* 7. Seguridad */}
+                        <div className="space-y-4">
+                            <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
+                                <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-orange-100 text-orange-600 text-xs font-black">7</span>
+                                Seguridad
+                            </h3>
+                            <p className="text-slate-600 leading-relaxed pl-11">
+                                SastrePro implementa medidas técnicas y administrativas para proteger los datos personales contra acceso no autorizado, pérdida o alteración.
+                            </p>
+                        </div>
+
+                        {/* 8. Aceptación */}
+                        <div className="space-y-4">
+                            <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
+                                <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-orange-100 text-orange-600 text-xs font-black">8</span>
+                                Aceptación
+                            </h3>
+                            <p className="text-slate-600 leading-relaxed pl-11">
+                                El uso de la plataforma SastrePro implica la aceptación expresa de este Aviso de Privacidad.
                             </p>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <p className="mt-8 text-center text-slate-400 text-xs font-medium">
-                © 2026 SastrePro CRM. Todos los derechos reservados.
-            </p>
+                {/* Footer Policy */}
+                <div className="bg-slate-50 p-8 text-center border-t border-slate-100">
+                    <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em]">
+                        © 2026 SastrePro CRM. Todos los derechos reservados.
+                    </p>
+                </div>
+            </div>
         </div>
     );
 }

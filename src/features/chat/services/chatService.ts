@@ -61,7 +61,7 @@ export const chatService = {
                 sender_role: senderRole,
                 content: content,
                 sentiment: sentiment,
-                is_read: true,
+                is_read: false,
                 status: 'sending' // Estado inicial
             })
             .select()
@@ -122,12 +122,10 @@ export const chatService = {
             }
         }
 
-        // 4. Actualizar estado de la conversación
+        // 4. Marcar como leído localmente para el agente
         await supabase
             .from('chat_conversations')
             .update({
-                last_message_content: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
-                last_message_at: new Date().toISOString(),
                 unread_count: 0
             })
             .eq('id', conversationId);

@@ -77,8 +77,33 @@ export async function POST(request: NextRequest) {
                 }
 
                 return new NextResponse('EVENT_RECEIVED', { status: 200 });
+            } else if (body.entry[0].changes[0].value.statuses && body.entry[0].changes[0].value.statuses[0]) {
+                // Manejar estados de mensajes (sent, delivered, read)
+                const statusUpdate = body.entry[0].changes[0].value.statuses[0];
+                const whatsappId = statusUpdate.id;
+                const status = statusUpdate.status; // 'sent' | 'delivered' | 'read'
+
+                console.log(`Actualización de estado de WhatsApp: ${whatsappId} -> ${status}`);
+
+                // Buscar mensaje por whatsapp_message_id en metadata
+                const { data: messages } = await supabase
+                    .from('chat_messages')
+                    .select('id, metadata')
+                    .contains('metadata', { whatsapp_message_id: whatsappId });
+
+                if (messages && messages.length > 0) {
+                    const message = messages[0];
+                    await supabase
+                        .from('chat_messages')
+                        .update({
+                            status: status === 'read' ? 'delivered' : status,
+                            is_read: status === 'read'
+                        })
+                        .eq('id', message.id);
+                }
+
+                return new NextResponse('EVENT_RECEIVED', { status: 200 });
             } else {
-                // Puede ser un estado de mensaje (sent, delivered, read) - por ahora los ignoramos o loggeamos
                 return new NextResponse('EVENT_RECEIVED', { status: 200 });
             }
         } else {

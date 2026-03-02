@@ -16,13 +16,17 @@ export interface ChatConversation {
     tags?: string[];
 }
 
+export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'failed';
+
 export interface ChatMessage {
     id: string;
     conversation_id: string;
     sender_role: SenderRole;
     content: string;
     media_url?: string;
+    media_type?: string;
     sentiment?: Sentiment;
+    status?: MessageStatus;
     is_read: boolean;
     created_at: string;
     metadata?: any;

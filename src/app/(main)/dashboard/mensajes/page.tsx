@@ -56,12 +56,22 @@ export default function ChatPage() {
                 useChatStore.setState(state => ({
                     messages: { ...state.messages, [activeConversationId]: msgs }
                 }));
+
+                // Marcar como leído
+                if (activeConversationId) {
+                    await chatService.markAsRead(activeConversationId);
+                }
+
+                // Actualizar contador localmente en el store
+                setConversations(conversations.map(c =>
+                    c.id === activeConversationId ? { ...c, unread_count: 0 } : c
+                ));
             } catch (error) {
                 console.error("Error loading messages", error);
             }
         };
         loadMessages();
-    }, [activeConversationId]);
+    }, [activeConversationId, setConversations, conversations]);
 
     // Auto-scroll al fondo
     useEffect(() => {
@@ -76,12 +86,24 @@ export default function ChatPage() {
                 event: 'INSERT',
                 schema: 'public',
                 table: 'chat_messages'
-            }, (payload) => {
+            }, async (payload) => {
                 const newMsg = payload.new as any;
                 addMessage(newMsg);
                 // Notificar si es un mensaje del cliente en el chat activo
                 if (newMsg.conversation_id === activeConversationId && newMsg.sender_role === 'client') {
                     // El scroll se activa por el useEffect de messages
+                    // Marcar como leído automáticamente si el chat está abierto
+                    try {
+                        if (activeConversationId) {
+                            await chatService.markAsRead(activeConversationId);
+                        }
+                        // Resetear localmente
+                        setConversations(conversations.map((c: any) =>
+                            c.id === activeConversationId ? { ...c, unread_count: 0 } : c
+                        ));
+                    } catch (e) {
+                        console.error("Error auto-marking as read", e);
+                    }
                 } else if (newMsg.sender_role === 'client') {
                     toast.info("Nuevo mensaje recibido");
                 }
@@ -90,10 +112,10 @@ export default function ChatPage() {
                 event: 'UPDATE',
                 schema: 'public',
                 table: 'chat_conversations'
-            }, (payload) => {
-                const updatedConv = payload.new as any;
+            }, (payload: any) => {
+                const updatedConv = payload.new;
                 // Actualizar lista de conversaciones
-                setConversations(conversations.map(c =>
+                setConversations(conversations.map((c: any) =>
                     c.id === updatedConv.id ? { ...c, ...updatedConv } : c
                 ));
             })

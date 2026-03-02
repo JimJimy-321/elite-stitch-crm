@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: 'Error sending message via WhatsApp' }, { status: 500 });
         }
 
-        // 2. Return success
+        // 2. Return success with data (including Meta message ID)
         return NextResponse.json({ success: true, data: result.data });
     } catch (error) {
         console.error('API Error:', error);

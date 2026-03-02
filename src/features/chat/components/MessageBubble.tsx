@@ -16,8 +16,8 @@ export function MessageBubble({ message }: Props) {
 
                 {/* Bubble Container */}
                 <div className={`relative px-4 py-2 rounded-lg shadow-sm text-sm ${isMe
-                        ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-gray-900 dark:text-gray-100 rounded-tr-none'
-                        : 'bg-white dark:bg-[#1C1A22] text-gray-900 dark:text-gray-100 rounded-tl-none'
+                    ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-gray-900 dark:text-gray-100 rounded-tr-none'
+                    : 'bg-white dark:bg-[#1C1A22] text-gray-900 dark:text-gray-100 rounded-tl-none'
                     }`}>
                     {/* Content */}
                     <p className="whitespace-pre-wrap leading-relaxed">
@@ -38,9 +38,23 @@ export function MessageBubble({ message }: Props) {
                         </span>
 
                         {isMe && (
-                            <span className={message.is_read ? 'text-blue-500' : 'text-gray-400'}>
-                                {message.is_read ? <CheckCheck className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
-                            </span>
+                            <div className="flex items-center">
+                                {message.status === 'sending' && (
+                                    <div className="w-3 h-3 border-b border-gray-400 rounded-full animate-spin" />
+                                )}
+                                {message.status === 'sent' && (
+                                    <Check className="w-3.5 h-3.5 text-gray-400" />
+                                )}
+                                {message.status === 'delivered' && (
+                                    <CheckCheck className="w-3.5 h-3.5 text-gray-400" />
+                                )}
+                                {message.is_read && (
+                                    <CheckCheck className="w-3.5 h-3.5 text-blue-500" />
+                                )}
+                                {message.status === 'failed' && (
+                                    <span className="text-red-500 text-[8px] font-bold">!</span>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>

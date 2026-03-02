@@ -53,7 +53,7 @@ export const chatService = {
     async sendMessage(conversationId: string, content: string, senderRole: 'agent' | 'bot' = 'agent') {
         const sentiment = mockAnalyzeSentiment(content);
 
-        // 1. Guardar en Base de Datos (Supabase)
+        // 1. Guardar en Base de Datos (Supabase) con estado inicial
         const { data: message, error } = await supabase
             .from('chat_messages')
             .insert({
@@ -61,14 +61,15 @@ export const chatService = {
                 sender_role: senderRole,
                 content: content,
                 sentiment: sentiment,
-                is_read: true
+                is_read: true,
+                status: 'sending' // Estado inicial
             })
             .select()
             .single();
 
         if (error) throw error;
 
-        // 2. Obtener el teléfono del cliente para enviar por WhatsApp real
+        // 2. Obtener el teléfono del cliente para WhatsApp
         const { data: conversation } = await supabase
             .from('chat_conversations')
             .select('client:clients(phone)')
@@ -84,7 +85,7 @@ export const chatService = {
             }
         }
 
-        // 3. Enviar vía WhatsApp Cloud API (llamando a nuestra API interna segura)
+        // 3. Enviar vía WhatsApp Cloud API
         if (phone && senderRole === 'agent') {
             try {
                 const response = await fetch('/api/chat/send-message', {
@@ -93,11 +94,31 @@ export const chatService = {
                     body: JSON.stringify({ conversationId, content, phone })
                 });
 
-                if (!response.ok) {
-                    console.error('Failed to send WhatsApp message via API');
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    // Actualizar con el Message ID de Meta y estado 'sent'
+                    const metaId = result.data?.messages?.[0]?.id;
+                    await supabase
+                        .from('chat_messages')
+                        .update({
+                            status: 'sent',
+                            metadata: { ...(message.metadata || {}), whatsapp_message_id: metaId }
+                        })
+                        .eq('id', message.id);
+                } else {
+                    // Marcar como fallido
+                    await supabase
+                        .from('chat_messages')
+                        .update({ status: 'failed' })
+                        .eq('id', message.id);
                 }
             } catch (err) {
                 console.error('Error calling send-message API:', err);
+                await supabase
+                    .from('chat_messages')
+                    .update({ status: 'failed' })
+                    .eq('id', message.id);
             }
         }
 
@@ -280,5 +301,17 @@ export const chatService = {
             .eq('id', conversation.id);
 
         return message;
+    },
+
+    async markAsRead(conversationId: string) {
+        const { error } = await supabase
+            .from('chat_conversations')
+            .update({ unread_count: 0 })
+            .eq('id', conversationId);
+
+        if (error) {
+            console.error('Error marking conversation as read:', error);
+            throw error;
+        }
     }
 };

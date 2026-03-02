@@ -300,3 +300,55 @@ export async function registerMovement(data: {
         return { success: false, message: 'Error al registrar movimiento', error: error.message };
     }
 }
+// 6. Obtener Datos Detallados para Reporte Z
+export async function getReportZData(cutId: string): Promise<ActionResponse> {
+    const supabase = await createClient();
+
+    try {
+        // A. Obtener el corte para saber el rango de fechas
+        const { data: cut, error: cutError } = await supabase
+            .from('cash_cuts')
+            .select('*')
+            .eq('id', cutId)
+            .single();
+
+        if (cutError || !cut) throw new Error('Corte no encontrado');
+
+        // B. Obtener todos los items de tickets creados en ese periodo
+        // Ojo: Podríamos basarnos en pagos realizados o tickets creados. 
+        // El Reporte Z tradicional se basa en lo que ingresó a caja y lo realizado.
+        const { data: items, error: itemsError } = await supabase
+            .from('ticket_items')
+            .select(`
+                id,
+                price,
+                garment_name,
+                service_name,
+                status,
+                seamstress:profiles(full_name),
+                ticket:tickets(
+                    ticket_number,
+                    created_at,
+                    delivery_date,
+                    client:clients(full_name, phone)
+                )
+            `)
+            .gte('created_at', cut.start_date)
+            .lte('created_at', cut.end_date)
+            .order('created_at', { ascending: true });
+
+        if (itemsError) throw itemsError;
+
+        return {
+            success: true,
+            message: 'Datos de Reporte Z obtenidos',
+            data: {
+                cut,
+                items: items || []
+            }
+        };
+    } catch (error: any) {
+        console.error('Error in getReportZData:', error);
+        return { success: false, message: 'Error al obtener datos del reporte', error: error.message };
+    }
+}

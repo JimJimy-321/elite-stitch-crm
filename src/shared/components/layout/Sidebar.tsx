@@ -51,7 +51,6 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
             { icon: Megaphone, label: 'Marketing', href: '/dashboard/marketing' },
             { icon: Sparkles, label: 'Inteligencia', href: '/dashboard/intelligence' },
             { icon: CreditCard, label: 'Membresía', href: '/dashboard/billing' },
-            { icon: Wallet, label: 'Caja', href: '/dashboard/finance' },
             { icon: Settings, label: 'Ajustes', href: '/dashboard/settings' },
         ],
         manager: [

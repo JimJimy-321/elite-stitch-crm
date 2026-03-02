@@ -53,7 +53,8 @@ export const chatService = {
     async sendMessage(conversationId: string, content: string, senderRole: 'agent' | 'bot' = 'agent') {
         const sentiment = mockAnalyzeSentiment(content);
 
-        const { data, error } = await supabase
+        // 1. Guardar en Base de Datos (Supabase)
+        const { data: message, error } = await supabase
             .from('chat_messages')
             .insert({
                 conversation_id: conversationId,
@@ -67,18 +68,50 @@ export const chatService = {
 
         if (error) throw error;
 
-        // Actualizar conversación
+        // 2. Obtener el teléfono del cliente para enviar por WhatsApp real
+        const { data: conversation } = await supabase
+            .from('chat_conversations')
+            .select('client:clients(phone)')
+            .eq('id', conversationId)
+            .single();
+
+        let phone = '';
+        if (conversation?.client) {
+            if (Array.isArray(conversation.client)) {
+                if (conversation.client.length > 0) phone = conversation.client[0].phone;
+            } else if (typeof conversation.client === 'object') {
+                phone = (conversation.client as any).phone;
+            }
+        }
+
+        // 3. Enviar vía WhatsApp Cloud API (llamando a nuestra API interna segura)
+        if (phone && senderRole === 'agent') {
+            try {
+                const response = await fetch('/api/chat/send-message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ conversationId, content, phone })
+                });
+
+                if (!response.ok) {
+                    console.error('Failed to send WhatsApp message via API');
+                }
+            } catch (err) {
+                console.error('Error calling send-message API:', err);
+            }
+        }
+
+        // 4. Actualizar estado de la conversación
         await supabase
             .from('chat_conversations')
             .update({
-                last_message_content: content,
+                last_message_content: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
                 last_message_at: new Date().toISOString(),
-                // Si es agente, reseteamos unread
                 unread_count: 0
             })
             .eq('id', conversationId);
 
-        return data;
+        return message;
     },
 
     // Función "Mágica" para Simular Cliente (Demo)

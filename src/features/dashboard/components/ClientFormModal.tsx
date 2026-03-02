@@ -13,15 +13,11 @@ import { translateError } from '@/shared/lib/error-handler';
 
 const clientSchema = z.object({
     full_name: z.string().min(3, "EL NOMBRE DEBE TENER AL MENOS 3 CARACTERES"),
+    country_code: z.string(),
     phone: z.string().refine((val) => {
         const digits = val.replace(/\D/g, '');
-        if (digits.length !== 10) return false;
-        try {
-            return isValidNumber(digits, 'MX');
-        } catch (e) {
-            return false;
-        }
-    }, "INGRESA UN NÚMERO DE CELULAR VÁLIDO (10 DÍGITOS)"),
+        return digits.length === 10;
+    }, "DEBE TENER EXACTAMENTE 10 DÍGITOS"),
     email: z.string().email("ESTRUCTURA DE EMAIL NO VÁLIDA").optional().or(z.literal('')),
 });
 
@@ -39,11 +35,43 @@ export function ClientFormModal({ onClose, onSuccess, initialData }: ClientFormM
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [serverError, setServerError] = useState<string | null>(null);
 
+    let initialPhone = '';
+    let initialCountryCode = '+52';
+
+    if (initialData?.phone) {
+        let phoneString = String(initialData.phone);
+        if (phoneString.includes('+')) {
+            // Ejemplo: "+525512345678" o "+52 5512345678"
+            const parts = phoneString.split(' ');
+            if (parts.length > 1) {
+                initialCountryCode = parts[0];
+                initialPhone = parts[1].replace(/\D/g, '');
+            } else {
+                // Asumimos que los últimos 10 dígitos son el teléfono
+                const digitsOnly = phoneString.replace(/\D/g, '');
+                if (digitsOnly.length > 10) {
+                    initialPhone = digitsOnly.slice(-10);
+                    // y el resto es código de país
+                    initialCountryCode = phoneString.substring(0, phoneString.indexOf((initialPhone)[0]));
+                    if (!initialCountryCode.startsWith('+')) initialCountryCode = '+' + initialCountryCode;
+                } else {
+                    initialPhone = digitsOnly;
+                }
+            }
+        } else {
+            initialPhone = phoneString.replace(/\D/g, '');
+            if (initialPhone.length > 10) {
+                initialPhone = initialPhone.slice(-10);
+            }
+        }
+    }
+
     const { register, handleSubmit, formState: { errors } } = useForm<ClientFormValues>({
         resolver: zodResolver(clientSchema),
         defaultValues: {
             full_name: initialData?.full_name || '',
-            phone: initialData?.phone || '',
+            country_code: initialCountryCode,
+            phone: initialPhone,
             email: initialData?.email || ''
         }
     });
@@ -54,7 +82,7 @@ export function ClientFormModal({ onClose, onSuccess, initialData }: ClientFormM
         try {
             const clientPayload = {
                 full_name: data.full_name.trim().toUpperCase(),
-                phone: data.phone.replace(/\D/g, ''),
+                phone: `${data.country_code} ${data.phone.replace(/\D/g, '')}`,
                 email: data.email?.toLowerCase() || null,
                 organization_id: user?.organization_id,
                 last_branch_id: user?.assigned_branch_id,
@@ -101,18 +129,38 @@ export function ClientFormModal({ onClose, onSuccess, initialData }: ClientFormM
 
                 <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">WhatsApp / Celular (10 dígitos)</label>
-                    <div className="relative group">
-                        <input
-                            {...register('phone')}
-                            type="tel"
-                            placeholder="5512345678"
-                            maxLength={10}
-                            className={cn(
-                                "w-full bg-slate-50 border-2 rounded-2xl px-10 h-14 font-bold text-slate-700 outline-none transition-all focus:bg-white",
-                                errors.phone ? "border-red-200 focus:border-red-500" : "border-slate-100 focus:border-orange-500"
-                            )}
-                        />
-                        <Phone className={cn("absolute left-4 top-1/2 -translate-y-1/2", errors.phone ? "text-red-400" : "text-slate-400")} size={18} />
+                    <div className="relative group flex gap-2">
+                        <select
+                            {...register('country_code')}
+                            className="bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 h-14 font-bold text-slate-700 outline-none transition-all focus:bg-white focus:border-orange-500 w-32 shrink-0 appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NGExYjIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cG9seWxpbmUgcG9pbnRzPSI2IDkgMTIgMTUgMTggOSI+PC9wb2x5bGluZT48L3N2Zz4=')] bg-no-repeat bg-[position:right_1rem_center] bg-[length:1.2em_1.2em]"
+                        >
+                            <option value="+52">🇲🇽 +52</option>
+                            <option value="+1">🇺🇸/🇨🇦 +1</option>
+                            <option value="+54">🇦🇷 +54</option>
+                            <option value="+57">🇨🇴 +57</option>
+                            <option value="+56">🇨🇱 +56</option>
+                            <option value="+34">🇪🇸 +34</option>
+                            <option value="+502">🇬🇹 +502</option>
+                            <option value="+503">🇸🇻 +503</option>
+                            <option value="+504">🇭🇳 +504</option>
+                            <option value="+505">🇳🇮 +505</option>
+                            <option value="+506">🇨🇷 +506</option>
+                            <option value="+507">🇵🇦 +507</option>
+                            <option value="+51">🇵🇪 +51</option>
+                        </select>
+                        <div className="relative w-full">
+                            <input
+                                {...register('phone')}
+                                type="tel"
+                                placeholder="5512345678"
+                                maxLength={10}
+                                className={cn(
+                                    "w-full bg-slate-50 border-2 rounded-2xl px-10 h-14 font-bold text-slate-700 outline-none transition-all focus:bg-white",
+                                    errors.phone ? "border-red-200 focus:border-red-500" : "border-slate-100 focus:border-orange-500"
+                                )}
+                            />
+                            <Phone className={cn("absolute left-4 top-1/2 -translate-y-1/2", errors.phone ? "text-red-400" : "text-slate-400")} size={18} />
+                        </div>
                     </div>
                     {errors.phone && <p className="text-[9px] font-black text-red-500 px-2 uppercase">{errors.phone.message}</p>}
                 </div>

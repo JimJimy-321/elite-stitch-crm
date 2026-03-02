@@ -1,18 +1,21 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { ChatLayout } from '@/features/chat/components/ChatLayout';
 import { ChatListItem } from '@/features/chat/components/ChatListItem';
 import { MessageBubble } from '@/features/chat/components/MessageBubble';
 import { chatService } from '@/features/chat/services/chatService';
 import { useChatStore } from '@/features/chat/store/chatStore';
 import { createClient } from '@/lib/supabase/client';
-import { Send, Paperclip, MoreVertical, Search, Bot, MessageSquare } from 'lucide-react';
+import { Send, Paperclip, MoreVertical, Search, MessageSquare, ExternalLink, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { SentimentBadge } from '@/features/chat/components/SentimentBadge';
+import { useRouter } from 'next/navigation';
 
 export default function ChatPage() {
     const [inputText, setInputText] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
+    const router = useRouter();
     const {
         conversations,
         activeConversationId,
@@ -65,6 +68,52 @@ export default function ChatPage() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, activeConversationId]);
 
+    // --- REALTIME SUBSCRIPTION ---
+    useEffect(() => {
+        const channel = supabase
+            .channel('chat_realtime')
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'chat_messages'
+            }, (payload) => {
+                const newMsg = payload.new as any;
+                addMessage(newMsg);
+                // Notificar si es un mensaje del cliente en el chat activo
+                if (newMsg.conversation_id === activeConversationId && newMsg.sender_role === 'client') {
+                    // El scroll se activa por el useEffect de messages
+                } else if (newMsg.sender_role === 'client') {
+                    toast.info("Nuevo mensaje recibido");
+                }
+            })
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'chat_conversations'
+            }, (payload) => {
+                const updatedConv = payload.new as any;
+                // Actualizar lista de conversaciones
+                setConversations(conversations.map(c =>
+                    c.id === updatedConv.id ? { ...c, ...updatedConv } : c
+                ));
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [activeConversationId, addMessage, conversations, setConversations]);
+
+    // Filtrar conversaciones por nombre o teléfono
+    const filteredConversations = useMemo(() => {
+        if (!searchQuery.trim()) return conversations;
+        const q = searchQuery.toLowerCase();
+        return conversations.filter(c =>
+            c.client_name.toLowerCase().includes(q) ||
+            c.client_phone.includes(q)
+        );
+    }, [conversations, searchQuery]);
+
     const handleSendMessage = async (e?: React.FormEvent) => {
         e?.preventDefault();
         if (!inputText.trim() || !activeConversationId) return;
@@ -88,21 +137,8 @@ export default function ChatPage() {
             // Server send
             await chatService.sendMessage(activeConversationId, optimisticMsg.content);
 
-            // Re-fetch para tener ID real y sync (opcional si usamos realtime subscription)
         } catch (error) {
             toast.error("Error al enviar mensaje");
-        }
-    };
-
-    const handleSimulateIncoming = async () => {
-        if (!activeConversationId) return;
-        toast.info("Simulando respuesta del cliente...");
-        try {
-            const msg = await chatService.simulateClientMessage(activeConversationId);
-            addMessage(msg);
-            toast.success("Mensaje recibido!");
-        } catch (error) {
-            console.error(error);
         }
     };
 
@@ -132,7 +168,9 @@ export default function ChatPage() {
                     </div>
                     <input
                         type="text"
-                        placeholder="Buscar o iniciar un nuevo chat"
+                        placeholder="Buscar por nombre o teléfono"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                         className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg leading-5 bg-gray-50 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500 sm:text-sm"
                     />
                 </div>
@@ -140,7 +178,7 @@ export default function ChatPage() {
 
             {/* Lista */}
             <div className="flex-1 overflow-y-auto">
-                {conversations.map(chat => (
+                {filteredConversations.map(chat => (
                     <ChatListItem
                         key={chat.id}
                         conversation={chat}
@@ -168,13 +206,6 @@ export default function ChatPage() {
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    <button
-                        onClick={handleSimulateIncoming}
-                        className="text-xs bg-purple-100 text-purple-600 px-3 py-1 rounded-full flex items-center gap-1 hover:bg-purple-200 transition-colors"
-                        title="Debug: Simular mensaje entrante"
-                    >
-                        <Bot className="w-3 h-3" /> Simular Cliente
-                    </button>
                     <Search className="w-5 h-5 text-gray-500 cursor-pointer" />
                     <MoreVertical className="w-5 h-5 text-gray-500 cursor-pointer" />
                 </div>
@@ -218,26 +249,6 @@ export default function ChatPage() {
             </div>
             <h2 className="text-xl font-semibold text-gray-600 mb-2">Centro de Mensajería SastrePro</h2>
             <p className="max-w-md mb-8">Selecciona una conversación para ver el historial y responder a tus clientes. Conexión en tiempo real activa.</p>
-
-            <button
-                onClick={async () => {
-                    toast.info("Simulando mensaje entrante...");
-                    try {
-                        const randomPhone = `52${Math.floor(Math.random() * 10000000000)}`;
-                        await chatService.handleIncomingMessage(randomPhone, "Hola quierio saber el estatus de mi prenda", undefined, undefined);
-                        const chats = await chatService.getConversations();
-                        setConversations(chats);
-                        toast.success("Mensaje simulado recibido");
-                    } catch (e) {
-                        console.error(e);
-                        toast.error("Error simulando mensaje");
-                    }
-                }}
-                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-purple-500/20 flex items-center gap-2"
-            >
-                <Bot className="w-5 h-5" />
-                Simular Mensaje de Prueba
-            </button>
         </div>
     );
 
@@ -261,10 +272,18 @@ export default function ChatPage() {
             <div className="mb-6">
                 <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Acciones Rápidas</h4>
                 <div className="space-y-2">
-                    <button className="w-full py-2 px-3 bg-white border border-gray-200 rounded text-sm text-gray-700 hover:bg-gray-50 text-left">
+                    <button
+                        onClick={() => router.push(`/dashboard/clients?search=${activeChat.client_phone}`)}
+                        className="w-full py-2 px-3 bg-white border border-gray-200 rounded text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                    >
+                        <ExternalLink className="w-4 h-4 text-purple-500" />
                         Ver Perfil CRM
                     </button>
-                    <button className="w-full py-2 px-3 bg-white border border-gray-200 rounded text-sm text-gray-700 hover:bg-gray-50 text-left">
+                    <button
+                        onClick={() => router.push(`/dashboard/notas?new=true&phone=${activeChat.client_phone}`)}
+                        className="w-full py-2 px-3 bg-white border border-gray-200 rounded text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                    >
+                        <FileText className="w-4 h-4 text-purple-500" />
                         Crear Nueva Nota
                     </button>
                 </div>

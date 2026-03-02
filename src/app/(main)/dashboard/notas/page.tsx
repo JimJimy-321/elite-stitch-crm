@@ -8,18 +8,33 @@ import { Modal } from '@/shared/components/ui/Modal';
 import { AdvancedNotaForm } from '@/features/dashboard/components/AdvancedNotaForm';
 import { NotaDetailView } from '@/features/dashboard/components/nota-details/NotaDetailView';
 import { useDebounce } from '@/shared/hooks/useDebounce';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/features/auth/store/authStore';
 
 export default function NotasPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const { user } = useAuthStore();
+    const searchParams = useSearchParams();
     const debouncedSearch = useDebounce(searchTerm, 500);
     const { notas, loading: notasLoading, refetch } = useNotas(debouncedSearch) as any;
     const { stats, loading: statsLoading, refetch: refetchStats } = useDashboardStats(user?.assigned_branch_id);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedNota, setSelectedNota] = useState<any>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+    // Auto-open modal or pre-fill search if coming from Chat
+    useEffect(() => {
+        const isNew = searchParams.get('new') === 'true';
+        const phone = searchParams.get('phone');
+
+        if (isNew) {
+            setIsModalOpen(true);
+        }
+        if (phone) {
+            setSearchTerm(phone);
+        }
+    }, [searchParams]);
 
     const isLoading = notasLoading || statsLoading;
 
@@ -148,6 +163,7 @@ export default function NotasPage() {
                         nota={selectedNota}
                         onUpdate={async () => {
                             const newNotas = await refetch();
+                            await refetchStats();
                             if (selectedNota) {
                                 const updated = newNotas.find((n: any) => n.id === selectedNota.id);
                                 if (updated) setSelectedNota(updated);

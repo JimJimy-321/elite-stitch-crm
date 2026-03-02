@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { chatService } from '@/features/chat/services/chatService';
+import { supabaseWebhookClient as supabase } from '@/lib/supabase/webhook';
 
 // Token de verificación configurado en el Dashboard de Meta
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'sastrepro_verify_token';
@@ -13,8 +14,8 @@ export async function GET(request: NextRequest) {
     if (mode && token) {
         if (mode === 'subscribe' && token === VERIFY_TOKEN) {
             console.log('WEBHOOK_VERIFIED');
-            return new Response(challenge, { 
-                status: 200, 
+            return new Response(challenge, {
+                status: 200,
                 headers: { 'Content-Type': 'text/plain' }
             });
         } else {
@@ -60,8 +61,20 @@ export async function POST(request: NextRequest) {
 
                 console.log(`Mensaje recibido de ${from}: ${content}`);
 
-                // Procesar mensaje usando el Service
-                await chatService.handleIncomingMessage(from, content, mediaUrl, mediaType as any);
+                // Procesar mensaje usando el RPC Seguro para saltar RLS
+                const phoneNumberId = body.entry[0].changes[0].value.metadata?.phone_number_id || null;
+
+                const { error: rpcError } = await supabase.rpc('process_incoming_whatsapp', {
+                    p_phone: from,
+                    p_content: content,
+                    p_phone_number_id: phoneNumberId,
+                    p_media_url: mediaUrl,
+                    p_media_type: mediaType
+                });
+
+                if (rpcError) {
+                    console.error('Error in RPC process_incoming_whatsapp:', rpcError);
+                }
 
                 return new NextResponse('EVENT_RECEIVED', { status: 200 });
             } else {

@@ -135,10 +135,10 @@ export default function ClientsPage() {
                                             <button
                                                 onClick={() => setActiveMenu(activeMenu === client.id ? null : client.id)}
                                                 className={cn(
-                                                    "w-10 h-10 rounded-xl border flex items-center justify-center transition-all shadow-sm",
+                                                    "w-10 h-10 rounded-xl border-2 flex items-center justify-center transition-all shadow-sm",
                                                     activeMenu === client.id
-                                                        ? "border-orange-500 bg-orange-50 text-orange-600"
-                                                        : "border-slate-100 text-slate-300 hover:text-orange-500 hover:border-orange-500/30 hover:bg-orange-50"
+                                                        ? "border-orange-500 bg-orange-500 text-white"
+                                                        : "border-slate-200 bg-slate-50 text-slate-600 hover:text-white hover:border-orange-500 hover:bg-orange-500"
                                                 )}
                                             >
                                                 <MoreHorizontal size={18} />

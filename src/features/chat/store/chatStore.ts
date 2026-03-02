@@ -29,6 +29,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     addMessage: (msg) => set((state) => {
         const currentMsgs = state.messages[msg.conversation_id] || [];
+
+        // Evitar duplicados por ID (importante para Realtime + Optimistic)
+        if (currentMsgs.some(m => m.id === msg.id)) return state;
+
         // Actualizar último mensaje en la conversación
         const updatedConversations = state.conversations.map(c =>
             c.id === msg.conversation_id

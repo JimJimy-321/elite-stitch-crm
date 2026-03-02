@@ -1,13 +1,17 @@
 'use client';
 
+import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Printer } from 'lucide-react';
+import { Printer, FileText } from 'lucide-react';
 
 import { Modal } from '@/shared/components/ui/Modal';
 import { Button } from '@/shared/components/ui/Button';
 import { formatCurrency } from '@/shared/lib/utils';
 // Separator not available, use hr
+
+import { getReportZData } from '@/features/dashboard/actions/cash-cut-actions';
+import { ReportZModal } from './ReportZModal';
 
 interface CashCutDetailModalProps {
     cut: any;
@@ -16,6 +20,24 @@ interface CashCutDetailModalProps {
 }
 
 export function CashCutDetailModal({ cut, isOpen, onClose }: CashCutDetailModalProps) {
+    const [isReportZOpen, setIsReportZOpen] = useState(false);
+    const [reportData, setReportData] = useState<any[]>([]);
+    const [isLoadingData, setIsLoadingData] = useState(false);
+
+    React.useEffect(() => {
+        if (isOpen && cut?.id) {
+            const loadData = async () => {
+                setIsLoadingData(true);
+                const res = await getReportZData(cut.id);
+                if (res.success) {
+                    setReportData(res.data || []);
+                }
+                setIsLoadingData(false);
+            };
+            loadData();
+        }
+    }, [isOpen, cut?.id]);
+
     if (!cut) return null;
 
     return (
@@ -33,12 +55,26 @@ export function CashCutDetailModal({ cut, isOpen, onClose }: CashCutDetailModalP
                         Fecha: <span className="text-slate-900 font-bold">{format(new Date(cut.end_date), "dd 'de' MMMM, yyyy • HH:mm", { locale: es })}</span>
                     </p>
                     <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            className="h-8 text-[10px] font-black uppercase tracking-widest rounded-lg border-indigo-200 text-indigo-600 bg-indigo-50 hover:bg-indigo-100"
+                            onClick={() => setIsReportZOpen(true)}
+                        >
+                            <FileText size={14} className="mr-2" />
+                            Ver Reporte Z
+                        </Button>
                         <Button variant="outline" className="h-8 text-xs rounded-lg" onClick={() => window.print()}>
                             <Printer size={14} className="mr-2" />
                             Imprimir
                         </Button>
                     </div>
                 </div>
+
+                <ReportZModal
+                    cutId={cut.id}
+                    isOpen={isReportZOpen}
+                    onClose={() => setIsReportZOpen(false)}
+                />
 
                 {/* Resumen Principal */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100">
@@ -94,6 +130,53 @@ export function CashCutDetailModal({ cut, isOpen, onClose }: CashCutDetailModalP
                         {cut.notes}
                     </div>
                 )}
+
+                {/* Detalle de Servicios (Reporte Z integrado para impresión) */}
+                <div className="space-y-4 pt-4 border-t border-slate-100">
+                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                        <FileText size={16} className="text-orange-500" />
+                        Detalle de Servicios del Turno
+                    </h3>
+
+                    {isLoadingData ? (
+                        <div className="flex justify-center py-8">
+                            <div className="w-6 h-6 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin" />
+                        </div>
+                    ) : reportData.length > 0 ? (
+                        <div className="overflow-x-auto rounded-xl border border-slate-100 bg-white">
+                            <table className="w-full text-[10px] text-left">
+                                <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider">
+                                    <tr>
+                                        <th className="px-4 py-3">Ticket</th>
+                                        <th className="px-4 py-3">Cliente</th>
+                                        <th className="px-4 py-3">Prenda/Servicio</th>
+                                        <th className="px-4 py-3">Costurera</th>
+                                        <th className="px-4 py-3 text-right">Precio</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {reportData.map((item: any) => (
+                                        <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                                            <td className="px-4 py-3 font-bold text-slate-700">#{item.ticket?.ticket_number}</td>
+                                            <td className="px-4 py-3">{item.ticket?.client?.full_name}</td>
+                                            <td className="px-4 py-3">
+                                                <span className="font-medium text-slate-800">{item.garment_name}</span>
+                                                <br />
+                                                <span className="text-slate-400 font-normal">{item.service_name}</span>
+                                            </td>
+                                            <td className="px-4 py-3 uppercase font-medium text-indigo-600">{item.seamstress?.full_name || 'N/A'}</td>
+                                            <td className="px-4 py-3 text-right font-black text-slate-900">{formatCurrency(item.price)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div className="bg-slate-50 border-2 border-dashed border-slate-100 rounded-2xl p-8 text-center">
+                            <p className="text-slate-400 font-medium text-xs">No hay servicios registrados en este periodo.</p>
+                        </div>
+                    )}
+                </div>
 
                 <div className="pt-4 flex justify-end">
                     <Button onClick={onClose} className="rounded-xl px-8">

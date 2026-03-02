@@ -1,8 +1,9 @@
 "use client";
 
 import React from 'react';
-import { Settings as SettingsIcon, Bell, Lock, Smartphone, Palette, Database, ChevronRight, Sparkles } from 'lucide-react';
+import { Settings as SettingsIcon, Bell, Lock, Smartphone, Palette, Database, ChevronRight, Sparkles, Scissors } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import Link from 'next/link';
 
 export default function SettingsPage() {
     return (
@@ -18,6 +19,14 @@ export default function SettingsPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-8">
+                <Link href="/dashboard/settings/catalog">
+                    <SettingsGroup
+                        icon={Scissors}
+                        title="Catálogo de Servicios Global"
+                        description="Agrega o elimina tipos de arreglos (bastillas, cierres, etc.). Los cambios aplican a todas tus sucursales."
+                        badge="Operativo"
+                    />
+                </Link>
                 <SettingsGroup
                     icon={Palette}
                     title="Personalización Visual"

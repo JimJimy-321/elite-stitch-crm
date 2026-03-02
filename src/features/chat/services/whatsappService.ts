@@ -34,6 +34,7 @@ export const whatsappService = {
             console.warn('Normalization failed, using raw digits:', clean);
         }
 
+        console.log(`Normalizando: ${phone} -> ${clean} (final: ${clean})`);
         return clean;
     },
 

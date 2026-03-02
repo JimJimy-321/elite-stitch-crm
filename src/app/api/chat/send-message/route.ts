@@ -11,7 +11,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: 'Content and phone are required' }, { status: 400 });
         }
 
-        console.log(`Sending WhatsApp message to ${phone}`);
+        console.log(`Intentando enviar mensaje WhatsApp:
+            Para: ${phone}
+            Contenido: ${content.substring(0, 20)}${content.length > 20 ? '...' : ''}
+            Conv ID: ${conversationId}`);
 
         // 1. Send via WhatsApp Cloud API
         const result = await whatsappService.sendTextMessage(phone, content);

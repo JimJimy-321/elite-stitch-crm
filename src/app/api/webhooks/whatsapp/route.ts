@@ -51,10 +51,12 @@ export async function POST(request: NextRequest) {
                     content = message.text.body;
                 } else if (type === 'image') {
                     content = message.image.caption || 'Imagen recibida';
-                    // NOTA: Para obtener la URL real se requiere llamar a la API de Media de WhatsApp
-                    // Por ahora guardamos el ID para referencia futura o una URL placeholder
-                    mediaUrl = `https://graph.facebook.com/v18.0/${message.image.id}`;
+                    mediaUrl = `/api/chat/media/${message.image.id}`;
                     mediaType = 'image';
+                } else if (type === 'sticker') {
+                    content = 'Sticker recibido';
+                    mediaUrl = `/api/chat/media/${message.sticker.id}`;
+                    mediaType = 'image'; // Stickers can be treated as images
                 } else {
                     content = `Mensaje de tipo ${type} recibido`;
                 }
@@ -96,7 +98,7 @@ export async function POST(request: NextRequest) {
                     await supabase
                         .from('chat_messages')
                         .update({
-                            status: status === 'read' ? 'delivered' : status,
+                            status: status, // Mapping exact status from Meta
                             is_read: status === 'read'
                         })
                         .eq('id', message.id);

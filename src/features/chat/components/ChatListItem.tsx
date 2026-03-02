@@ -15,8 +15,8 @@ export function ChatListItem({ conversation, isActive, onClick }: Props) {
         <div
             onClick={onClick}
             className={`w-full p-4 flex gap-3 cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-800 ${isActive
-                    ? 'bg-purple-50 dark:bg-purple-900/20 border-l-4 border-l-purple-500'
-                    : 'hover:bg-gray-50 dark:hover:bg-gray-800 border-l-4 border-l-transparent'
+                ? 'bg-purple-50 dark:bg-purple-900/20 border-l-4 border-l-purple-500'
+                : 'hover:bg-gray-50 dark:hover:bg-gray-800 border-l-4 border-l-transparent'
                 }`}
         >
             {/* Avatar */}
@@ -44,7 +44,9 @@ export function ChatListItem({ conversation, isActive, onClick }: Props) {
 
                 <div className="flex justify-between items-center gap-2">
                     <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
-                        {conversation.last_message_content || 'Iniciar conversación...'}
+                        {conversation.last_message_content === 'Imagen recibida' ? '📷 Imagen' :
+                            conversation.last_message_content === 'Sticker recibido' ? '🎨 Sticker' :
+                                conversation.last_message_content || 'Iniciar conversación...'}
                     </p>
                     {conversation.sentiment_score && (
                         <SentimentBadge sentiment={conversation.sentiment_score} />

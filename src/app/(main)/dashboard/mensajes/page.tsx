@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { ChatLayout } from '@/features/chat/components/ChatLayout';
 import { ChatListItem } from '@/features/chat/components/ChatListItem';
 import { MessageBubble } from '@/features/chat/components/MessageBubble';
+import { ChatConversation, ChatMessage } from '@/features/chat/types/chat';
 import { chatService } from '@/features/chat/services/chatService';
 import { useChatStore } from '@/features/chat/store/chatStore';
 import { createClient } from '@/lib/supabase/client';
@@ -22,7 +23,8 @@ export default function ChatPage() {
         messages,
         setConversations,
         setActiveConversation,
-        addMessage
+        addMessage,
+        markAsRead: markAsReadInStore
     } = useChatStore();
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -60,12 +62,8 @@ export default function ChatPage() {
                 // Marcar como leído
                 if (activeConversationId) {
                     await chatService.markAsRead(activeConversationId);
+                    markAsReadInStore(activeConversationId);
                 }
-
-                // Actualizar contador localmente en el store
-                setConversations(conversations.map(c =>
-                    c.id === activeConversationId ? { ...c, unread_count: 0 } : c
-                ));
             } catch (error) {
                 console.error("Error loading messages", error);
             }
@@ -95,12 +93,8 @@ export default function ChatPage() {
                     // Marcar como leído automáticamente si el chat está abierto
                     try {
                         if (activeConversationId) {
-                            await chatService.markAsRead(activeConversationId);
+                            markAsReadInStore(activeConversationId);
                         }
-                        // Resetear localmente
-                        setConversations(conversations.map((c: any) =>
-                            c.id === activeConversationId ? { ...c, unread_count: 0 } : c
-                        ));
                     } catch (e) {
                         console.error("Error auto-marking as read", e);
                     }
@@ -115,7 +109,7 @@ export default function ChatPage() {
             }, (payload: any) => {
                 const updatedConv = payload.new;
                 // Actualizar lista de conversaciones
-                setConversations(conversations.map((c: any) =>
+                setConversations((prev: ChatConversation[]) => prev.map((c: ChatConversation) =>
                     c.id === updatedConv.id ? { ...c, ...updatedConv } : c
                 ));
             })

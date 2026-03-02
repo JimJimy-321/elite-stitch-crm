@@ -9,9 +9,10 @@ interface ChatStore {
 
     // Actions
     setActiveConversation: (id: string | null) => void;
-    setConversations: (chats: ChatConversation[]) => void;
+    setConversations: (chats: ChatConversation[] | ((prev: ChatConversation[]) => ChatConversation[])) => void;
     addMessage: (msg: ChatMessage) => void;
     updateConversationStatus: (id: string, status: string) => void;
+    markAsRead: (id: string) => void;
 
     // AI Mock Actions
     simulateIncomingMessage: (branchId: string) => void; // Para demo
@@ -25,7 +26,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     setActiveConversation: (id) => set({ activeConversationId: id }),
 
-    setConversations: (conversations) => set({ conversations }),
+    setConversations: (conversations) => set((state) => ({
+        conversations: typeof conversations === 'function' ? conversations(state.conversations) : conversations
+    })),
 
     addMessage: (msg) => set((state) => {
         const currentMsgs = state.messages[msg.conversation_id] || [];
@@ -51,6 +54,12 @@ export const useChatStore = create<ChatStore>((set, get) => ({
             conversations: updatedConversations
         };
     }),
+
+    markAsRead: (id) => set((state) => ({
+        conversations: state.conversations.map(c =>
+            c.id === id ? { ...c, unread_count: 0 } : c
+        )
+    })),
 
     updateConversationStatus: (id, status) => set((state) => ({
         conversations: state.conversations.map(c =>

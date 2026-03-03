@@ -21,7 +21,7 @@ export const chatService = {
             .from('chat_conversations')
             .select(`
                 *,
-                client:clients(full_name, phone)
+                client:clients(full_name, phone, avatar_url)
             `)
             .order('last_message_at', { ascending: false });
 
@@ -35,7 +35,8 @@ export const chatService = {
         return data.map((c: any) => ({
             ...c,
             client_name: c.client?.full_name || 'Desconocido',
-            client_phone: c.client?.phone || ''
+            client_phone: c.client?.phone || '',
+            client_avatar: c.client?.avatar_url || ''
         }));
     },
 
@@ -311,5 +312,26 @@ export const chatService = {
             console.error('Error marking conversation as read:', error);
             throw error;
         }
+    },
+
+    async clearChat(conversationId: string) {
+        const { error } = await supabase
+            .from('chat_messages')
+            .delete()
+            .eq('conversation_id', conversationId);
+
+        if (error) {
+            console.error('Error clearing chat:', error);
+            throw error;
+        }
+
+        await supabase
+            .from('chat_conversations')
+            .update({
+                last_message_content: 'Conversación vaciada',
+                unread_count: 0,
+                last_message_at: new Date().toISOString()
+            })
+            .eq('id', conversationId);
     }
 };

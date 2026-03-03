@@ -8,6 +8,7 @@ export interface ChatConversation {
     branch_id: string;
     client_name: string; // Join con clients
     client_phone: string;
+    client_avatar?: string;
     status: ChatStatus;
     last_message_content: string;
     last_message_at: string;

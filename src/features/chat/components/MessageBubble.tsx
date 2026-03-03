@@ -35,9 +35,11 @@ export function MessageBubble({ message }: Props) {
                                 />
                             </div>
                         )}
-                        <p className="whitespace-pre-wrap leading-relaxed">
-                            {message.content}
-                        </p>
+                        {!(message.media_url && (message.content === 'Sticker recibido' || message.content === 'Imagen recibida')) && (
+                            <p className="whitespace-pre-wrap leading-relaxed">
+                                {message.content}
+                            </p>
+                        )}
                     </div>
 
                     {/* Metadata: Time + Status */}

@@ -51,7 +51,7 @@ export const whatsappService = {
         const url = `https://graph.facebook.com/${WHATSAPP_VERSION}/${PHONE_NUMBER_ID}/messages`;
 
         try {
-            console.log(`Sending WhatsApp to ${normalizedTo} (Original: ${to})`);
+            console.log(`[WHATSAPP_TRACE] Enviando mensaje a ${normalizedTo}: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {

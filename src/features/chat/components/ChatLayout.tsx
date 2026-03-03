@@ -8,7 +8,7 @@ interface ChatLayoutProps {
 
 export function ChatLayout({ sidebar, chatWindow, infoPanel }: ChatLayoutProps) {
     return (
-        <div className="flex h-[calc(100vh-4rem)] w-full overflow-hidden bg-white">
+        <div className="flex h-[calc(100vh-5rem)] w-full overflow-hidden bg-white">
             {/* Sidebar - Lista de Chats */}
             <div className="w-full md:w-[380px] border-r border-gray-200 flex flex-col bg-white z-10">
                 {sidebar}

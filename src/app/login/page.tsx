@@ -56,22 +56,11 @@ export default function LoginPage() {
                     </h1>
 
                     <p className="text-slate-400 text-xl max-w-lg leading-relaxed font-medium">
-                        Impulsando la eficiencia operativa de las sastrerías modernas con <span className="text-white font-bold">Inteligencia Artificial</span> y gestión omnicanal.
+                        El arte de la sastrería, perfeccionado con <span className="text-white font-bold">Inteligencia Artificial</span>. Gestiona tus clientes y pedidos con la precisión de un corte a medida.
                     </p>
 
-                    <div className="mt-16 grid grid-cols-3 gap-12 border-t border-white/[0.05] pt-16">
-                        <div className="space-y-1">
-                            <p className="text-4xl font-black text-white tracking-tighter">450+</p>
-                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest text-orange-500/70">Sucursales</p>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-4xl font-black text-white tracking-tighter">12k</p>
-                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest text-orange-500/70">Tickets Hoy</p>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-4xl font-black text-white tracking-tighter">99%</p>
-                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest text-orange-500/70">Satisfacción</p>
-                        </div>
+                    <div className="mt-16 border-t border-white/[0.05] pt-8">
+                        {/* Stats removed by user request */}
                     </div>
                 </div>
 
@@ -93,7 +82,7 @@ export default function LoginPage() {
 
                     <div className="mb-12">
                         <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-3">Bienvenido</h2>
-                        <p className="text-slate-500 font-medium">Ingresa tus credenciales para acceder al núcleo de tu negocio.</p>
+                        <p className="text-slate-500 font-medium">Bienvenido de nuevo. Entra para seguir haciendo crecer tu sastrería.</p>
                     </div>
 
                     <form onSubmit={handleLogin} className="space-y-8">
@@ -156,7 +145,7 @@ export default function LoginPage() {
                                 <div className="w-6 h-6 border-3 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
                             ) : (
                                 <span className="flex items-center justify-center gap-4">
-                                    Iniciar Sesión Directa
+                                    Iniciar Sesión
                                     <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform duration-500" />
                                 </span>
                             )}

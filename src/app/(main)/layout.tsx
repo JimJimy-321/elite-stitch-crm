@@ -89,7 +89,10 @@ export default function DashboardLayout({
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-10 custom-scrollbar bg-slate-50/50">
+        <div className={cn(
+          "flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50",
+          pathname === '/dashboard/mensajes' ? "p-0" : "p-10"
+        )}>
           <div className="max-w-[1700px] mx-auto">
             {children}
           </div>

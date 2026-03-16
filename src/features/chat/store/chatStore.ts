@@ -13,6 +13,7 @@ interface ChatStore {
     addMessage: (msg: ChatMessage) => void;
     updateConversationStatus: (id: string, status: string) => void;
     markAsRead: (id: string) => void;
+    createConversation: (conversation: ChatConversation) => void;
 
     // AI Mock Actions
     simulateIncomingMessage: (branchId: string) => void; // Para demo
@@ -66,6 +67,15 @@ export const useChatStore = create<ChatStore>((set, get) => ({
             c.id === id ? { ...c, status: status as any } : c
         )
     })),
+
+    createConversation: (conversation: ChatConversation) => set((state) => {
+        // Evitar duplicados
+        if (state.conversations.some(c => c.id === conversation.id)) return state;
+
+        return {
+            conversations: [conversation, ...state.conversations]
+        };
+    }),
 
     simulateIncomingMessage: (branchId) => {
         console.log("Simulando mensaje para branch:", branchId);

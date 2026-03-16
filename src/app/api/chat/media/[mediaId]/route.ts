@@ -18,7 +18,7 @@ export async function GET(
 
     try {
         // 1. Get the media URL from Meta
-        const metaUrl = `https://graph.facebook.com/v18.0/${mediaId}`;
+        const metaUrl = `https://graph.facebook.com/v21.0/${mediaId}`;
         const metaResponse = await fetch(metaUrl, {
             headers: {
                 'Authorization': `Bearer ${ACCESS_TOKEN}`

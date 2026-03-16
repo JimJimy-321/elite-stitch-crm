@@ -30,8 +30,11 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
 
+        // Log del payload para depuración
+        await supabase.rpc('log_webhook_payload', { p_payload: body });
+
         // Verificar que es un evento de WhatsApp
-        if (body.object) {
+        if (body.object === 'whatsapp_business_account') {
             if (
                 body.entry &&
                 body.entry[0].changes &&
@@ -87,21 +90,15 @@ export async function POST(request: NextRequest) {
 
                 console.log(`Actualización de estado de WhatsApp: ${whatsappId} -> ${status}`);
 
-                // Buscar mensaje por whatsapp_message_id en metadata
-                const { data: messages } = await supabase
-                    .from('chat_messages')
-                    .select('id, metadata')
-                    .contains('metadata', { whatsapp_message_id: whatsappId });
+                // Actualizar estado usando RPC Seguro para evitar violaciones de RLS
+                const { error: updateError } = await supabase.rpc('update_whatsapp_message_status', {
+                    p_whatsapp_id: whatsappId,
+                    p_status: status,
+                    p_is_read: status === 'read'
+                });
 
-                if (messages && messages.length > 0) {
-                    const message = messages[0];
-                    await supabase
-                        .from('chat_messages')
-                        .update({
-                            status: status, // Mapping exact status from Meta
-                            is_read: status === 'read'
-                        })
-                        .eq('id', message.id);
+                if (updateError) {
+                    console.error('Error in RPC update_whatsapp_message_status:', updateError);
                 }
 
                 return new NextResponse('EVENT_RECEIVED', { status: 200 });

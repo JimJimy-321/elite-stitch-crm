@@ -281,14 +281,17 @@ export async function registerMovement(data: {
     const supabase = await createClient();
 
     try {
+        const validCategories = ['Insumos', 'Servicios', 'Sueldos', 'Renta', 'Mantenimiento', 'Otros'];
+        const finalCategory = validCategories.includes(data.category) ? data.category : 'Otros';
+
         const { error } = await supabase.from('expenses').insert([{
             branch_id: data.branch_id,
             amount: data.amount,
             concept: data.concept,
-            category: data.category,
+            category: finalCategory,
             recorded_by: data.recorded_by,
             type: data.type,
-            created_at: new Date().toISOString() // Siempre NOW
+            created_at: new Date().toISOString()
         }]);
 
         if (error) throw error;

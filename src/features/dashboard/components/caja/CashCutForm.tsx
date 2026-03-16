@@ -147,41 +147,53 @@ export function CashCutForm({ branchId, userId }: CashCutFormProps) {
 
                         {/* Seccion Derecha: Cálculos y Resumen */}
                         <div className="space-y-6 bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
-                            <h3 className="text-sm font-black text-slate-400 uppercase tracking-wider mb-2">Declaración vs Sistema</h3>
+                            <h3 className="text-sm font-black text-slate-400 uppercase tracking-wider mb-2">Resumen del Sistema</h3>
 
                             <div className="space-y-3 text-sm">
-                                <SummaryRow label="Efectivo (Sistema)" value={totals.calculatedCash} isCurrency />
+                                <SummaryRow label="Efectivo Inicial" value={totals.initialCash} isCurrency />
+                                <SummaryRow label="Ventas en Efectivo (+)" value={totals.cashSales} isCurrency color="text-emerald-600" />
+                                <SummaryRow label="Otros Ingresos (+)" value={totals.incomesCash} isCurrency color="text-emerald-600" />
+                                <SummaryRow label="Gastos Caja (-)" value={totals.expensesCash} isCurrency color="text-rose-600" />
+                                <div className="h-px bg-slate-200 my-2" />
+                                <SummaryRow label="Total Esperado (Sistema)" value={totals.calculatedCash} isCurrency highlight />
+                            </div>
+
+                            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                                <h4 className="text-xs font-black text-slate-400 uppercase">Valores Informativos</h4>
+                                <SummaryRow label="Ventas Tarjeta" value={totals.cardSales} isCurrency />
+                                <SummaryRow label="Ventas Transferencia" value={totals.transferSales} isCurrency />
+                            </div>
+
+                            <div className="h-px bg-slate-200 my-4" />
+
+                            <div className="space-y-3">
                                 <SummaryRow
-                                    label="Diferencia"
+                                    label="Diferencia de Efectivo"
                                     value={difference}
                                     isCurrency
                                     highlight
                                     color={Math.abs(difference) < 1 ? 'text-emerald-600' : 'text-rose-600'}
                                 />
-                            </div>
 
-                            <div className="h-px bg-slate-200 my-4" />
-
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                                    <span className="text-slate-500 font-medium">Dejado en Caja (Próximo Inicial)</span>
-                                    <span className="text-lg font-bold text-slate-800">{formatCurrency(cashLeft)}</span>
+                                <div className="flex justify-between items-center bg-slate-900 text-white p-4 rounded-xl shadow-lg">
+                                    <span className="font-medium">Queda en Caja</span>
+                                    <span className="text-xl font-black">{formatCurrency(cashLeft)}</span>
                                 </div>
                             </div>
 
                             <Button
                                 type="submit"
-                                className="w-full h-12 text-lg font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-lg shadow-slate-900/20 transition-all hover:scale-[1.02]"
+                                className="w-full h-12 text-lg font-bold bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-lg shadow-orange-600/20 transition-all hover:scale-[1.02]"
                                 disabled={isPending}
                             >
                                 {isPending ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-2" size={20} />}
-                                Realizar Corte
+                                Confirmar y Cerrar Caja
                             </Button>
 
                             {Math.abs(difference) > 50 && (
-                                <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-100">
-                                    <AlertTriangle size={14} className="mt-0.5" />
-                                    <span>Hay una diferencia considerable. Asegúrate de justificarla en las notas.</span>
+                                <div className="flex items-start gap-2 text-xs text-rose-600 bg-rose-50 p-3 rounded-xl border border-rose-100 animate-pulse">
+                                    <AlertTriangle size={16} className="shrink-0" />
+                                    <span><strong>DISCREPANCIA ALTA:</strong> La diferencia supera los $50. Verifica el conteo físico antes de proceder.</span>
                                 </div>
                             )}
                         </div>

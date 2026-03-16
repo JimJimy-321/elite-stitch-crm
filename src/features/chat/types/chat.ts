@@ -8,6 +8,7 @@ export interface ChatConversation {
     branch_id: string;
     client_name: string; // Join con clients
     client_phone: string;
+    customer_phone?: string; // Teléfono persistido en la conversación (bypass RLS / fallback)
     client_avatar?: string;
     status: ChatStatus;
     last_message_content: string;

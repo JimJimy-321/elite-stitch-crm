@@ -3,6 +3,7 @@ import { SentimentBadge } from './SentimentBadge';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { User, MessageSquare } from 'lucide-react';
+import { cn } from '@/shared/lib/utils';
 
 interface Props {
     conversation: ChatConversation;
@@ -11,25 +12,34 @@ interface Props {
 }
 
 export function ChatListItem({ conversation, isActive, onClick }: Props) {
+    const hasValidAvatar = conversation.client_avatar && !conversation.client_avatar.includes('avatar-placeholder');
+
     return (
         <div
             onClick={onClick}
-            className={`w-full p-4 flex gap-3 cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-800 ${isActive
-                ? 'bg-purple-50 dark:bg-purple-900/20 border-l-4 border-l-purple-500'
-                : 'hover:bg-gray-50 dark:hover:bg-gray-800 border-l-4 border-l-transparent'
+            className={`w-full p-4 flex gap-3 cursor-pointer transition-all border-b border-gray-100 dark:border-gray-800 ${isActive
+                ? 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-l-orange-600 shadow-sm z-10'
+                : 'hover:bg-slate-50 dark:hover:bg-slate-800 border-l-4 border-l-transparent'
                 }`}
         >
             {/* Avatar */}
             <div className="relative shrink-0">
-                {conversation.client_avatar ? (
-                    <img
-                        src={conversation.client_avatar}
-                        alt={conversation.client_name}
-                        className="w-12 h-12 rounded-full object-cover border border-gray-100"
-                    />
+                {hasValidAvatar ? (
+                    <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm bg-slate-100">
+                        <img
+                            src={conversation.client_avatar}
+                            alt={conversation.client_name}
+                            className="w-full h-full object-cover"
+                        />
+                    </div>
                 ) : (
-                    <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold">
-                        {conversation.client_name.charAt(0).toUpperCase()}
+                    <div className={cn(
+                        "w-12 h-12 rounded-full flex items-center justify-center text-white font-black text-lg border-2 border-white shadow-sm transition-all group-hover:scale-110",
+                        (conversation.client_name?.length || 0) % 3 === 0 ? "bg-gradient-to-br from-orange-400 to-rose-500" :
+                            (conversation.client_name?.length || 0) % 2 === 0 ? "bg-gradient-to-br from-indigo-400 to-purple-600" :
+                                "bg-gradient-to-br from-emerald-400 to-teal-600"
+                    )}>
+                        {conversation.client_name?.[0]?.toUpperCase() || 'D'}
                     </div>
                 )}
                 {conversation.unread_count > 0 && (
@@ -41,10 +51,17 @@ export function ChatListItem({ conversation, isActive, onClick }: Props) {
 
             {/* Info */}
             <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-start mb-1">
-                    <h3 className={`font-black truncate ${isActive ? 'text-orange-600' : 'text-slate-900'} uppercase transition-colors text-sm tracking-tight`}>
-                        {conversation.client_name}
-                    </h3>
+                <div className="flex justify-between items-start mb-0.5">
+                    <div className="flex flex-col min-w-0">
+                        <h3 className={`font-black truncate uppercase transition-colors text-sm tracking-tighter ${isActive ? 'text-orange-700' : 'text-slate-900'}`}>
+                            {conversation.client_name}
+                        </h3>
+                        {conversation.client_phone && (
+                            <p className="text-[10px] text-gray-400 font-bold tabular-nums leading-none mt-0.5">
+                                {conversation.client_phone}
+                            </p>
+                        )}
+                    </div>
                     <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap ml-2 opacity-80">
                         {formatDistanceToNow(new Date(conversation.last_message_at), { addSuffix: true, locale: es })}
                     </span>
@@ -54,7 +71,8 @@ export function ChatListItem({ conversation, isActive, onClick }: Props) {
                     <p className={`text-xs ${isActive ? 'text-orange-800/70' : 'text-slate-500'} truncate font-bold`}>
                         {conversation.last_message_content === 'Imagen recibida' ? '📷 Imagen' :
                             conversation.last_message_content === 'Sticker recibido' ? '🎨 Sticker' :
-                                conversation.last_message_content || 'Iniciar conversación...'}
+                                (conversation.last_message_content && (conversation.last_message_content.includes('http') || /\.(jpg|jpeg|png|gif|pdf|doc|docx|mp4|m4a|mp3)$/i.test(conversation.last_message_content))) ? '📁 Archivo/Multimedia' :
+                                    conversation.last_message_content || 'Iniciar conversación...'}
                     </p>
                     {conversation.sentiment_score && (
                         <div className="shrink-0 scale-90 origin-right">

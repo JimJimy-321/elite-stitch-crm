@@ -4,13 +4,15 @@ import { useAuthStore, UserRole } from '../store/authStore';
 
 export function useSupabaseAuth() {
     const supabase = createClient();
-    const { setUser, logout } = useAuthStore();
+    const { setUser, logout, setInitialized } = useAuthStore();
 
     useEffect(() => {
         // Obtener sesión actual
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session?.user) {
                 syncUserFromSupabase(session.user.id);
+            } else {
+                setInitialized(true);
             }
         });
 
@@ -22,6 +24,7 @@ export function useSupabaseAuth() {
                 syncUserFromSupabase(session.user.id);
             } else {
                 logout();
+                setInitialized(true);
             }
         });
 
@@ -58,6 +61,7 @@ export function useSupabaseAuth() {
             }
 
             setUser(userData);
+            setInitialized(true);
             return userData;
         }
 
@@ -78,8 +82,10 @@ export function useSupabaseAuth() {
                 assigned_branch_id: profile.assigned_branch_id || undefined
             };
             setUser(userData);
+            setInitialized(true);
             return userData;
         }
+        setInitialized(true);
         return null;
     };
 
@@ -100,6 +106,7 @@ export function useSupabaseAuth() {
     const signOut = async () => {
         await supabase.auth.signOut();
         logout();
+        window.location.href = '/login';
     };
 
     return { signInWithEmail, signOut };

@@ -8,9 +8,9 @@ interface Props {
 
 export function SentimentBadge({ sentiment, showLabel = false }: Props) {
     const config = {
-        positive: { icon: Smile, color: 'text-green-500 bg-green-50 dark:bg-green-900/20', label: 'Positivo', border: 'border-green-200 dark:border-green-800' },
-        neutral: { icon: Meh, color: 'text-gray-500 bg-gray-50 dark:bg-gray-800', label: 'Neutral', border: 'border-gray-200 dark:border-gray-700' },
-        critical: { icon: Frown, color: 'text-red-500 bg-red-50 dark:bg-red-900/20', label: 'Crítico', border: 'border-red-200 dark:border-red-800' },
+        positive: { icon: Smile, color: 'text-green-600 bg-green-50', label: 'Positivo', border: 'border-green-200' },
+        neutral: { icon: Meh, color: 'text-blue-600 bg-blue-50', label: 'Neutral', border: 'border-blue-200' },
+        critical: { icon: Frown, color: 'text-red-600 bg-red-50', label: 'Crítico', border: 'border-red-200' },
     };
 
     const { icon: Icon, color, label, border } = config[sentiment] || config.neutral;

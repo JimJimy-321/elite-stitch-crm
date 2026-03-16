@@ -95,8 +95,8 @@ export function ManagerDashboard({ user: initialUser }: Props) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <KPICard title="Recibidos Hoy" value={stats?.received || "0"} icon={Package} color="orange" border="border-orange-500" />
                 <KPICard title="Por Entregar" value={overdueNotas.length.toString()} icon={Clock} color="blue" border="border-blue-500" />
-                <KPICard title="Abandonados (30d+)" value={abandonedNotas.length.toString()} icon={AlertTriangle} color="purple" border="border-purple-500" />
-                <KPICard title="Ingresos Hoy" value={formatCurrency(financials?.income || 0)} icon={TrendingUp} color="emerald" border="!border-orange-500 border-2" />
+                <KPICard title="Efectivo en Caja" value={formatCurrency(financials?.netCash || 0)} icon={TrendingUp} color="emerald" border="!border-emerald-500 border-2" />
+                <KPICard title="Ingresos Totales (Hoy)" value={formatCurrency(financials?.income || 0)} icon={Plus} color="orange" border="border-slate-100" />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-10">

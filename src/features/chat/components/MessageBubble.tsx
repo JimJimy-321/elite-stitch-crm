@@ -1,6 +1,6 @@
 import { ChatMessage } from '../types/chat';
 import { format } from 'date-fns';
-import { Check, CheckCheck } from 'lucide-react';
+import { Check, CheckCheck, FileText } from 'lucide-react';
 import { SentimentBadge } from './SentimentBadge';
 
 interface Props {
@@ -22,21 +22,32 @@ export function MessageBubble({ message }: Props) {
                     {/* Content */}
                     <div className="flex flex-col gap-2">
                         {message.media_url && (
-                            <div className="rounded-md overflow-hidden max-w-[250px] bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                    src={message.media_url}
-                                    alt={message.content}
-                                    className="max-w-full h-auto object-contain"
-                                    onError={(e) => {
-                                        // Fallback if media proxy fails
-                                        (e.target as HTMLImageElement).style.display = 'none';
-                                    }}
-                                />
+                            <div className="rounded-md overflow-hidden max-w-[250px] bg-gray-100 dark:bg-gray-800 flex flex-col items-center justify-center p-1">
+                                {message.media_type === 'image' ? (
+                                    <img
+                                        src={message.media_url}
+                                        alt={message.content}
+                                        className="max-w-full h-auto object-contain rounded"
+                                    />
+                                ) : (
+                                    <div className="flex items-center gap-2 p-3 bg-white/50 w-full rounded">
+                                        <FileText className="w-8 h-8 text-orange-500" />
+                                        <div className="flex-1 overflow-hidden">
+                                            <a
+                                                href={message.media_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-[9px] text-blue-500 font-black uppercase hover:underline"
+                                            >
+                                                Descargar
+                                            </a>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
-                        {!(message.media_url && (message.content === 'Sticker recibido' || message.content === 'Imagen recibida')) && (
-                            <p className="whitespace-pre-wrap leading-relaxed">
+                        {message.content && (
+                            <p className={`whitespace-pre-wrap leading-relaxed ${message.media_url ? 'mt-2 text-xs font-semibold' : ''}`}>
                                 {message.content}
                             </p>
                         )}
@@ -57,21 +68,17 @@ export function MessageBubble({ message }: Props) {
 
                         {isMe && (
                             <div className="flex items-center">
-                                {message.status === 'sending' && (
+                                {message.status === 'sending' ? (
                                     <div className="w-3 h-3 border-b border-gray-400 rounded-full animate-spin" />
-                                )}
-                                {message.status === 'sent' && (
-                                    <Check className="w-3.5 h-3.5 text-gray-400" />
-                                )}
-                                {message.status === 'delivered' && (
-                                    <CheckCheck className="w-3.5 h-3.5 text-gray-400" />
-                                )}
-                                {message.is_read && (
+                                ) : message.is_read ? (
                                     <CheckCheck className="w-3.5 h-3.5 text-blue-500" />
-                                )}
-                                {message.status === 'failed' && (
+                                ) : message.status === 'delivered' ? (
+                                    <CheckCheck className="w-3.5 h-3.5 text-gray-400" />
+                                ) : message.status === 'sent' ? (
+                                    <Check className="w-3.5 h-3.5 text-gray-400" />
+                                ) : message.status === 'failed' ? (
                                     <span className="text-red-500 text-[8px] font-bold">!</span>
-                                )}
+                                ) : null}
                             </div>
                         )}
                     </div>

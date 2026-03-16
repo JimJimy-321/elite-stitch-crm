@@ -38,7 +38,7 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row transition-colors duration-500 overflow-hidden">
+        <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row transition-colors duration-500 overflow-hidden" suppressHydrationWarning={true}>
             {/* Visual Side (Hidden on mobile) */}
             <div className="hidden lg:flex lg:w-[55%] bg-gradient-to-br from-orange-900 to-orange-800 relative overflow-hidden items-center justify-center p-20">
                 {/* Dynamic Background Effects */}

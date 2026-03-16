@@ -49,7 +49,6 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
             { icon: Store, label: 'Sucursales', href: '/dashboard/branches' },
             { icon: UserCog, label: 'Encargados', href: '/dashboard/managers' },
             { icon: Megaphone, label: 'Marketing', href: '/dashboard/marketing' },
-            { icon: Sparkles, label: 'Inteligencia', href: '/dashboard/intelligence' },
             { icon: CreditCard, label: 'Membresía', href: '/dashboard/billing' },
             { icon: Settings, label: 'Ajustes', href: '/dashboard/settings' },
         ],
@@ -79,11 +78,7 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
                         <span className="font-black text-2xl tracking-tighter text-foreground leading-none">
                             SastrePro
                         </span>
-                        <div className="flex items-center gap-1.5 mt-2">
-                            <span className="text-[9px] text-orange-600 font-black uppercase tracking-[0.25em] bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-100 uppercase">
-                                {role?.replace('_', ' ')}
-                            </span>
-                        </div>
+                        {/* Rol eliminado por solicitud */}
                     </div>
                 )}
             </div>
@@ -124,19 +119,7 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
 
             {/* User Info & Logout */}
             <div className="p-6 border-t border-slate-50 bg-slate-50/30">
-                {!collapsed && (
-                    <div className="flex items-center gap-4 px-2 mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div className="w-12 h-12 rounded-2xl bg-orange-500/10 border border-orange-100 flex items-center justify-center text-orange-600 font-black text-xs shadow-inner uppercase">
-                            {user?.full_name?.substring(0, 2) || 'SP'}
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                            <span className="text-sm font-black truncate text-foreground tracking-tight">{user?.full_name || 'Usuario'}</span>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate">
-                                {user?.role === 'super_admin' ? 'Infraestructura' : 'SastrePro Elite'}
-                            </span>
-                        </div>
-                    </div>
-                )}
+                {/* Información de usuario eliminada por solicitud */}
                 <button
                     onClick={() => signOut()}
                     className={cn(

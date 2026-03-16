@@ -458,17 +458,17 @@ export const dashboardService = {
         return true;
     },
 
-    async getDailyFinancials(branchId?: string) {
+    async getDailyFinancials(branch_id?: string) {
         const today = new Date().toISOString().split('T')[0];
 
         // 1. Ingresos en efectivo/tarjeta/transferencia de HOY (ticket_payments)
         let paymentsQuery = supabase
             .from('ticket_payments')
-            .select('amount, payment_method')
+            .select('amount, payment_method, payment_type')
             .gte('created_at', `${today}T00:00:00`)
             .lte('created_at', `${today}T23:59:59`);
 
-        if (branchId) paymentsQuery = paymentsQuery.eq('branch_id', branchId);
+        if (branch_id) paymentsQuery = paymentsQuery.eq('branch_id', branch_id);
 
         const { data: payments, error: pError } = await paymentsQuery;
         if (pError) throw pError;
@@ -476,11 +476,11 @@ export const dashboardService = {
         // 2. Gastos de HOY
         let expensesQuery = supabase
             .from('expenses')
-            .select('amount')
+            .select('amount, type')
             .gte('created_at', `${today}T00:00:00`)
             .lte('created_at', `${today}T23:59:59`);
 
-        if (branchId) expensesQuery = expensesQuery.eq('branch_id', branchId);
+        if (branch_id) expensesQuery = expensesQuery.eq('branch_id', branch_id);
 
         const { data: expenses, error: eError } = await expensesQuery;
         if (eError) throw eError;
@@ -488,25 +488,47 @@ export const dashboardService = {
         // 3. Venta Neta (Tickets creados HOY) - Informativo
         let ticketsQuery = supabase
             .from('tickets')
-            .select('total_amount')
+            .select('total_amount, status')
             .gte('created_at', `${today}T00:00:00`)
             .lte('created_at', `${today}T23:59:59`);
 
-        if (branchId) ticketsQuery = ticketsQuery.eq('branch_id', branchId);
+        if (branch_id) ticketsQuery = ticketsQuery.eq('branch_id', branch_id);
 
         const { data: tickets, error: tError } = await ticketsQuery;
         if (tError) throw tError;
 
         // Cálculos
-        const income = payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
-        const expense = expenses?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
-        const dailySales = tickets?.reduce((sum, t) => sum + Number(t.total_amount), 0) || 0;
+        const incomeTotals = {
+            total: payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0,
+            anticipos: payments?.filter(p => p.payment_type === 'anticipo').reduce((sum, p) => sum + Number(p.amount), 0) || 0,
+            liquidaciones: payments?.filter(p => (p.payment_type === 'liquidacion' || p.payment_type === 'pago')).reduce((sum, p) => sum + Number(p.amount), 0) || 0,
+            methods: {
+                cash: payments?.filter(p => p.payment_method === 'efectivo').reduce((sum, p) => sum + Number(p.amount), 0) || 0,
+                card: payments?.filter(p => p.payment_method === 'tarjeta').reduce((sum, p) => sum + Number(p.amount), 0) || 0,
+                transfer: payments?.filter(p => p.payment_method === 'transferencia').reduce((sum, p) => sum + Number(p.amount), 0) || 0,
+            }
+        };
+
+        const expenseTotals = {
+            total: expenses?.filter(e => e.type === 'expense' || !e.type).reduce((sum, e) => sum + Number(e.amount), 0) || 0,
+            incomes: expenses?.filter(e => e.type === 'income').reduce((sum, e) => sum + Number(e.amount), 0) || 0,
+        };
+
+        const salesTotals = {
+            total: tickets?.reduce((sum, t) => sum + Number(t.total_amount), 0) || 0,
+            count: tickets?.length || 0
+        };
 
         return {
-            income,
-            expense,
-            netCash: income - expense, // Caja Real Teórica
-            dailySales // Venta contratada hoy
+            income: incomeTotals.total,
+            expense: expenseTotals.total,
+            netCash: incomeTotals.methods.cash + expenseTotals.incomes - expenseTotals.total, // Caja Actual (Efectivo Físico)
+            dailySales: salesTotals.total,
+            breakdown: {
+                income: incomeTotals,
+                expenses: expenseTotals,
+                sales: salesTotals
+            }
         };
     },
 

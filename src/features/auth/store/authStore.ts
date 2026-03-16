@@ -14,7 +14,9 @@ interface User {
 
 interface AuthState {
     user: User | null;
+    isInitialized: boolean;
     setUser: (user: User | null) => void;
+    setInitialized: (initialized: boolean) => void;
     logout: () => void;
 }
 
@@ -22,8 +24,10 @@ export const useAuthStore = create<AuthState>()(
     persist(
         (set) => ({
             user: null,
+            isInitialized: false,
             setUser: (user) => set({ user }),
-            logout: () => set({ user: null }),
+            setInitialized: (isInitialized) => set({ isInitialized }),
+            logout: () => set({ user: null, isInitialized: true }),
         }),
         {
             name: 'auth-storage',

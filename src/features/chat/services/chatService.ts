@@ -1,21 +1,23 @@
 import { createClient } from '@/lib/supabase/client';
-import { ChatConversation, ChatMessage, Sentiment } from '../types/chat';
+import { ChatConversation, ChatMessage } from '../types/chat';
 
 const supabase = createClient();
 
-// Mock Brain para Análisis de Sentimiento
-function mockAnalyzeSentiment(text: string): Sentiment {
-    const criticalKeywords = ['tarda', 'mal', 'error', 'problema', 'retraso', 'no sirve', 'feo', 'roto', 'urge'];
-    const positiveKeywords = ['gracias', 'excelente', 'bien', 'bueno', 'rápido', 'perfecto', 'amable'];
+// Helper para simular sentimiento (neutral por defecto para nuevas msgs)
+const mockAnalyzeSentiment = (text: string): 'positive' | 'neutral' | 'negative' => {
+    const positive = ['gracias', 'excelente', 'perfecto', 'bien', 'bueno', 'si', 'sí', 'ok', 'listo'];
+    const negative = ['mal', 'error', 'no', 'peor', 'tarde', 'queja', 'reclamar'];
 
-    const lower = text.toLowerCase();
-
-    if (criticalKeywords.some(k => lower.includes(k))) return 'critical';
-    if (positiveKeywords.some(k => lower.includes(k))) return 'positive';
+    const lowerText = text.toLowerCase();
+    if (positive.some(word => lowerText.includes(word))) return 'positive';
+    if (negative.some(word => lowerText.includes(word))) return 'negative';
     return 'neutral';
-}
+};
 
 export const chatService = {
+    /**
+     * Obtiene todas las conversaciones de una sucursal o globales.
+     */
     async getConversations(branchId?: string) {
         let query = supabase
             .from('chat_conversations')
@@ -32,14 +34,17 @@ export const chatService = {
         const { data, error } = await query;
         if (error) throw error;
 
-        return data.map((c: any) => ({
-            ...c,
-            client_name: c.client?.full_name || 'Desconocido',
-            client_phone: c.client?.phone || '',
-            client_avatar: c.client?.avatar_url || ''
-        }));
+        return (data || []).map(conv => ({
+            ...conv,
+            client_name: conv.client?.full_name || 'Desconocido',
+            client_phone: conv.client?.phone || conv.customer_phone || '',
+            client_avatar: conv.client?.avatar_url || ''
+        })) as ChatConversation[];
     },
 
+    /**
+     * Obtiene el historial de mensajes de una conversación.
+     */
     async getMessages(conversationId: string) {
         const { data, error } = await supabase
             .from('chat_messages')
@@ -48,202 +53,158 @@ export const chatService = {
             .order('created_at', { ascending: true });
 
         if (error) throw error;
-        return data;
+        return data as ChatMessage[];
     },
 
-    async sendMessage(conversationId: string, content: string, senderRole: 'agent' | 'bot' = 'agent') {
-        const sentiment = mockAnalyzeSentiment(content);
+    /**
+     * Envía un mensaje desde el Agente (SastrePro) al Cliente por WhatsApp.
+     */
+    async sendMessage(conversationId: string, content: string, senderRole: 'agent' | 'bot' = 'agent', mediaUrl?: string, mediaType?: 'image' | 'document' | 'audio' | 'video') {
+        // 1. Obtenemos el teléfono del cliente de la conversación para la API de forma más robusta
+        const { data: conv, error: convError } = await supabase
+            .from('chat_conversations')
+            .select(`
+                *,
+                client:clients(phone, full_name)
+            `)
+            .eq('id', conversationId)
+            .single();
 
-        // 1. Guardar en Base de Datos (Supabase) con estado inicial
+        if (convError || !conv) {
+            console.error('[CHAT_SERVICE] Error al obtener conversación:', convError);
+            throw new Error('No se pudo encontrar la conversación o los datos del cliente');
+        }
+
+        // Intento de extracción de teléfono (Campo persistido > Join > Metadata)
+        let phone = (conv as any).customer_phone || (conv as any).client?.phone;
+
+        if (!phone) {
+            phone = (conv as any).metadata?.phone;
+        }
+
+        if (!phone) {
+            console.error('[CHAT_SERVICE] Fallo de envío: Teléfono ausente en conv', conversationId);
+            throw new Error('No se pudo encontrar el teléfono del cliente. Verifique que el cliente tenga un número asignado.');
+        }
+
+        const response = await fetch('/api/chat/send-message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                conversationId,
+                content,
+                phone,
+                mediaUrl,
+                mediaType
+            })
+        });
+
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error || 'Error al enviar mensaje');
+
+        return result.message;
+    },
+
+    async analyzeSentiment(text: string): Promise<'positive' | 'neutral' | 'critical'> {
+        try {
+            const response = await fetch('/api/ai/analyze-sentiment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+            const data = await response.json();
+            return data.sentiment || 'neutral';
+        } catch (e) {
+            console.error(e);
+            return 'neutral';
+        }
+    },
+
+    /**
+     * Simulación de mensaje entrante (para pruebas y demo).
+     */
+    async simulateClientMessage(conversationId: string) {
+        const responses = [
+            "Hola, ¿cómo va mi pedido?",
+            "Gracias por la atención.",
+            "Me gustaría agendar una cita para mañana.",
+            "¿Tienen servicio de sastre para hoy?",
+            "El traje me quedó excelente, muchas gracias."
+        ];
+        const randomMsg = responses[Math.floor(Math.random() * responses.length)];
+
         const { data: message, error } = await supabase
             .from('chat_messages')
             .insert({
                 conversation_id: conversationId,
-                sender_role: senderRole,
-                content: content,
-                sentiment: sentiment,
-                is_read: false,
-                status: 'sending' // Estado inicial
+                sender_role: 'client',
+                content: randomMsg,
+                sentiment: mockAnalyzeSentiment(randomMsg),
+                is_read: false
             })
             .select()
             .single();
 
         if (error) throw error;
 
-        // 2. Obtener el teléfono del cliente para WhatsApp
-        const { data: conversation } = await supabase
-            .from('chat_conversations')
-            .select('client:clients(phone)')
-            .eq('id', conversationId)
-            .single();
-
-        let phone = '';
-        if (conversation?.client) {
-            if (Array.isArray(conversation.client)) {
-                if (conversation.client.length > 0) phone = conversation.client[0].phone;
-            } else if (typeof conversation.client === 'object') {
-                phone = (conversation.client as any).phone;
-            }
-        }
-
-        // 3. Enviar vía WhatsApp Cloud API
-        if (phone && senderRole === 'agent') {
-            try {
-                const response = await fetch('/api/chat/send-message', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ conversationId, content, phone })
-                });
-
-                const result = await response.json();
-
-                if (response.ok && result.success) {
-                    // Actualizar con el Message ID de Meta y estado 'sent'
-                    const metaId = result.data?.messages?.[0]?.id;
-                    await supabase
-                        .from('chat_messages')
-                        .update({
-                            status: 'sent',
-                            metadata: { ...(message.metadata || {}), whatsapp_message_id: metaId }
-                        })
-                        .eq('id', message.id);
-                } else {
-                    // Marcar como fallido
-                    await supabase
-                        .from('chat_messages')
-                        .update({ status: 'failed' })
-                        .eq('id', message.id);
-                }
-            } catch (err) {
-                console.error('Error calling send-message API:', err);
-                await supabase
-                    .from('chat_messages')
-                    .update({ status: 'failed' })
-                    .eq('id', message.id);
-            }
-        }
-
-        // 4. Marcar como leído localmente para el agente
+        // Actualizar conversación
         await supabase
             .from('chat_conversations')
             .update({
-                unread_count: 0
+                last_message_content: randomMsg,
+                last_message_at: new Date().toISOString(),
+                unread_count: 1 // TODO: Implementar incremento real en SQL RPC
             })
             .eq('id', conversationId);
 
         return message;
     },
 
-    // Función "Mágica" para Simular Cliente (Demo)
-    async simulateClientMessage(conversationId: string) {
-        const messages = [
-            "¿Cuándo estará listo mi traje?",
-            "Necesito que ajusten el largo un poco más.",
-            "¡Muchas gracias! Quedó perfecto.",
-            "Hola, ¿abren los domingos?",
-            "Llevo esperando 3 semanas, esto es inaceptable.",
-            "¿Puedo pagar con tarjeta?",
-            "El botón se cayó otra vez, qué mal servicio.",
-        ];
-
-        const randomMsg = messages[Math.floor(Math.random() * messages.length)];
-
-        // Obtenemos el cliente de la conversación para simular el "número"
-        const { data: conversation } = await supabase
-            .from('chat_conversations')
-            .select('client:clients(phone)')
-            .eq('id', conversationId)
-            .single();
-
-        let phone = '5550000000';
-
-        // Fix: Handle potential array or object return from Supabase relation
-        if (conversation?.client) {
-            if (Array.isArray(conversation.client)) {
-                if (conversation.client.length > 0) phone = conversation.client[0].phone || phone;
-            } else if (typeof conversation.client === 'object') {
-                phone = (conversation.client as any).phone || phone;
-            }
-        }
-
-        // Usamos la misma lógica que el Webhook REAL
-        return await this.handleIncomingMessage(phone, randomMsg);
-    },
-
-    async createConversation(clientId: string, branchId: string) {
-        const { data, error } = await supabase
-            .from('chat_conversations')
-            .insert({
-                client_id: clientId,
-                branch_id: branchId,
-                status: 'active',
-                last_message_content: 'Conversación iniciada',
-                sentiment_score: 'neutral'
-            })
-            .select()
-            .single();
-
-        if (error) throw error;
-        return data;
-    },
-
-    async handleIncomingMessage(phone: string, content: string, mediaUrl?: string, mediaType?: 'image' | 'document' | 'audio' | 'video') {
-        // 1. Normalizar teléfono (eliminar + o espacios si es necesario)
+    /**
+     * Busca o crea una conversación por teléfono.
+     * Útil para cuando el usuario inicia un chat desde un número nuevo.
+     */
+    async findOrCreateConversationByPhone(phone: string, branchId: string, organizationId: string) {
         const cleanPhone = phone.replace(/\D/g, '');
+        // Usar prefijo 52 (México) si no tiene y parece ser local de 10 dígitos
+        const normalizedPhone = cleanPhone.length === 10 ? `52${cleanPhone}` : cleanPhone;
+        const basePhone = cleanPhone.slice(-10);
 
-        // 2. Buscar cliente
-        let { data: client } = await supabase
+        // 1. Buscar o Crear Cliente
+        let { data: clients, error: searchError } = await supabase
             .from('clients')
-            .select('id, full_name, organization_id, last_branch_id')
-            .or(`phone.eq.${cleanPhone},phone.eq.+${cleanPhone}`)
-            .maybeSingle();
+            .select('id, full_name, phone, organization_id')
+            .ilike('phone', `%${basePhone}%`)
+            .order('created_at', { ascending: false })
+            .limit(1);
 
-        // Si no existe, crear prospecto
+        let client = clients?.[0];
+
         if (!client) {
-            // Intentar obtener contexto de organización del usuario actual (Simulación)
-            let orgId = null;
-            let branchId = null;
-
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('organization_id, assigned_branch_id')
-                    .eq('id', user.id)
-                    .single();
-
-                if (profile) {
-                    orgId = profile.organization_id;
-                    branchId = profile.assigned_branch_id;
-                }
-            }
-
-            // TODO: Para Webhook real, necesitaríamos determinar la org basado en el número de destino (phone_number_id)
-
-            const { data: newClient, error: createError } = await supabase
+            const { data: newClient, error: clientError } = await supabase
                 .from('clients')
                 .insert({
-                    full_name: `Prospecto WhatsApp ${cleanPhone.slice(-4)}`,
-                    phone: cleanPhone,
-                    organization_id: orgId, // CRÍTICO: Necesario para RLS
+                    full_name: `PROSPECTO ${cleanPhone.slice(-4)}`,
+                    phone: normalizedPhone,
+                    organization_id: organizationId,
                     last_branch_id: branchId
                 })
                 .select()
                 .single();
 
-            if (createError) {
-                console.error("Error creating client from WhatsApp:", createError);
-                throw createError;
-            }
+            if (clientError) throw clientError;
             client = newClient;
         }
 
-        if (!client) throw new Error("Could not find or create client");
+        if (!client) throw new Error('Error al gestionar el cliente');
 
-        // 3. Buscar o Crear Conversación Activa
+        // 2. Buscar o Crear Conversación
         let { data: conversation } = await supabase
             .from('chat_conversations')
-            .select('id')
+            .select(`
+                *,
+                client:clients(full_name, phone, avatar_url)
+            `)
             .eq('client_id', client.id)
             .eq('status', 'active')
             .maybeSingle();
@@ -253,53 +214,50 @@ export const chatService = {
                 .from('chat_conversations')
                 .insert({
                     client_id: client.id,
-                    branch_id: client.last_branch_id, // Asignar a su última sucursal conocida
+                    branch_id: branchId,
                     status: 'active',
                     channel: 'whatsapp',
-                    created_at: new Date().toISOString()
+                    last_message_content: 'Conversación iniciada por agente',
+                    sentiment_score: 'neutral',
+                    last_message_at: new Date().toISOString()
                 })
-                .select()
+                .select(`
+                    *,
+                    client:clients(full_name, phone, avatar_url)
+                `)
                 .single();
 
             if (convError) throw convError;
             conversation = newConv;
         }
 
-        if (!conversation) throw new Error("Could not find or create conversation");
+        return {
+            ...conversation,
+            client_name: conversation.client?.full_name || 'Desconocido',
+            client_phone: conversation.client?.phone || conversation.customer_phone || '',
+            client_avatar: conversation.client?.avatar_url || ''
+        } as ChatConversation;
+    },
 
-        // 4. Analizar Sentimiento
-        const sentiment = mockAnalyzeSentiment(content);
+    async uploadFile(file: File) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+        const filePath = `chat-media/${fileName}`;
 
-        // 5. Guardar Mensaje
-        const { data: message, error: msgError } = await supabase
-            .from('chat_messages')
-            .insert({
-                conversation_id: conversation.id,
-                sender_role: 'client',
-                content: content,
-                sentiment: sentiment,
-                media_url: mediaUrl,
-                media_type: mediaType,
-                is_read: false
-            })
-            .select()
-            .single();
+        const { data, error } = await supabase.storage
+            .from('chat-media')
+            .upload(filePath, file);
 
-        if (msgError) throw msgError;
+        if (error) throw error;
 
-        // 6. Actualizar Conversación (Last Message & Unread)
-        // Usamos RPC para atomic increment si fuera necesario, o update simple por ahora
-        await supabase
-            .from('chat_conversations')
-            .update({
-                last_message_content: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
-                last_message_at: new Date().toISOString(),
-                sentiment_score: sentiment, // Actualizar sentimiento general
-                unread_count: 1 // Reset simple a 1 o incrementar (idealmente RPC)
-            })
-            .eq('id', conversation.id);
+        const { data: { publicUrl } } = supabase.storage
+            .from('chat-media')
+            .getPublicUrl(filePath);
 
-        return message;
+        return {
+            publicUrl,
+            fileType: file.type.startsWith('image') ? 'image' : 'document'
+        };
     },
 
     async markAsRead(conversationId: string) {
@@ -308,10 +266,16 @@ export const chatService = {
             .update({ unread_count: 0 })
             .eq('id', conversationId);
 
-        if (error) {
-            console.error('Error marking conversation as read:', error);
-            throw error;
-        }
+        if (error) throw error;
+    },
+
+    async updateClientName(clientId: string, newName: string) {
+        const { error } = await supabase
+            .from('clients')
+            .update({ full_name: newName.toUpperCase() })
+            .eq('id', clientId);
+
+        if (error) throw error;
     },
 
     async clearChat(conversationId: string) {
@@ -320,18 +284,6 @@ export const chatService = {
             .delete()
             .eq('conversation_id', conversationId);
 
-        if (error) {
-            console.error('Error clearing chat:', error);
-            throw error;
-        }
-
-        await supabase
-            .from('chat_conversations')
-            .update({
-                last_message_content: 'Conversación vaciada',
-                unread_count: 0,
-                last_message_at: new Date().toISOString()
-            })
-            .eq('id', conversationId);
+        if (error) throw error;
     }
 };

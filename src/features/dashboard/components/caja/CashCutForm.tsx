@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
-import { Loader2, Calculator, CheckCircle2, AlertTriangle, Banknote } from 'lucide-react';
+import { Loader2, Calculator, CheckCircle2, AlertTriangle, Banknote, ArrowLeft } from 'lucide-react';
 
 import { CashCutState, getCashCutState, performCashCut } from '@/features/dashboard/actions/cash-cut-actions';
 import { Button } from '@/shared/components/ui/Button';
@@ -97,138 +97,213 @@ export function CashCutForm({ branchId, userId }: CashCutFormProps) {
     const cashLeft = watchedCountedCash - watchedWithdrawn;
 
     return (
-        <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm rounded-[2rem] overflow-hidden">
-            <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
-                        <Calculator size={24} />
-                    </div>
-                    <div>
-                        <CardTitle className="text-xl font-bold text-slate-800">Corte de Caja</CardTitle>
-                        <p className="text-sm text-slate-500">Cierre continuo desde último corte</p>
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent className="p-6">
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="flex flex-col h-full bg-slate-50">
+            {/* Header */}
+            <div className="flex items-center gap-4 p-6 bg-white border-b border-slate-200">
+                <button 
+                    onClick={() => window.history.back()}
+                    className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600"
+                >
+                    <ArrowLeft size={24} />
+                </button>
+                <h1 className="text-2xl font-bold text-[#1e3a8a]">Reporte Corte de Caja</h1>
+            </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* Seccion Izquierda: Inputs */}
-                        <div className="space-y-4">
-                            <h3 className="text-sm font-black text-slate-400 uppercase tracking-wider mb-4">Datos de Entrada</h3>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <FormInput label="Efectivo Inicial" name="initialCash" form={form} disabled={true} />
-                                <FormInput label="Retirar Efectivo" name="withdrawnCash" form={form} />
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-auto p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto">
+                    
+                    {/* Columna Izquierda: Información Básica */}
+                    <Card className="border border-slate-200 shadow-sm rounded-xl h-fit">
+                        <CardHeader className="border-b border-slate-100 bg-white">
+                            <CardTitle className="text-lg font-bold text-slate-700">Información Básica</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6 space-y-5">
+                            <div className="space-y-1">
+                                <label className="text-sm font-bold text-slate-600 block">Caja</label>
+                                <select 
+                                    className="w-full h-11 px-3 rounded-lg border border-slate-300 bg-slate-50 text-slate-500 text-sm focus:outline-none cursor-not-allowed"
+                                    disabled
+                                    value="main"
+                                >
+                                    <option value="main">Sucursal Principal</option>
+                                </select>
                             </div>
+
+                            <FormInput label="Efectivo inicial" name="initialCash" form={form} disabled={true} />
+                            
+                            <FormInput label="Efectivo retirado" name="withdrawnCash" form={form} />
 
                             <div className="space-y-1">
-                                <label className="text-xs font-semibold text-slate-500 ml-1">Notas del Corte</label>
+                                <label className="text-sm font-bold text-slate-600 block">Notas</label>
                                 <textarea
                                     {...form.register('notes')}
-                                    className="flex w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 focus:border-orange-500 focus:ring-orange-500/20 min-h-[80px] resize-none"
-                                    placeholder="Explica diferencias o detalles..."
+                                    className="w-full h-24 p-3 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-blue-500 placeholder:text-slate-400 resize-none"
+                                    placeholder="Notas adicionales..."
                                 />
                             </div>
+                        </CardContent>
+                    </Card>
 
-                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
-                                <h4 className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
-                                    <Banknote size={14} /> Conteo Físico Real
-                                </h4>
-                                <div className="grid grid-cols-1 gap-3">
-                                    <FormInput label="Efectivo en Caja" name="countedCash" form={form} />
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <FormInput label="Vouchers Tarjeta" name="countedCard" form={form} />
-                                        <FormInput label="Comprobantes Transf." name="countedTransfer" form={form} />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    {/* Columna Derecha: Declaración de Ventas */}
+                    <Card className="border border-slate-200 shadow-sm rounded-xl h-fit">
+                        <CardHeader className="border-b border-slate-100 bg-white">
+                            <CardTitle className="text-lg font-bold text-slate-700">Declaración de Ventas</CardTitle>
+                            <p className="text-xs text-slate-400 font-medium mt-1">
+                                Los movimientos de entrada y salida de la caja también son contados dentro del total
+                            </p>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <table className="w-full text-sm">
+                                <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold">
+                                    <tr>
+                                        <th className="px-6 py-4 text-left">Concepto</th>
+                                        <th className="px-6 py-4 text-center">Contado</th>
+                                        <th className="px-6 py-4 text-right">Calculado</th>
+                                        <th className="px-6 py-4 text-right">Diferencia</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    <FormTableRow 
+                                        label="Efectivo" 
+                                        name="countedCash" 
+                                        calculated={totals.calculatedCash} 
+                                        form={form} 
+                                    />
+                                    <FormTableRow 
+                                        label="Tarjeta" 
+                                        name="countedCard" 
+                                        calculated={totals.cardSales} 
+                                        form={form} 
+                                    />
+                                    <FormTableRow 
+                                        label="Transferencia" 
+                                        name="countedTransfer" 
+                                        calculated={totals.transferSales} 
+                                        form={form} 
+                                    />
+                                </tbody>
+                                <tfoot className="bg-slate-50/50 font-bold border-t border-slate-100">
+                                    <TotalRow 
+                                        form={form} 
+                                        totals={{
+                                            expected: totals.calculatedCash + totals.cardSales + totals.transferSales
+                                        }} 
+                                    />
+                                </tfoot>
+                            </table>
 
-                        {/* Seccion Derecha: Cálculos y Resumen */}
-                        <div className="space-y-6 bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
-                            <h3 className="text-sm font-black text-slate-400 uppercase tracking-wider mb-2">Resumen del Sistema</h3>
-
-                            <div className="space-y-3 text-sm">
-                                <SummaryRow label="Efectivo Inicial" value={totals.initialCash} isCurrency />
-                                <SummaryRow label="Ventas en Efectivo (+)" value={totals.cashSales} isCurrency color="text-emerald-600" />
-                                <SummaryRow label="Otros Ingresos (+)" value={totals.incomesCash} isCurrency color="text-emerald-600" />
-                                <SummaryRow label="Gastos Caja (-)" value={totals.expensesCash} isCurrency color="text-rose-600" />
-                                <div className="h-px bg-slate-200 my-2" />
-                                <SummaryRow label="Total Esperado (Sistema)" value={totals.calculatedCash} isCurrency highlight />
-                            </div>
-
-                            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                                <h4 className="text-xs font-black text-slate-400 uppercase">Valores Informativos</h4>
-                                <SummaryRow label="Ventas Tarjeta" value={totals.cardSales} isCurrency />
-                                <SummaryRow label="Ventas Transferencia" value={totals.transferSales} isCurrency />
-                            </div>
-
-                            <div className="h-px bg-slate-200 my-4" />
-
-                            <div className="space-y-3">
-                                <SummaryRow
-                                    label="Diferencia de Efectivo"
-                                    value={difference}
-                                    isCurrency
-                                    highlight
-                                    color={Math.abs(difference) < 1 ? 'text-emerald-600' : 'text-rose-600'}
-                                />
-
-                                <div className="flex justify-between items-center bg-slate-900 text-white p-4 rounded-xl shadow-lg">
-                                    <span className="font-medium">Queda en Caja</span>
-                                    <span className="text-xl font-black">{formatCurrency(cashLeft)}</span>
-                                </div>
-                            </div>
-
-                            <Button
-                                type="submit"
-                                className="w-full h-12 text-lg font-bold bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-lg shadow-orange-600/20 transition-all hover:scale-[1.02]"
-                                disabled={isPending}
-                            >
-                                {isPending ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-2" size={20} />}
-                                Confirmar y Cerrar Caja
-                            </Button>
-
-                            {Math.abs(difference) > 50 && (
-                                <div className="flex items-start gap-2 text-xs text-rose-600 bg-rose-50 p-3 rounded-xl border border-rose-100 animate-pulse">
-                                    <AlertTriangle size={16} className="shrink-0" />
-                                    <span><strong>DISCREPANCIA ALTA:</strong> La diferencia supera los $50. Verifica el conteo físico antes de proceder.</span>
+                            {/* Alerta de Discrepancia Global */}
+                            {watchedCountedCash > 0 && Math.abs(difference) > 50 && (
+                                <div className="m-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
+                                    <AlertTriangle className="text-red-500 shrink-0" size={20} />
+                                    <p className="text-xs text-red-700 leading-relaxed font-medium">
+                                        <strong>DISCREPANCIA ALTA:</strong> La diferencia en efectivo supera los $50. 
+                                        Verifica el conteo físico antes de proceder.
+                                    </p>
                                 </div>
                             )}
-                        </div>
-                    </div>
-                </form>
-            </CardContent>
-        </Card>
+
+                            {/* Importe a Dejar en Caja (Informativo al estilo original pero integrado) */}
+                            <div className="m-6 pt-6 border-t border-slate-100">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-sm font-bold text-slate-700">Importe Total a Dejar en Caja:</span>
+                                    <span className="text-xl font-black text-slate-900">{formatCurrency(cashLeft)}</span>
+                                </div>
+                                <p className="text-[10px] text-slate-400 font-medium">
+                                    (Conteo Efectivo - Efectivo Retirado). Este será el fondo inicial para la próxima jornada.
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </form>
+
+            {/* Bottom Action Bar */}
+            <div className="bg-white border-t border-slate-200 p-4 sticky bottom-0 z-10">
+                <div className="max-w-7xl mx-auto flex gap-4">
+                    <Button
+                        variant="outline"
+                        type="button"
+                        onClick={() => window.history.back()}
+                        className="flex-1 h-12 rounded-lg bg-slate-400 hover:bg-slate-500 text-white border-none font-bold"
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        type="button"
+                        onClick={form.handleSubmit(onSubmit)}
+                        className="flex-1 h-12 rounded-lg bg-[#0047ab] hover:bg-[#003580] text-white border-none font-bold"
+                        disabled={isPending}
+                    >
+                        {isPending ? <Loader2 className="animate-spin mr-2" /> : null}
+                        Guardar
+                    </Button>
+                </div>
+            </div>
+        </div>
     );
 }
 
 function FormInput({ label, name, form, disabled }: any) {
     return (
         <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-500 ml-1">{label}</label>
-            <Input
-                {...form.register(name)}
-                type="number"
-                step="0.01"
-                className="bg-white border-slate-200 focus:border-orange-500 focus:ring-orange-500/20 rounded-xl font-medium"
-                disabled={disabled}
-            />
+            <label className="text-sm font-bold text-slate-600 block">{label}</label>
+            <div className="relative">
+                <input
+                    {...form.register(name)}
+                    type="number"
+                    step="0.01"
+                    className="w-full h-11 px-3 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-blue-500 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed font-medium"
+                    disabled={disabled}
+                />
+            </div>
             {form.formState.errors[name] && (
-                <span className="text-xs text-rose-500 ml-1 block">{form.formState.errors[name]?.message}</span>
+                <span className="text-[10px] text-red-500 font-medium block">{form.formState.errors[name]?.message}</span>
             )}
         </div>
     );
 }
 
-function SummaryRow({ label, value, isCurrency, highlight, color }: any) {
+function FormTableRow({ label, name, calculated, form }: any) {
+    const value = form.watch(name) || 0;
+    const diff = Number(value) - calculated;
+
     return (
-        <div className="flex justify-between items-center p-2 hover:bg-white/50 rounded-lg transition-colors">
-            <span className="text-slate-500 font-medium">{label}</span>
-            <span className={`font-bold ${color || 'text-slate-700'} ${highlight ? 'text-base' : ''}`}>
-                {isCurrency ? formatCurrency(value) : value}
-            </span>
-        </div>
+        <tr className="hover:bg-slate-50/50 transition-colors">
+            <td className="px-6 py-4 font-bold text-slate-700">{label}</td>
+            <td className="px-6 py-4">
+                <input
+                    {...form.register(name)}
+                    type="number"
+                    step="0.01"
+                    className="w-24 h-9 px-2 text-center border border-slate-300 rounded-md focus:outline-none focus:border-blue-500"
+                />
+            </td>
+            <td className="px-6 py-4 text-right text-slate-600">{formatCurrency(calculated)}</td>
+            <td className={`px-6 py-4 text-right font-bold ${diff === 0 ? 'text-blue-500' : diff > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                {formatCurrency(diff)}
+            </td>
+        </tr>
+    );
+}
+
+function TotalRow({ form, totals }: any) {
+    const countedCash = Number(form.watch('countedCash') || 0);
+    const countedCard = Number(form.watch('countedCard') || 0);
+    const countedTransfer = Number(form.watch('countedTransfer') || 0);
+    
+    const totalCounted = countedCash + countedCard + countedTransfer;
+    const totalExpected = totals.expected;
+    const totalDiff = totalCounted - totalExpected;
+
+    return (
+        <tr>
+            <td className="px-6 py-5 text-slate-800">Total</td>
+            <td className="px-6 py-5 text-center text-slate-800">{formatCurrency(totalCounted)}</td>
+            <td className="px-6 py-5 text-right text-slate-800">{formatCurrency(totalExpected)}</td>
+            <td className={`px-6 py-5 text-right ${totalDiff === 0 ? 'text-blue-500' : totalDiff > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                {formatCurrency(totalDiff)}
+            </td>
+        </tr>
     );
 }

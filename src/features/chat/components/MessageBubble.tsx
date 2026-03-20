@@ -70,8 +70,8 @@ export function MessageBubble({ message }: Props) {
                             <div className="flex items-center">
                                 {message.status === 'sending' ? (
                                     <div className="w-3 h-3 border-b border-gray-400 rounded-full animate-spin" />
-                                ) : message.is_read ? (
-                                    <CheckCheck className="w-3.5 h-3.5 text-blue-500" />
+                                ) : message.is_read || message.status === 'read' ? (
+                                    <CheckCheck className="w-3.5 h-3.5 text-[#34B7F1]" />
                                 ) : message.status === 'delivered' ? (
                                     <CheckCheck className="w-3.5 h-3.5 text-gray-400" />
                                 ) : message.status === 'sent' ? (

@@ -11,13 +11,16 @@ import { useDebounce } from '@/shared/hooks/useDebounce';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { HistoryFilters } from '@/features/dashboard/components/HistoryFilters';
 
 export default function NotasPage() {
     const [searchTerm, setSearchTerm] = useState('');
+    const [filters, setFilters] = useState<{ garment?: string, seamstress_id?: string }>({});
+    const [showFilters, setShowFilters] = useState(false);
     const { user } = useAuthStore();
     const searchParams = useSearchParams();
     const debouncedSearch = useDebounce(searchTerm, 500);
-    const { notas, loading: notasLoading, refetch } = useNotas(debouncedSearch) as any;
+    const { notas, loading: notasLoading, refetch } = useNotas(debouncedSearch, filters) as any;
     const { stats, loading: statsLoading, refetch: refetchStats } = useDashboardStats(user?.assigned_branch_id);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedNota, setSelectedNota] = useState<any>(null);
@@ -66,27 +69,41 @@ export default function NotasPage() {
                             <Search className="text-slate-300" size={20} />
                             <input
                                 type="text"
-                                placeholder="BUSCAR POR FOLIO, NOMBRE O TELÉFONO..."
+                                placeholder="BUSCAR POR NOTA, NOMBRE O TELÉFONO..."
                                 className="bg-transparent border-none outline-none text-[15px] w-full font-bold text-foreground placeholder:text-slate-300 uppercase"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value.toUpperCase())}
                             />
                         </div>
                         <button
-                            onClick={() => alert("Los filtros avanzados se activarán en el siguiente módulo de reportes.")}
-                            className="flex items-center gap-3 px-8 py-4 bg-white rounded-2xl border border-slate-100 hover:bg-orange-50 hover:border-orange-500/20 transition-all font-black text-[11px] uppercase tracking-widest text-slate-600 shadow-sm group"
+                            onClick={() => setShowFilters(!showFilters)}
+                            className={cn(
+                                "flex items-center gap-3 px-8 py-4 rounded-2xl border transition-all font-black text-[11px] uppercase tracking-widest shadow-sm group",
+                                showFilters 
+                                    ? "bg-orange-500 border-orange-500 text-white" 
+                                    : "bg-white border-slate-100 hover:bg-orange-50 hover:border-orange-500/20 text-slate-600"
+                            )}
                         >
-                            <Filter size={18} className="text-orange-500 group-hover:rotate-12 transition-transform" />
-                            Filtros Avanzados
+                            <Filter size={18} className={cn(showFilters ? "text-white" : "text-orange-500", "group-hover:rotate-12 transition-transform")} />
+                            {showFilters ? 'Cerrar Filtros' : 'Filtros Avanzados'}
                         </button>
                     </div>
 
+                    {showFilters && (
+                        <div className="mb-10 animate-in fade-in slide-in-from-top-4 duration-500">
+                            <HistoryFilters 
+                                currentFilters={filters}
+                                onFilterChange={setFilters}
+                            />
+                        </div>
+                    )}
+
                     {/* Stats bar */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-                        <MiniNotaStat label="Recibidos" value={stats?.received?.toString() || "0"} color="text-amber-500" bg="bg-amber-50" />
-                        <MiniNotaStat label="En Proceso" value={stats?.processing?.toString() || "0"} color="text-orange-500" bg="bg-orange-50" />
-                        <MiniNotaStat label="Listos" value={stats?.ready?.toString() || "0"} color="text-emerald-500" bg="bg-emerald-50" />
-                        <MiniNotaStat label="Entregados" value={stats?.delivered?.toString() || "0"} color="text-slate-500" bg="bg-slate-50" />
+                        <MiniNotaStat label="Recibidos" value={stats?.received?.toString() || "0"} color="text-amber-500" bg="bg-amber-50" border="border-amber-500" />
+                        <MiniNotaStat label="En Proceso" value={stats?.processing?.toString() || "0"} color="text-orange-500" bg="bg-orange-50" border="border-orange-500" />
+                        <MiniNotaStat label="Listos" value={stats?.ready?.toString() || "0"} color="text-emerald-500" bg="bg-emerald-50" border="border-emerald-500" />
+                        <MiniNotaStat label="Entregados" value={stats?.delivered?.toString() || "0"} color="text-slate-500" bg="bg-slate-50" border="border-slate-500" />
                     </div>
 
                     {isLoading ? (
@@ -176,11 +193,12 @@ export default function NotasPage() {
     );
 }
 
-function MiniNotaStat({ label, value, color, bg }: { label: string, value: string, color: string, bg: string }) {
+function MiniNotaStat({ label, value, color, bg, border }: { label: string, value: string, color: string, bg: string, border?: string }) {
     return (
         <div className={cn(
             "p-6 rounded-[1.75rem] border border-slate-100 text-center transition-all shadow-sm hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1 group",
-            bg
+            bg,
+            border && `!${border} border-2`
         )}>
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">{label}</p>
             <p className={cn("text-3xl font-black tracking-tighter", color)}>{value}</p>

@@ -16,7 +16,9 @@ import {
     History,
     CheckCircle2,
     Plus,
-    Activity
+    Activity,
+    CreditCard,
+    TrendingDown
 } from 'lucide-react';
 import { cn, formatCurrency } from '@/shared/lib/utils';
 import { useNotas, useAdvancedNotas, useDashboardStats, useDailyFinancials, useActiveWorkQueue } from '../hooks/useDashboardData';
@@ -24,12 +26,14 @@ import { NotaDetailView } from './nota-details/NotaDetailView';
 import { AdvancedNotaForm } from './AdvancedNotaForm';
 import { Modal } from '@/shared/components/ui/Modal';
 import { useDebounce } from '@/shared/hooks/useDebounce';
+import { useRouter } from 'next/navigation';
 
 interface Props {
     user?: any;
 }
 
 export function ManagerDashboard({ user: initialUser }: Props) {
+    const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearch = useDebounce(searchTerm, 500);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -92,11 +96,12 @@ export function ManagerDashboard({ user: initialUser }: Props) {
             </div>
 
             {/* Dashboard Speed Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <KPICard title="Recibidos Hoy" value={stats?.received || "0"} icon={Package} color="orange" border="border-orange-500" />
-                <KPICard title="Por Entregar" value={overdueNotas.length.toString()} icon={Clock} color="blue" border="border-blue-500" />
-                <KPICard title="Efectivo en Caja" value={formatCurrency(financials?.netCash || 0)} icon={TrendingUp} color="emerald" border="!border-emerald-500 border-2" />
-                <KPICard title="Ingresos Totales (Hoy)" value={formatCurrency(financials?.income || 0)} icon={Plus} color="orange" border="border-slate-100" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                <KPICard title="Ventas Totales" value={formatCurrency(financials?.income || 0)} icon={TrendingUp} color="orange" border="border-orange-500 shadow-orange-100" />
+                <KPICard title="Efectivo en Caja" value={formatCurrency(financials?.netCash || 0)} icon={Activity} color="emerald" border="!border-emerald-500 border-2" />
+                <KPICard title="Pagos con Tarjeta" value={formatCurrency(financials?.breakdown?.income?.methods?.card || 0)} icon={CreditCard} color="blue" border="!border-purple-500 border-2" />
+                <KPICard title="Gastos (Hoy)" value={formatCurrency(financials?.expense || 0)} icon={TrendingDown} color="rose" border="!border-rose-500 border-2" />
+                <KPICard title="Por Entregar" value={activeQueue.length.toString()} icon={Clock} color="blue" border="border-blue-500" />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-10">
@@ -112,8 +117,8 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
                         {isLoading ? (
                             Array(8).fill(0).map((_, i) => <div key={i} className="h-40 bg-slate-100 rounded-[1.5rem] animate-pulse" />)
-                        ) : notas.length > 0 ? (
-                            notas.slice(0, 12).map((t: any) => (
+                        ) : (searchTerm ? notas : activeQueue).length > 0 ? (
+                            (searchTerm ? notas : activeQueue).slice(0, 16).map((t: any) => (
                                 <QuickNotaCard
                                     key={t.id}
                                     nota={t}
@@ -131,7 +136,10 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                         )}
                     </div>
 
-                    <button className="w-full py-6 text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 hover:text-orange-600 transition-all group flex items-center justify-center gap-3">
+                    <button 
+                        onClick={() => router.push('/dashboard/notas')}
+                        className="w-full py-6 text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 hover:text-orange-600 transition-all group flex items-center justify-center gap-3"
+                    >
                         Ver todas las notas <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                     </button>
                 </div>
@@ -197,6 +205,8 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                         onUpdate={async () => {
                             const newNotas = await refetch();
                             await refetchStats();
+                            await refetchFin();
+                            await refetchQueue();
                             if (selectedNota) {
                                 const updated = newNotas.find((t: any) => t.id === selectedNota.id);
                                 if (updated) setSelectedNota(updated);

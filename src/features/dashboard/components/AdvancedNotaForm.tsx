@@ -212,7 +212,7 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
 
             {/* SECCIÓN SUPERIOR: DATOS DE CABECERA (4 COLUMNAS) */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 bg-slate-50/50 rounded-[2.5rem] border border-slate-100">
-                {/* 1. FOLIO */}
+                {/* 1. NOTA */}
                 <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-orange-500 ml-2">Número de Nota</label>
                     <div className="relative group">

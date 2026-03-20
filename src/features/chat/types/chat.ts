@@ -18,7 +18,7 @@ export interface ChatConversation {
     tags?: string[];
 }
 
-export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'failed';
+export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
 
 export interface ChatMessage {
     id: string;

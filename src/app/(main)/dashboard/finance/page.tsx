@@ -7,7 +7,7 @@ import { CashCutsHistory } from '@/features/dashboard/components/caja/CashCutHis
 import { ExpenseModal } from '@/features/dashboard/components/caja/ExpenseModal';
 import { ExportReportButton } from '@/features/dashboard/components/caja/ExportReportButton';
 import { Card, CardContent } from '@/shared/components/ui/Card';
-import { Wallet, Activity, TrendingUp, TrendingDown } from 'lucide-react';
+import { Wallet, Activity, TrendingUp, TrendingDown, CreditCard } from 'lucide-react';
 import { formatCurrency } from '@/shared/lib/utils';
 
 export const metadata: Metadata = {
@@ -85,7 +85,14 @@ export default async function FinancePage() {
             </div>
 
             {/* KPIs en tiempo real (Calculated from validation range) */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard
+                    title="Ventas Totales (Periodo)"
+                    value={formatCurrency(totals.grossSales)}
+                    icon={<TrendingUp size={24} className="text-indigo-600" />}
+                    color="bg-indigo-100"
+                    subvalue="Desde último corte"
+                />
                 <StatCard
                     title="Efectivo en Caja (Sistema)"
                     value={formatCurrency(totals.calculatedCash)}
@@ -94,11 +101,11 @@ export default async function FinancePage() {
                     subvalue="Acumulado actual"
                 />
                 <StatCard
-                    title="Ventas Totales (Periodo)"
-                    value={formatCurrency(totals.totalSales)}
-                    icon={<TrendingUp size={24} className="text-indigo-600" />}
-                    color="bg-indigo-100"
-                    subvalue="Desde último corte"
+                    title="Pagos con Tarjeta (Periodo)"
+                    value={formatCurrency(totals.cardSales)}
+                    icon={<CreditCard size={24} className="text-blue-600" />}
+                    color="bg-blue-100"
+                    subvalue="Acumulado tarjeta"
                 />
                 <StatCard
                     title="Gastos (Periodo)"

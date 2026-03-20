@@ -1,8 +1,9 @@
 import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
 
-const WHATSAPP_VERSION = 'v21.0';
-const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
+const WHATSAPP_VERSION = process.env.NEXT_PUBLIC_WHATSAPP_VERSION || 'v21.0';
+const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
+const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
+const API_URL = `https://graph.facebook.com/${WHATSAPP_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}`;
 
 export const whatsappService = {
     /**
@@ -35,19 +36,19 @@ export const whatsappService = {
      * Envía un mensaje de texto simple
      */
     async sendTextMessage(to: string, text: string) {
-        if (!ACCESS_TOKEN || !PHONE_NUMBER_ID) {
+        if (!WHATSAPP_ACCESS_TOKEN || !WHATSAPP_PHONE_NUMBER_ID) {
             console.error('WhatsApp configuration missing');
             return { success: false, error: 'Configuración de WhatsApp incompleta' };
         }
 
         const normalizedTo = this.normalizePhoneNumber(to);
-        const url = `https://graph.facebook.com/${WHATSAPP_VERSION}/${PHONE_NUMBER_ID}/messages`;
+        const url = `https://graph.facebook.com/${WHATSAPP_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
         try {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                    'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
@@ -71,12 +72,12 @@ export const whatsappService = {
      * Envía un mensaje con multimedia
      */
     async sendMediaMessage(to: string, mediaUrl: string, type: 'image' | 'document' | 'video' | 'audio', caption?: string) {
-        if (!ACCESS_TOKEN || !PHONE_NUMBER_ID) {
+        if (!WHATSAPP_ACCESS_TOKEN || !WHATSAPP_PHONE_NUMBER_ID) {
             return { success: false, error: 'Configuración de WhatsApp incompleta' };
         }
 
         const normalizedTo = this.normalizePhoneNumber(to);
-        const url = `https://graph.facebook.com/${WHATSAPP_VERSION}/${PHONE_NUMBER_ID}/messages`;
+        const url = `https://graph.facebook.com/${WHATSAPP_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
         const body: any = {
             messaging_product: 'whatsapp',
@@ -94,7 +95,7 @@ export const whatsappService = {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                    'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(body),
@@ -111,18 +112,18 @@ export const whatsappService = {
      * Envía una plantilla
      */
     async sendTemplateMessage(to: string, templateName: string = 'hello_world', languageCode: string = 'en_US') {
-        if (!ACCESS_TOKEN || !PHONE_NUMBER_ID) {
+        if (!WHATSAPP_ACCESS_TOKEN || !WHATSAPP_PHONE_NUMBER_ID) {
             return { success: false, error: 'Configuración de WhatsApp incompleta' };
         }
 
         const normalizedTo = this.normalizePhoneNumber(to);
-        const url = `https://graph.facebook.com/${WHATSAPP_VERSION}/${PHONE_NUMBER_ID}/messages`;
+        const url = `https://graph.facebook.com/${WHATSAPP_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
         try {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                    'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
@@ -144,4 +145,4 @@ export const whatsappService = {
             return { success: false, error };
         }
     }
-};
+}

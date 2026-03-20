@@ -18,91 +18,263 @@ interface ExportReportButtonProps {
 export function ExportReportButton({ date, cashState, summary, movements }: ExportReportButtonProps) {
     const handleExport = () => {
         const doc = new jsPDF();
-        const reportDate = date || new Date().toLocaleDateString('es-MX');
+        const reportDate = date || new Date().toLocaleDateString('es-MX', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
 
-        // Header
+        // --- Estilos y Paleta ---
+        const colors: Record<string, [number, number, number]> = {
+            primary: [249, 115, 22],   // Orange-500
+            secondary: [15, 23, 42],   // Slate-900
+            success: [16, 185, 129],   // Emerald-500
+            card: [59, 130, 246],      // Blue-500
+            muted: [100, 116, 139],    // Slate-500
+            bg: [248, 250, 252]        // Slate-50
+        };
+
+        // --- Fondo y Header ---
+        doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+        doc.rect(0, 0, 210, 25, 'F');
+ 
         doc.setFontSize(20);
-        doc.setTextColor(249, 115, 22); // Orange in RGB
-        doc.text('SastrePro - Corte Parcial', 14, 22);
-
-        doc.setFontSize(12);
-        doc.setTextColor(0);
-        doc.text(`Fecha: ${reportDate}`, 14, 32);
-
-        // Data Source
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.text('SASTREPRO', 15, 15);
+ 
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(230, 230, 230);
+        doc.text('REPORTE OPERATIVO DE CAJA', 15, 20);
+ 
+        doc.setTextColor(255, 255, 255);
+        doc.text(`Emitido: ${reportDate}`, 195, 15, { align: 'right' });
+ 
+        // --- Data Source ---
         const data = cashState ? {
-            cashIncome: cashState.totals.cashSales + cashState.totals.incomesCash,
+            initialCash: cashState.totals.initialCash,
+            cashIncome: cashState.totals.cashSales,
+            extraIncome: cashState.totals.incomesCash,
             cardIncome: cashState.totals.cardSales,
             transferIncome: cashState.totals.transferSales,
             totalExpenses: cashState.totals.expensesCash,
             cashBalance: cashState.totals.calculatedCash,
-            monthlyTotal: 0, // Not available in this context yet
-            incomes: cashState.transactions.payments.map((p: any) => ({
-                created_at: p.created_at,
-                payment_type: 'Venta',
-                payment_method: p.payment_method,
-                amount: p.amount,
-                notes: `Ticket #${p.ticket_id}`
-            })).concat(cashState.transactions.expenses.filter((e: any) => e.type === 'income').map((e: any) => ({
-                created_at: e.created_at,
-                payment_type: 'Ingreso',
-                payment_method: 'Efectivo',
-                amount: e.amount,
-                notes: e.concept
-            }))),
-            expenses: cashState.transactions.expenses.filter((e: any) => e.type === 'expense' || !e.type)
+            totalSales: cashState.totals.totalSales,
+            grossSales: cashState.totals.grossSales,
+            totalPending: cashState.totals.totalPending || 0,
+            payments: cashState.transactions.payments,
+            expenses: cashState.transactions.expenses,
+            items: cashState.transactions.items || []
         } : {
-            cashIncome: summary?.cashIncome || 0,
-            cardIncome: summary?.cardIncome || 0,
-            transferIncome: summary?.transferIncome || 0,
+            initialCash: 0,
+            cashIncome: summary?.totalCash || 0,
+            extraIncome: summary?.totalIncomes || 0,
+            cardIncome: summary?.totalCard || 0,
+            transferIncome: summary?.totalTransfer || 0,
             totalExpenses: summary?.totalExpenses || 0,
-            cashBalance: summary?.cashBalance || 0,
-            monthlyTotal: summary?.monthlyTotal || 0,
-            incomes: movements?.incomes || [],
-            expenses: movements?.expenses || []
+            cashBalance: (summary?.totalCash || 0) + (summary?.totalIncomes || 0) - (summary?.totalExpenses || 0),
+            totalSales: (summary?.totalCash || 0) + (summary?.totalCard || 0) + (summary?.totalTransfer || 0),
+            grossSales: summary?.totalGross || ((summary?.totalCash || 0) + (summary?.totalCard || 0) + (summary?.totalTransfer || 0)),
+            totalPending: summary?.totalPending || 0,
+            payments: summary?.payments || movements?.incomes || [],
+            expenses: summary?.expenses || movements?.expenses || [],
+            items: summary?.items || movements?.items || []
         };
 
-        // Summary Section
-        doc.setFillColor(245, 245, 245);
-        doc.rect(14, 40, 182, 35, 'F');
+        let yPos = 35;
 
+        // --- RESUMEN: RESULTADO DEL DIA ---
         doc.setFontSize(14);
-        doc.text('Resumen del Periodo', 14, 48);
+        doc.setTextColor(colors.secondary[0], colors.secondary[1], colors.secondary[2]);
+        doc.setFont('helvetica', 'bold');
+        doc.text('RESULTADO DEL DIA', 15, yPos);
 
-        doc.setFontSize(10);
-        doc.text(`Ventas Efectivo: ${formatCurrency(data.cashIncome)}`, 20, 58);
-        doc.text(`Ventas Tarjeta: ${formatCurrency(data.cardIncome)}`, 20, 64);
-        doc.text(`Transferencias: ${formatCurrency(data.transferIncome)}`, 20, 70);
-
-        doc.text(`Gastos/Retiros: ${formatCurrency(data.totalExpenses)}`, 110, 58);
-        doc.text(`Efectivo Calculado: ${formatCurrency(data.cashBalance)}`, 110, 64);
-
-        // Movements Table
-        const rows = [
-            ...data.incomes.map((m: any) => [
-                new Date(m.created_at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
-                m.notes || m.payment_type, // Concept
-                m.payment_method || 'N/A',
-                `+${formatCurrency(m.amount)}`,
-            ]),
-            ...data.expenses.map((e: any) => [
-                new Date(e.created_at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
-                e.concept || 'Gasto',
-                'Efectivo',
-                `-${formatCurrency(e.amount)}`,
-            ])
-        ].sort((a, b) => (a[0] < b[0] ? 1 : -1));
+        // Summary data
+        const summaryData = [
+            ['VENTAS TOTALES (BRUTO)', formatCurrency(data.grossSales || 0)],
+            ['INGRESOS EFECTIVO', formatCurrency(data.cashIncome || 0)],
+            ['INGRESOS TARJETA', formatCurrency(data.cardIncome || 0)],
+            ['VENTAS TRANSFERENCIA', formatCurrency(data.transferIncome || 0)],
+            ['POR COBRAR (PENDIENTE)', formatCurrency(data.totalPending || 0)],
+            ['GASTOS DEL DIA', formatCurrency(data.totalExpenses || 0)],
+            ['TOTAL A DEPOSITAR (EFECTIVO)', formatCurrency(data.cashIncome + data.extraIncome - data.totalExpenses)]
+        ];
 
         autoTable(doc, {
-            startY: 85,
-            head: [['Hora', 'Concepto', 'Método', 'Monto']],
-            body: rows,
-            headStyles: { fillColor: [249, 115, 22] },
+            startY: yPos + 4,
+            body: summaryData,
+            theme: 'grid',
+            styles: { fontSize: 8, cellPadding: 1.5 },
+            columnStyles: {
+                1: { halign: 'right', fontStyle: 'bold' }
+            },
+            headStyles: { fillColor: colors.secondary },
+            bodyStyles: { textColor: [30, 30, 30] },
             alternateRowStyles: { fillColor: [250, 250, 250] },
-            margin: { top: 85 },
+            margin: { left: 15, right: 15 }
         });
 
-        doc.save(`Corte_Parcial_${new Date().getTime()}.pdf`);
+        yPos = (doc as any).lastAutoTable.finalY + 8;
+
+        // --- SECCION: INGRESOS EN EFECTIVO ---
+        const cashPayments = data.payments.filter((p: any) => p.payment_method === 'efectivo' || !p.payment_method);
+        if (cashPayments.length > 0 || data.extraIncome > 0) {
+            doc.setFontSize(12);
+            doc.text('DETALLE DE INGRESOS EN EFECTIVO', 15, yPos);
+            
+            const cashRows = [
+                ...cashPayments.map((p: any) => [
+                    p.ticket?.ticket_number || 'S/F',
+                    p.ticket?.client?.full_name || 'PARTICULAR',
+                    p.payment_type?.toUpperCase() || 'PAGO',
+                    formatCurrency(p.amount)
+                ]),
+                ...data.expenses.filter((e: any) => e.type === 'income').map((e: any) => [
+                    'EXTRA',
+                    'N/A',
+                    e.concept?.toUpperCase() || 'INGRESO EXTRA',
+                    formatCurrency(e.amount)
+                ]),
+                // Total row
+                ['', '', 'TOTAL EFECTIVO', formatCurrency(data.cashIncome + data.extraIncome)]
+            ];
+
+            autoTable(doc, {
+                startY: yPos + 4,
+                head: [['Nota', 'Cliente', 'Concepto', 'Monto']],
+                body: cashRows,
+                headStyles: { fillColor: colors.success, fontSize: 8 },
+                styles: { fontSize: 7, cellPadding: 1 },
+                columnStyles: { 3: { halign: 'right' } },
+                didParseCell: (data) => {
+                    if (data.row.index === cashRows.length - 1) {
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.fillColor = [240, 253, 244];
+                    }
+                }
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 4;
+        }
+ 
+        // --- SECCION: INGRESOS CON TARJETA ---
+        const cardPayments = data.payments.filter((p: any) => p.payment_method === 'tarjeta');
+        if (cardPayments.length > 0) {
+            doc.setFontSize(10);
+            doc.text('DETALLE DE INGRESOS CON TARJETA', 15, yPos);
+            
+            const cardRows = [
+                ...cardPayments.map((p: any) => [
+                    p.ticket?.ticket_number || 'S/F',
+                    p.ticket?.client?.full_name || 'MOSTRADOR',
+                    p.payment_type?.toUpperCase() || 'PAGO',
+                    formatCurrency(p.amount)
+                ]),
+                // Total row
+                ['', '', 'TOTAL TARJETA', formatCurrency(data.cardIncome)]
+            ];
+ 
+            autoTable(doc, {
+                startY: yPos + 4,
+                head: [['Nota', 'Cliente', 'Concepto', 'Monto']],
+                body: cardRows,
+                headStyles: { fillColor: colors.card, fontSize: 8 },
+                styles: { fontSize: 7, cellPadding: 1 },
+                columnStyles: { 3: { halign: 'right' } },
+                didParseCell: (data) => {
+                    if (data.row.index === cardRows.length - 1) {
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.fillColor = [239, 246, 255];
+                    }
+                }
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 4;
+        }
+
+        // --- SECCION: GASTOS DEL DIA ---
+        const actualExpenses = data.expenses.filter((e: any) => e.type === 'expense' || !e.type);
+        if (actualExpenses.length > 0) {
+            doc.setFontSize(10);
+            doc.text('DETALLE DE GASTOS DEL DIA', 15, yPos);
+            
+            const expenseRows = [
+                ...actualExpenses.map((e: any) => [
+                    e.concept?.toUpperCase() || 'GASTO OPERATIVO',
+                    formatCurrency(e.amount)
+                ]),
+                // Total row
+                ['TOTAL GASTOS', formatCurrency(data.totalExpenses)]
+            ];
+ 
+            autoTable(doc, {
+                startY: yPos + 4,
+                head: [['Concepto', 'Monto']],
+                body: expenseRows,
+                headStyles: { fillColor: [220, 38, 38], fontSize: 8 },
+                styles: { fontSize: 7, cellPadding: 1 },
+                columnStyles: { 1: { halign: 'right' } },
+                didParseCell: (data) => {
+                    if (data.row.index === expenseRows.length - 1) {
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.fillColor = [254, 242, 242];
+                    }
+                }
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 4;
+        }
+
+        // --- SECCION: PRODUCCIÓN DIARIA ---
+        if (data.items.length > 0) {
+            if (yPos > 240) {
+                doc.addPage();
+                yPos = 20;
+            }
+            doc.setFontSize(10);
+            doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+            doc.text('PRODUCCIÓN DIARIA (DETALLE DE PRENDAS)', 15, yPos);
+
+            yPos += 4;
+            autoTable(doc, {
+                startY: yPos,
+                head: [['Nota', 'Prenda', 'Servicio', 'Precio', 'Estatus']],
+                body: [
+                    ...(data.items || []).map((item: any) => [
+                        item.ticket?.ticket_number || '-',
+                        item.garment_name?.toUpperCase() || '-',
+                        item.service_name?.toUpperCase() || '-',
+                        formatCurrency(item.price || 0),
+                        item.status === 'finished' ? 'LISTO' : 'PENDIENTE'
+                    ]),
+                    [
+                        { content: 'TOTAL PRODUCCIÓN', colSpan: 3, styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
+                        { content: formatCurrency((data.items || []).reduce((sum: number, i: any) => sum + Number(i.price || 0), 0)), styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
+                        { content: '', styles: { fillColor: [245, 245, 245] } }
+                    ]
+                ],
+                theme: 'striped',
+                headStyles: { fillColor: [249, 115, 22], fontSize: 8, halign: 'center' },
+                bodyStyles: { fontSize: 7, halign: 'center' },
+                margin: { left: 14, right: 14 },
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 4;
+        }
+
+        // --- Pie de Página ---
+        const pageCount = (doc as any).internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(colors.muted[0], colors.muted[1], colors.muted[2]);
+            doc.text(
+                `SastrePro Elite v3.0 - Automatización de Talleres de Costura`,
+                105,
+                285,
+                { align: 'center' }
+            );
+            doc.text(`Página ${i} de ${pageCount}`, 195, 285, { align: 'right' });
+        }
+
+        doc.save(`Reporte_SastrePro_${new Date().getTime()}.pdf`);
     };
 
     return (

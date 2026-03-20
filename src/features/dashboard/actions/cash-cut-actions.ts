@@ -23,10 +23,13 @@ export type CashCutState = {
         calculatedCash: number;
         totalSales: number;
         totalExpenses: number;
+        grossSales: number;
+        totalPending: number;
     };
     transactions: {
         payments: any[];
         expenses: any[];
+        items: any[];
     };
 };
 
@@ -76,10 +79,16 @@ export async function getCashCutState(branchId: string): Promise<ActionResponse>
         const endDate = new Date().toISOString(); // "Ahora"
 
         // C. Obtener Transacciones en el Rango (startDate -> Now)
-        // Pagos (Ingresos por Ventas)
+        // Pagos (Ingresos por Ventas) - Enriquecidos con Folio y Cliente
         const { data: payments } = await supabase
             .from('ticket_payments')
-            .select('*') // Podríamos seleccionar solo lo necesario
+            .select(`
+                *,
+                ticket:tickets(
+                    ticket_number,
+                    client:clients(full_name)
+                )
+            `)
             .eq('branch_id', branchId)
             .gt('created_at', startDate)
             .lte('created_at', endDate);
@@ -90,6 +99,28 @@ export async function getCashCutState(branchId: string): Promise<ActionResponse>
             .select('*')
             .eq('branch_id', branchId)
             .gt('created_at', startDate)
+            .lte('created_at', endDate);
+
+        // Tickets/Prendas procesadas en el rango (Entradas/Salidas)
+        const { data: items } = await supabase
+            .from('ticket_items')
+            .select(`
+                *,
+                ticket:tickets(
+                    ticket_number,
+                    client:clients(full_name)
+                ),
+                seamstress:profiles(full_name)
+            `)
+            .gte('created_at', startDate)
+            .lte('created_at', endDate)
+            .order('created_at', { ascending: true });
+
+        // Notas creadas en el rango (Venta Bruta)
+        const { data: newTickets } = await supabase
+            .from('tickets')
+            .select('total_amount, balance_due')
+            .gte('created_at', startDate)
             .lte('created_at', endDate);
 
         // D. Calcular Totales
@@ -115,6 +146,9 @@ export async function getCashCutState(branchId: string): Promise<ActionResponse>
         const incomesCash = currentMovements
             .filter(m => m.type === 'income')
             .reduce((sum, m) => sum + Number(m.amount), 0);
+        
+        const grossSales = newTickets?.reduce((sum, t) => sum + Number(t.total_amount), 0) || 0;
+        const totalPending = newTickets?.reduce((sum, t) => sum + Number(t.balance_due || 0), 0) || 0;
 
         // E. Cálculo Final (Solo Efectivo afecta la caja física)
         // Calculated = (Inicial + VentasEfec + IngresosEfec) - GastosEfec
@@ -135,11 +169,14 @@ export async function getCashCutState(branchId: string): Promise<ActionResponse>
                     incomesCash,
                     calculatedCash,
                     totalSales: cashSales + cardSales + transferSales,
-                    totalExpenses: expensesCash
+                    totalExpenses: expensesCash,
+                    grossSales,
+                    totalPending
                 },
                 transactions: {
                     payments: currentPayments,
-                    expenses: currentMovements
+                    expenses: currentMovements,
+                    items: items || []
                 }
             } as CashCutState
         };

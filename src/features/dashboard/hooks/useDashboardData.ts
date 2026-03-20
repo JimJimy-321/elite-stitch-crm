@@ -31,7 +31,7 @@ export function useDashboardStats(branchId?: string) {
     return { stats, loading, error, refetch: fetchStats };
 }
 
-export function useNotas(search?: string) {
+export function useNotas(search?: string, filters?: { garment?: string, seamstress_id?: string }) {
     const [notas, setNotas] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<any>(null);
@@ -39,7 +39,7 @@ export function useNotas(search?: string) {
     const fetchNotas = async () => {
         setLoading(true);
         try {
-            const data = await dashboardService.getNotas(search);
+            const data = await dashboardService.getNotas(search, filters);
             setNotas(data);
             return data;
         } catch (err) {
@@ -52,7 +52,7 @@ export function useNotas(search?: string) {
 
     useEffect(() => {
         fetchNotas();
-    }, [search]);
+    }, [search, JSON.stringify(filters)]);
 
     return { notas, loading, error, refetch: fetchNotas };
 }
@@ -284,11 +284,22 @@ export function useFinanceStats() {
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
+    const fetchStats = async () => {
+        setLoading(true);
+        try {
+            const data = await dashboardService.getFinanceStats();
+            setStats(data);
+            return data;
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        dashboardService.getFinanceStats().then(setStats).finally(() => setLoading(false));
+        fetchStats();
     }, []);
 
-    return { stats, loading };
+    return { stats, loading, refetch: fetchStats };
 }
 
 export function useDailyFinancials(branchId?: string) {

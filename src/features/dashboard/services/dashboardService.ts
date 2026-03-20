@@ -14,7 +14,7 @@ export const dashboardService = {
         return !!data;
     },
 
-    async getNotas(search?: string) {
+    async getNotas(search?: string, filters?: { garment?: string, seamstress_id?: string }) {
         let query = supabase
             .from('tickets')
             .select(`
@@ -24,21 +24,20 @@ export const dashboardService = {
                 items:ticket_items(*)
             `);
 
-        if (search) {
-            const searchNormalized = search.toUpperCase();
-            const isNumeric = /^\d+$/.test(searchNormalized);
-            if (isNumeric) {
-                query = query.or(`ticket_number.ilike.%${searchNormalized}%`);
-            }
-            // En caso de texto, no filtramos en SQL para permitir que el filtro de JS
-            // busque en el nombre del cliente (join), ya que Supabase no permite .or() en joins.
+        // Filtros de BD directos
+        if (filters?.seamstress_id) {
+            query = query.filter('items.seamstress_id', 'eq', filters.seamstress_id);
+        }
+
+        if (filters?.garment) {
+            query = query.filter('items.garment_name', 'ilike', `%${filters.garment}%`);
         }
 
         const { data, error } = await query.order('created_at', { ascending: false }).limit(50);
 
         if (error) throw error;
 
-        // Post-filtrado ligero para lo que Supabase no permite en .or() con joins complejos sin vistas
+        // Filtro por búsqueda (Cliente o Número)
         if (search) {
             const searchNormalized = search.toUpperCase();
             return data.filter((t: any) =>
@@ -93,7 +92,6 @@ export const dashboardService = {
     },
 
     async deleteClient(id: string) {
-        // Verificar que no tenga tickets activos
         const { data: activeTickets, error: checkError } = await supabase
             .from('tickets')
             .select('id, ticket_number, status')
@@ -115,7 +113,6 @@ export const dashboardService = {
             .eq('id', id);
 
         if (error) {
-            // Foreign key violation (Postgres code 23503)
             if (error.code === '23503') {
                 throw new Error("No se puede eliminar el cliente porque tiene historial de tickets o deudas. Elimine los registros relacionados primero.");
             }
@@ -135,31 +132,53 @@ export const dashboardService = {
     },
 
     async getStats(branchId?: string) {
-        let query = supabase
+        const today = new Date().toLocaleDateString('en-CA');
+        
+        // Fetch ALL active tickets for the queue counts (Recibidos, En Proceso, Listos)
+        let activeQuery = supabase
             .from('tickets')
-            .select('status, total_amount, branch_id');
+            .select('status, total_amount, branch_id')
+            .neq('status', 'delivered');
 
         if (branchId) {
-            query = query.eq('branch_id', branchId);
+            activeQuery = activeQuery.eq('branch_id', branchId);
         }
 
-        const { data: tickets, error } = await query;
+        const { data: activeTickets } = await activeQuery;
 
-        if (error) throw error;
+        // Fetch TODAY'S delivered tickets
+        let deliveredQuery = supabase
+            .from('tickets')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'delivered')
+            .gte('updated_at', `${today}T00:00:00`)
+            .lte('updated_at', `${today}T23:59:59`);
+        
+        if (branchId) deliveredQuery = deliveredQuery.eq('branch_id', branchId);
+        const { count: deliveredToday } = await deliveredQuery;
+
+        // Fetch TODAY'S revenue (created today)
+        let revenueQuery = supabase
+            .from('tickets')
+            .select('total_amount')
+            .gte('created_at', `${today}T00:00:00`)
+            .lte('created_at', `${today}T23:59:59`);
+        
+        if (branchId) revenueQuery = revenueQuery.eq('branch_id', branchId);
+        const { data: todayTickets } = await revenueQuery;
 
         const stats = {
-            received: tickets.filter(t => t.status === 'received').length,
-            processing: tickets.filter(t => t.status === 'processing').length,
-            ready: tickets.filter(t => t.status === 'ready').length,
-            delivered: tickets.filter(t => t.status === 'delivered').length,
-            totalRevenue: tickets.reduce((acc, t) => acc + Number(t.total_amount || 0), 0)
+            received: activeTickets?.filter(t => t.status === 'received').length || 0,
+            processing: activeTickets?.filter(t => t.status === 'processing').length || 0,
+            ready: activeTickets?.filter(t => t.status === 'ready').length || 0,
+            delivered: deliveredToday || 0,
+            totalRevenue: todayTickets?.reduce((acc, t) => acc + Number(t.total_amount || 0), 0) || 0
         };
 
         return stats;
     },
 
     async getOwners() {
-        // Obtenemos organizaciones y sus perfiles de dueño si existen
         const { data, error } = await supabase
             .from('organizations')
             .select(`
@@ -179,7 +198,6 @@ export const dashboardService = {
             supabase.from('organizations').select('plan_name')
         ]);
 
-        // Simulación de MRR basado en planes
         const planPrices: Record<string, number> = {
             'Mensual': 49,
             'Anual Pro': 399,
@@ -250,7 +268,6 @@ export const dashboardService = {
     },
 
     async createAdvancedNota(notaData: any, items: any[], payment: any) {
-        // 1. Crear la Nota base
         const { data: ticket, error: tError } = await supabase
             .from('tickets')
             .insert({
@@ -273,7 +290,6 @@ export const dashboardService = {
             throw tError;
         }
 
-        // 2. Crear los items (prendas)
         const itemsWithTicket = items.map(item => ({
             ...item,
             ticket_id: ticket.id
@@ -285,7 +301,6 @@ export const dashboardService = {
 
         if (iError) throw iError;
 
-        // 3. Registrar el primer pago (anticipo) si existe
         if (payment && payment.amount > 0) {
             const { error: pError } = await supabase
                 .from('ticket_payments')
@@ -303,11 +318,11 @@ export const dashboardService = {
     },
 
     async getDailyReport(branchId?: string) {
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toLocaleDateString('en-CA');
 
         let query = supabase
             .from('ticket_payments')
-            .select('*')
+            .select('*, ticket:tickets(*, client:clients(full_name))')
             .gte('created_at', `${today}T00:00:00`)
             .lte('created_at', `${today}T23:59:59`);
 
@@ -327,14 +342,51 @@ export const dashboardService = {
         const { data: expenses, error: eError } = await expQuery;
         if (eError) throw eError;
 
+        let ticketsQuery = supabase
+            .from('tickets')
+            .select('total_amount, balance_due')
+            .gte('created_at', `${today}T00:00:00`)
+            .lte('created_at', `${today}T23:59:59`);
+
+        if (branchId) ticketsQuery = ticketsQuery.eq('branch_id', branchId);
+
+        const { data: tickets, error: tError } = await ticketsQuery;
+        if (tError) throw tError;
+
+        // Fetch today's items for Production section
+        let itemsQuery = supabase
+            .from('ticket_items')
+            .select('*, ticket:tickets(ticket_number)')
+            .gte('created_at', `${today}T00:00:00`)
+            .lte('created_at', `${today}T23:59:59`);
+
+        if (branchId) itemsQuery = itemsQuery.eq('branch_id', branchId);
+        const { data: items, error: iError } = await itemsQuery;
+        if (iError) throw iError;
+
+        // Fetch ALL global pending balances for "Por Cobrar"
+        let allPendingQuery = supabase
+            .from('tickets')
+            .select('balance_due')
+            .gt('balance_due', 0)
+            .neq('status', 'delivered');
+        
+        if (branchId) allPendingQuery = allPendingQuery.eq('branch_id', branchId);
+        const { data: allPending } = await allPendingQuery;
+
         return {
             payments,
             expenses,
+            tickets,
+            items: items || [],
             summary: {
                 totalCash: payments?.filter(p => p.payment_method === 'efectivo').reduce((acc, p) => acc + Number(p.amount), 0) || 0,
                 totalCard: payments?.filter(p => p.payment_method === 'tarjeta').reduce((acc, p) => acc + Number(p.amount), 0) || 0,
                 totalTransfer: payments?.filter(p => p.payment_method === 'transferencia').reduce((acc, p) => acc + Number(p.amount), 0) || 0,
-                totalExpenses: expenses?.reduce((acc, e) => acc + Number(e.amount), 0) || 0,
+                totalExpenses: expenses?.filter(e => e.type === 'expense' || !e.type).reduce((acc, e) => acc + Number(e.amount), 0) || 0,
+                totalIncomes: expenses?.filter(e => e.type === 'income').reduce((acc, e) => acc + Number(e.amount), 0) || 0,
+                totalGross: tickets?.reduce((acc, t) => acc + Number(t.total_amount), 0) || 0,
+                totalPending: allPending?.reduce((acc, t) => acc + Number(t.balance_due), 0) || 0,
             }
         };
     },
@@ -411,7 +463,6 @@ export const dashboardService = {
     },
 
     async updateItemStatus(itemId: string, status: string) {
-        // 1. Update the item
         const { data: item, error: iError } = await supabase
             .from('ticket_items')
             .update({ status })
@@ -420,7 +471,6 @@ export const dashboardService = {
             .single();
         if (iError) throw iError;
 
-        // 2. Fetch all items for this nota to determine nota status
         const { data: allItems, error: aError } = await supabase
             .from('ticket_items')
             .select('status')
@@ -428,9 +478,8 @@ export const dashboardService = {
 
         if (aError) throw aError;
 
-        // Determine new nota status
         let newNotaStatus = 'received';
-        const states = allItems.map(i => i.status);
+        const states = allItems?.map(i => i.status) || [];
 
         if (states.every(s => s === 'finished')) {
             newNotaStatus = 'ready';
@@ -438,7 +487,6 @@ export const dashboardService = {
             newNotaStatus = 'processing';
         }
 
-        // 3. Update the nota
         const { error: tError } = await supabase
             .from('tickets')
             .update({ status: newNotaStatus })
@@ -459,33 +507,49 @@ export const dashboardService = {
     },
 
     async getDailyFinancials(branch_id?: string) {
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toLocaleDateString('en-CA');
 
-        // 1. Ingresos en efectivo/tarjeta/transferencia de HOY (ticket_payments)
+        // Fetch last active cash cut to get initial balance
+        let activeCutQuery = supabase
+            .from('cash_cuts')
+            .select('cash_left, end_date')
+            .eq('status', 'active');
+        
+        if (branch_id) activeCutQuery = activeCutQuery.eq('branch_id', branch_id);
+        
+        const { data: activeCut } = await activeCutQuery
+            .order('end_date', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        const initialCash = Number(activeCut?.cash_left || 0);
+        const startDate = activeCut?.end_date || `${today}T00:00:00`;
+
+        // Fetch payments since startDate
         let paymentsQuery = supabase
             .from('ticket_payments')
             .select('amount, payment_method, payment_type')
-            .gte('created_at', `${today}T00:00:00`)
-            .lte('created_at', `${today}T23:59:59`);
+            .gt('created_at', startDate)
+            .lte('created_at', new Date().toISOString());
 
         if (branch_id) paymentsQuery = paymentsQuery.eq('branch_id', branch_id);
 
         const { data: payments, error: pError } = await paymentsQuery;
         if (pError) throw pError;
 
-        // 2. Gastos de HOY
+        // Fetch expenses since startDate
         let expensesQuery = supabase
             .from('expenses')
             .select('amount, type')
-            .gte('created_at', `${today}T00:00:00`)
-            .lte('created_at', `${today}T23:59:59`);
+            .gt('created_at', startDate)
+            .lte('created_at', new Date().toISOString());
 
         if (branch_id) expensesQuery = expensesQuery.eq('branch_id', branch_id);
 
         const { data: expenses, error: eError } = await expensesQuery;
         if (eError) throw eError;
 
-        // 3. Venta Neta (Tickets creados HOY) - Informativo
+        // Fetch tickets for TODAY (for Sales KPI)
         let ticketsQuery = supabase
             .from('tickets')
             .select('total_amount, status')
@@ -497,7 +561,6 @@ export const dashboardService = {
         const { data: tickets, error: tError } = await ticketsQuery;
         if (tError) throw tError;
 
-        // Cálculos
         const incomeTotals = {
             total: payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0,
             anticipos: payments?.filter(p => p.payment_type === 'anticipo').reduce((sum, p) => sum + Number(p.amount), 0) || 0,
@@ -520,21 +583,20 @@ export const dashboardService = {
         };
 
         return {
-            income: incomeTotals.total,
+            income: incomeTotals.total, // User calls this "Ventas Totales" (Money in)
             expense: expenseTotals.total,
-            netCash: incomeTotals.methods.cash + expenseTotals.incomes - expenseTotals.total, // Caja Actual (Efectivo Físico)
-            dailySales: salesTotals.total,
+            netCash: initialCash + incomeTotals.methods.cash + expenseTotals.incomes - expenseTotals.total,
+            dailySales: salesTotals.total, // Physical production/notes created
             breakdown: {
                 income: incomeTotals,
                 expenses: expenseTotals,
-                sales: salesTotals
+                sales: salesTotals,
+                initialCash
             }
         };
     },
 
     async getActiveWorkQueue(branchId?: string) {
-        // Traer TODOS los tickets que NO estén entregados
-        // Sin límite de 50 para tener el conteo real
         let query = supabase
             .from('tickets')
             .select(`
@@ -549,7 +611,6 @@ export const dashboardService = {
             query = query.eq('branch_id', branchId);
         }
 
-        // Ordenar: Lo más antiguo primero (FIFO) o por fecha de entrega
         const { data, error } = await query.order('delivery_date', { ascending: true });
 
         if (error) throw error;

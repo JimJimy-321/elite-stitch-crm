@@ -12,8 +12,9 @@ import {
     ShieldCheck
 } from 'lucide-react';
 import { cn, formatCurrency } from '@/shared/lib/utils';
-import { useAdvancedNotas } from '../../hooks/useDashboardData';
+import { useAdvancedNotas, useStaffProfiles } from '../../hooks/useDashboardData';
 import { translateError } from '@/shared/lib/error-handler';
+import { toast } from 'sonner';
 
 interface Props {
     nota: any;
@@ -22,13 +23,20 @@ interface Props {
 
 export function NotaDetailView({ nota, onUpdate }: Props) {
     const { updateStatus, collectPayment, deliver, loading } = useAdvancedNotas();
+    const { profiles } = useStaffProfiles(nota.organization_id);
     const [error, setError] = useState<string | null>(null);
-    const [paymentAmount, setPaymentAmount] = useState<number>(nota.balance_due);
+    const [paymentAmount, setPaymentAmount] = useState<string>(nota.balance_due.toString());
     const [paymentMethod, setPaymentMethod] = useState<string>('efectivo');
+    const [selectedSeamstresses, setSelectedSeamstresses] = useState<Record<string, string>>({});
 
     const handleUpdateStatus = async (itemId: string, newStatus: string) => {
         try {
-            await updateStatus(itemId, newStatus);
+            const seamstressId = selectedSeamstresses[itemId];
+            if (newStatus === 'in_process' && !seamstressId) {
+                setError("Por favor seleccione una costurera/sastre.");
+                return;
+            }
+            await updateStatus(itemId, newStatus, seamstressId);
             onUpdate();
         } catch (err) {
             setError(translateError(err));
@@ -36,15 +44,25 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
     };
 
     const handlePayment = async () => {
-        if (paymentAmount <= 0) return;
+        const amount = parseFloat(paymentAmount);
+        if (isNaN(amount) || amount <= 0) return;
         try {
-            const type = paymentAmount >= nota.balance_due ? 'liquidacion' : 'abono';
-            await collectPayment(nota.id, paymentAmount, paymentMethod, type, nota.branch_id);
-            onUpdate();
+            const type = amount >= nota.balance_due ? 'liquidacion' : 'parcial';
+            await collectPayment(nota.id, amount, paymentMethod, type, nota.branch_id);
+            toast.success("Abono registrado correctamente");
+            window.dispatchEvent(new CustomEvent('cash-cut-refresh'));
+            await onUpdate();
+            // Reset payment amount to the new balance (which will be updated by onUpdate)
+            // But we should do it after onUpdate finishes.
         } catch (err) {
             setError(translateError(err));
         }
     };
+
+    // Effect to sync paymentAmount with nota.balance_due when it changes externally
+    React.useEffect(() => {
+        setPaymentAmount(nota.balance_due.toString());
+    }, [nota.balance_due]);
 
     const handleDeliver = async () => {
         if (nota.balance_due > 0) {
@@ -72,11 +90,14 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
 
             {/* Header / Status */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
-                <div className="space-y-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Estado General</span>
+                <div className="space-y-2">
+                    <div className="space-y-0.5">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cliente</span>
+                        <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase leading-none">{nota.client?.full_name}</h2>
+                    </div>
                     <div className="flex items-center gap-3">
                         <div className={cn(
-                            "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm",
+                            "px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-sm",
                             nota.status === 'delivered' ? "bg-slate-500 text-white" :
                                 nota.status === 'ready' ? "bg-emerald-500 text-white" :
                                     nota.status === 'processing' ? "bg-orange-500 text-white" : "bg-amber-500 text-white"
@@ -85,7 +106,11 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
                                 nota.status === 'ready' ? 'Listo' :
                                     nota.status === 'processing' ? 'En Proceso' : 'Recibido'}
                         </div>
-                        <span className="text-xl font-black text-slate-800 tracking-tighter">{nota.ticket_number}</span>
+                        <span className="text-sm font-black text-slate-500 tracking-tight">#{nota.ticket_number}</span>
+                        <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
+                            <Clock size={14} className="text-orange-500" />
+                            <span className="text-[10px] font-black uppercase text-slate-600">Entrega: {new Date(nota.delivery_date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -112,8 +137,13 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
             <div className="space-y-4">
                 <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Prendas en Orden</h3>
                 <div className="grid gap-4">
-                    {nota.items?.map((item: any) => (
-                        <div key={item.id} className="glass-card bg-white p-6 border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6 group hover:shadow-xl transition-all">
+                    {(!nota.items || nota.items.length === 0) ? (
+                        <div className="p-12 text-center bg-slate-50 border-[3px] border-dashed border-slate-200 rounded-[2.5rem] flex flex-col items-center gap-3">
+                            <Scissors size={40} className="text-slate-200" />
+                            <p className="text-[11px] font-black uppercase text-slate-400 tracking-widest">No se encontraron detalles de prendas</p>
+                        </div>
+                    ) : nota.items.map((item: any) => (
+                        <div key={item.id} className="bg-white p-6 border-[3px] border-slate-200/50 rounded-[2.5rem] flex flex-col md:flex-row md:items-center justify-between gap-6 group hover:shadow-2xl hover:shadow-slate-200/50 transition-all">
                             <div className="flex items-center gap-5">
                                 <div className={cn(
                                     "w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-inner",
@@ -139,14 +169,26 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
                                     <span className="text-[10px] font-black text-slate-300 uppercase block">Precio</span>
                                     <span className="font-black text-slate-700">{formatCurrency(item.price)}</span>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex flex-col gap-2">
                                     {item.status === 'pending' && (
-                                        <button
-                                            onClick={() => handleUpdateStatus(item.id, 'in_process')}
-                                            className="px-6 py-3 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg active:scale-95"
-                                        >
-                                            Iniciar Trabajo
-                                        </button>
+                                        <div className="flex flex-col gap-2">
+                                            <select
+                                                className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-amber-500"
+                                                value={selectedSeamstresses[item.id] || ''}
+                                                onChange={(e) => setSelectedSeamstresses(prev => ({ ...prev, [item.id]: e.target.value }))}
+                                            >
+                                                <option value="">Asignar Costurera...</option>
+                                                {profiles.map(p => (
+                                                    <option key={p.id} value={p.id}>{p.full_name}</option>
+                                                ))}
+                                            </select>
+                                            <button
+                                                onClick={() => handleUpdateStatus(item.id, 'in_process')}
+                                                className="px-6 py-3 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg active:scale-95"
+                                            >
+                                                Iniciar Trabajo
+                                            </button>
+                                        </div>
                                     )}
                                     {item.status === 'in_process' && (
                                         <button
@@ -183,12 +225,33 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase text-slate-500">Monto</label>
                                     <input
-                                        type="number"
-                                        className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500 font-bold"
+                                        type="text"
+                                        inputMode="decimal"
+                                        className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500 font-bold text-white"
                                         value={paymentAmount}
                                         onChange={(e) => {
-                                            const val = Number(e.target.value);
-                                            setPaymentAmount(val > nota.balance_due ? nota.balance_due : val);
+                                            let val = e.target.value.replace(/[^0-9.]/g, '');
+                                            // Strip leading zeros unless it's just "0" or "0."
+                                            if (val.length > 1 && val.startsWith('0') && val[1] !== '.') {
+                                                val = val.replace(/^0+/, '');
+                                            }
+                                            
+                                            // Prevent multiple dots
+                                            if (val.split('.').length > 2) return;
+                                            
+                                            const numVal = parseFloat(val);
+                                            if (val === '' || isNaN(numVal)) {
+                                                setPaymentAmount(val === '.' ? '0.' : '');
+                                            } else {
+                                                setPaymentAmount(numVal > nota.balance_due ? nota.balance_due.toString() : val);
+                                            }
+                                        }}
+                                        onBlur={() => {
+                                            if (paymentAmount === '' || isNaN(parseFloat(paymentAmount))) {
+                                                setPaymentAmount('0');
+                                            } else {
+                                                setPaymentAmount(parseFloat(paymentAmount).toString());
+                                            }
                                         }}
                                     />
                                 </div>

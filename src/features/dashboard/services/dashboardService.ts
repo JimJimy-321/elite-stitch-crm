@@ -14,7 +14,7 @@ export const dashboardService = {
         return !!data;
     },
 
-    async getNotas(search?: string, filters?: { garment?: string, seamstress_id?: string }) {
+    async getNotas(search?: string, filters?: { garment?: string, seamstress_id?: string, status?: string, startDate?: string, endDate?: string }) {
         let query = supabase
             .from('tickets')
             .select(`
@@ -25,6 +25,10 @@ export const dashboardService = {
             `);
 
         // Filtros de BD directos
+        if (filters?.status) {
+            query = query.eq('status', filters.status);
+        }
+
         if (filters?.seamstress_id) {
             query = query.filter('items.seamstress_id', 'eq', filters.seamstress_id);
         }
@@ -33,21 +37,35 @@ export const dashboardService = {
             query = query.filter('items.garment_name', 'ilike', `%${filters.garment}%`);
         }
 
+        if (filters?.startDate) {
+            query = query.gte('created_at', `${filters.startDate}T00:00:00`);
+        }
+
+        if (filters?.endDate) {
+            query = query.lte('created_at', `${filters.endDate}T23:59:59`);
+        }
+
         const { data, error } = await query.order('created_at', { ascending: false }).limit(50);
 
         if (error) throw error;
 
+        // Normalizar items (asegurar que siempre sea un array y manejar alias)
+        const normalizedData = data.map((t: any) => ({
+            ...t,
+            items: t.items || t.ticket_items || []
+        }));
+
         // Filtro por búsqueda (Cliente o Número)
         if (search) {
             const searchNormalized = search.toUpperCase();
-            return data.filter((t: any) =>
+            return normalizedData.filter((t: any) =>
                 t.ticket_number?.toUpperCase().includes(searchNormalized) ||
                 t.client?.full_name?.toUpperCase().includes(searchNormalized) ||
                 t.client?.phone?.includes(searchNormalized)
             );
         }
 
-        return data;
+        return normalizedData;
     },
 
     async getClients(search?: string) {
@@ -131,7 +149,7 @@ export const dashboardService = {
         return data;
     },
 
-    async getStats(branchId?: string) {
+    async getStats(branchId?: string, filters?: { startDate?: string, endDate?: string }) {
         const today = new Date().toLocaleDateString('en-CA');
         
         // Fetch ALL active tickets for the queue counts (Recibidos, En Proceso, Listos)
@@ -143,36 +161,53 @@ export const dashboardService = {
         if (branchId) {
             activeQuery = activeQuery.eq('branch_id', branchId);
         }
+        
+        if (filters?.startDate) {
+            activeQuery = activeQuery.gte('created_at', `${filters.startDate}T00:00:00`);
+        }
+
+        if (filters?.endDate) {
+            activeQuery = activeQuery.lte('created_at', `${filters.endDate}T23:59:59`);
+        }
 
         const { data: activeTickets } = await activeQuery;
 
-        // Fetch TODAY'S delivered tickets
+        // Fetch delivered tickets
         let deliveredQuery = supabase
             .from('tickets')
             .select('*', { count: 'exact', head: true })
-            .eq('status', 'delivered')
-            .gte('updated_at', `${today}T00:00:00`)
-            .lte('updated_at', `${today}T23:59:59`);
-        
+            .eq('status', 'delivered');
+            
         if (branchId) deliveredQuery = deliveredQuery.eq('branch_id', branchId);
-        const { count: deliveredToday } = await deliveredQuery;
+        
+        if (filters?.startDate) {
+            deliveredQuery = deliveredQuery.gte('created_at', `${filters.startDate}T00:00:00`);
+            if (filters?.endDate) {
+                deliveredQuery = deliveredQuery.lte('created_at', `${filters.endDate}T23:59:59`);
+            }
+        } else {
+            // Default for Dashboard: today's delivered items
+            deliveredQuery = deliveredQuery.gte('updated_at', `${today}T00:00:00`).lte('updated_at', `${today}T23:59:59`);
+        }
+        
+        const { count: deliveredCount } = await deliveredQuery;
 
-        // Fetch TODAY'S revenue (created today)
+        // Fetch TODAY'S revenue (from PAYMENTS received today)
         let revenueQuery = supabase
-            .from('tickets')
-            .select('total_amount')
+            .from('ticket_payments')
+            .select('amount')
             .gte('created_at', `${today}T00:00:00`)
             .lte('created_at', `${today}T23:59:59`);
         
         if (branchId) revenueQuery = revenueQuery.eq('branch_id', branchId);
-        const { data: todayTickets } = await revenueQuery;
+        const { data: todayPayments } = await revenueQuery;
 
         const stats = {
             received: activeTickets?.filter(t => t.status === 'received').length || 0,
             processing: activeTickets?.filter(t => t.status === 'processing').length || 0,
             ready: activeTickets?.filter(t => t.status === 'ready').length || 0,
-            delivered: deliveredToday || 0,
-            totalRevenue: todayTickets?.reduce((acc, t) => acc + Number(t.total_amount || 0), 0) || 0
+            delivered: deliveredCount || 0,
+            totalRevenue: todayPayments?.reduce((acc, p) => acc + Number(p.amount || 0), 0) || 0
         };
 
         return stats;
@@ -187,6 +222,20 @@ export const dashboardService = {
             `)
             .order('created_at', { ascending: false });
 
+        if (error) throw error;
+        return data;
+    },
+
+    async getProfiles(organizationId?: string) {
+        let query = supabase
+            .from('profiles')
+            .select('id, full_name, role');
+
+        if (organizationId) {
+            query = query.eq('organization_id', organizationId);
+        }
+
+        const { data, error } = await query.order('full_name', { ascending: true });
         if (error) throw error;
         return data;
     },
@@ -435,7 +484,7 @@ export const dashboardService = {
         };
     },
 
-    async addPayment(notaId: string, paymentData: { amount: number, method: string, type: 'abono' | 'liquidacion', branch_id: string }) {
+    async addPayment(notaId: string, paymentData: { amount: number, method: string, type: 'parcial' | 'liquidacion', branch_id: string }) {
         const { data: payment, error: pError } = await supabase
             .from('ticket_payments')
             .insert({
@@ -462,10 +511,13 @@ export const dashboardService = {
         return payment;
     },
 
-    async updateItemStatus(itemId: string, status: string) {
+    async updateItemStatus(itemId: string, status: string, seamstressId?: string) {
+        const updateData: any = { status };
+        if (seamstressId) updateData.seamstress_id = seamstressId;
+
         const { data: item, error: iError } = await supabase
             .from('ticket_items')
-            .update({ status })
+            .update(updateData)
             .eq('id', itemId)
             .select()
             .single();
@@ -507,91 +559,76 @@ export const dashboardService = {
     },
 
     async getDailyFinancials(branch_id?: string) {
-        const today = new Date().toLocaleDateString('en-CA');
+        if (!branch_id) return null;
 
-        // Fetch last active cash cut to get initial balance
-        let activeCutQuery = supabase
+        // IMPORT: getCashCutState is a server action, but we are in a client service.
+        // We'll reimplement or import the logic here to ensure consistency.
+        // Actually, the best way to ensure 100% consistency is to use the SAME SQL logic.
+        
+        // Let's fetch the data directly since this is a client-side service
+        // using the same logic as getCashCutState.
+
+        // 1. Get last active cut
+        const { data: activeCut } = await supabase
             .from('cash_cuts')
-            .select('cash_left, end_date')
-            .eq('status', 'active');
-        
-        if (branch_id) activeCutQuery = activeCutQuery.eq('branch_id', branch_id);
-        
-        const { data: activeCut } = await activeCutQuery
+            .select('*')
+            .eq('branch_id', branch_id)
+            .eq('status', 'active')
             .order('end_date', { ascending: false })
             .limit(1)
             .maybeSingle();
 
-        const initialCash = Number(activeCut?.cash_left || 0);
-        const startDate = activeCut?.end_date || `${today}T00:00:00`;
+        let startDate: string;
+        let initialCash = 0;
 
-        // Fetch payments since startDate
-        let paymentsQuery = supabase
-            .from('ticket_payments')
-            .select('amount, payment_method, payment_type')
-            .gt('created_at', startDate)
-            .lte('created_at', new Date().toISOString());
+        if (activeCut) {
+            startDate = activeCut.end_date;
+            initialCash = Number(activeCut.cash_left) || 0;
+        } else {
+            // Si no hay corte previo, usamos el inicio de los tiempos para incluir todo
+            startDate = new Date(0).toISOString(); 
+        }
 
-        if (branch_id) paymentsQuery = paymentsQuery.eq('branch_id', branch_id);
+        const endDate = new Date().toISOString();
 
-        const { data: payments, error: pError } = await paymentsQuery;
-        if (pError) throw pError;
+        // 2. Fetch Transactions (Same as getCashCutState)
+        const [paymentsRes, movementsRes, ticketsRes] = await Promise.all([
+            supabase.from('ticket_payments').select('amount, payment_method, payment_type').eq('branch_id', branch_id).gt('created_at', startDate).lte('created_at', endDate),
+            supabase.from('expenses').select('amount, type').eq('branch_id', branch_id).gt('created_at', startDate).lte('created_at', endDate),
+            supabase.from('tickets').select('total_amount').eq('branch_id', branch_id).gt('created_at', startDate).lte('created_at', endDate)
+        ]);
 
-        // Fetch expenses since startDate
-        let expensesQuery = supabase
-            .from('expenses')
-            .select('amount, type')
-            .gt('created_at', startDate)
-            .lte('created_at', new Date().toISOString());
+        const payments = paymentsRes.data || [];
+        const movements = movementsRes.data || [];
+        const tickets = ticketsRes.data || [];
 
-        if (branch_id) expensesQuery = expensesQuery.eq('branch_id', branch_id);
+        // 3. Calculate Totals (Orange/Naranja Report Logic)
+        const cashSales = payments.filter(p => p.payment_method === 'efectivo').reduce((sum, p) => sum + Number(p.amount), 0);
+        const cardSales = payments.filter(p => p.payment_method === 'tarjeta').reduce((sum, p) => sum + Number(p.amount), 0);
+        const transferSales = payments.filter(p => p.payment_method === 'transferencia').reduce((sum, p) => sum + Number(p.amount), 0);
+        
+        const expensesTotal = movements.filter(m => m.type === 'expense' || !m.type).reduce((sum, m) => sum + Number(m.amount), 0);
+        const incomesExtra = movements.filter(m => m.type === 'income').reduce((sum, m) => sum + Number(m.amount), 0);
+        
+        const grossSales = tickets.reduce((sum, t) => sum + Number(t.total_amount), 0);
+        const totalIncome = payments.reduce((sum, p) => sum + Number(p.amount), 0);
 
-        const { data: expenses, error: eError } = await expensesQuery;
-        if (eError) throw eError;
-
-        // Fetch tickets for TODAY (for Sales KPI)
-        let ticketsQuery = supabase
-            .from('tickets')
-            .select('total_amount, status')
-            .gte('created_at', `${today}T00:00:00`)
-            .lte('created_at', `${today}T23:59:59`);
-
-        if (branch_id) ticketsQuery = ticketsQuery.eq('branch_id', branch_id);
-
-        const { data: tickets, error: tError } = await ticketsQuery;
-        if (tError) throw tError;
-
-        const incomeTotals = {
-            total: payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0,
-            anticipos: payments?.filter(p => p.payment_type === 'anticipo').reduce((sum, p) => sum + Number(p.amount), 0) || 0,
-            liquidaciones: payments?.filter(p => (p.payment_type === 'liquidacion' || p.payment_type === 'pago')).reduce((sum, p) => sum + Number(p.amount), 0) || 0,
-            methods: {
-                cash: payments?.filter(p => p.payment_method === 'efectivo').reduce((sum, p) => sum + Number(p.amount), 0) || 0,
-                card: payments?.filter(p => p.payment_method === 'tarjeta').reduce((sum, p) => sum + Number(p.amount), 0) || 0,
-                transfer: payments?.filter(p => p.payment_method === 'transferencia').reduce((sum, p) => sum + Number(p.amount), 0) || 0,
-            }
-        };
-
-        const expenseTotals = {
-            total: expenses?.filter(e => e.type === 'expense' || !e.type).reduce((sum, e) => sum + Number(e.amount), 0) || 0,
-            incomes: expenses?.filter(e => e.type === 'income').reduce((sum, e) => sum + Number(e.amount), 0) || 0,
-        };
-
-        const salesTotals = {
-            total: tickets?.reduce((sum, t) => sum + Number(t.total_amount), 0) || 0,
-            count: tickets?.length || 0
-        };
+        // Calculated Cash = (Initial + CashSales + ExtraIncomes) - Expenses
+        const calculatedCash = (initialCash + cashSales + incomesExtra) - expensesTotal;
 
         return {
-            income: incomeTotals.total, // User calls this "Ventas Totales" (Money in)
-            expense: expenseTotals.total,
-            netCash: initialCash + incomeTotals.methods.cash + expenseTotals.incomes - expenseTotals.total,
-            dailySales: salesTotals.total, // Physical production/notes created
+            income: totalIncome, // Real money collected (Anticipos + Liquidaciones)
+            grossSales: grossSales, // Value of new notes created
+            expense: expensesTotal,
+            netCash: calculatedCash,
             breakdown: {
-                income: incomeTotals,
-                expenses: expenseTotals,
-                sales: salesTotals,
-                initialCash
+                initialCash,
+                methods: {
+                    cash: cashSales,
+                    card: cardSales,
+                    transfer: transferSales
+                },
+                extraIncomes: incomesExtra
             }
         };
     },
@@ -614,6 +651,11 @@ export const dashboardService = {
         const { data, error } = await query.order('delivery_date', { ascending: true });
 
         if (error) throw error;
-        return data;
+
+        // Normalizar items
+        return data.map((t: any) => ({
+            ...t,
+            items: t.items || t.ticket_items || []
+        }));
     }
 };

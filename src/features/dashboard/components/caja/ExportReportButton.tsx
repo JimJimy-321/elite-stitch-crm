@@ -13,9 +13,11 @@ interface ExportReportButtonProps {
     // Legacy support
     summary?: any;
     movements?: any;
+    className?: string;
+    children?: React.ReactNode;
 }
 
-export function ExportReportButton({ date, cashState, summary, movements }: ExportReportButtonProps) {
+export function ExportReportButton({ date, cashState, summary, movements, className, children }: ExportReportButtonProps) {
     const handleExport = () => {
         const doc = new jsPDF();
         const reportDate = date || new Date().toLocaleDateString('es-MX', {
@@ -63,6 +65,7 @@ export function ExportReportButton({ date, cashState, summary, movements }: Expo
             totalSales: cashState.totals.totalSales,
             grossSales: cashState.totals.grossSales,
             totalPending: cashState.totals.totalPending || 0,
+            anticipos: cashState.totals.anticipos || 0,
             payments: cashState.transactions.payments,
             expenses: cashState.transactions.expenses,
             items: cashState.transactions.items || []
@@ -77,10 +80,14 @@ export function ExportReportButton({ date, cashState, summary, movements }: Expo
             totalSales: (summary?.totalCash || 0) + (summary?.totalCard || 0) + (summary?.totalTransfer || 0),
             grossSales: summary?.totalGross || ((summary?.totalCash || 0) + (summary?.totalCard || 0) + (summary?.totalTransfer || 0)),
             totalPending: summary?.totalPending || 0,
+            anticipos: summary?.totalAnticipos || 0,
             payments: summary?.payments || movements?.incomes || [],
             expenses: summary?.expenses || movements?.expenses || [],
             items: summary?.items || movements?.items || []
         };
+
+        const efectivoBruto = data.initialCash + data.cashIncome;
+        const totalVentasPagos = efectivoBruto + data.cardIncome + data.transferIncome;
 
         let yPos = 35;
 
@@ -90,15 +97,23 @@ export function ExportReportButton({ date, cashState, summary, movements }: Expo
         doc.setFont('helvetica', 'bold');
         doc.text('RESULTADO DEL DIA', 15, yPos);
 
-        // Summary data
+        // Summary data mapped exactly to UI blocks
         const summaryData = [
-            ['VENTAS TOTALES (BRUTO)', formatCurrency(data.grossSales || 0)],
-            ['INGRESOS EFECTIVO', formatCurrency(data.cashIncome || 0)],
-            ['INGRESOS TARJETA', formatCurrency(data.cardIncome || 0)],
-            ['VENTAS TRANSFERENCIA', formatCurrency(data.transferIncome || 0)],
-            ['POR COBRAR (PENDIENTE)', formatCurrency(data.totalPending || 0)],
-            ['GASTOS DEL DIA', formatCurrency(data.totalExpenses || 0)],
-            ['TOTAL A DEPOSITAR (EFECTIVO)', formatCurrency(data.cashIncome + data.extraIncome - data.totalExpenses)]
+            ['VENTA DEL DIA (NOTAS NUEVAS)', formatCurrency(data.grossSales || 0)],
+            ['A CUENTA (ANTICIPOS/ABONOS)', formatCurrency(data.anticipos || 0)],
+            ['VENTAS REGISTRADAS (TOTAL)', formatCurrency((data.grossSales || 0) + (data.anticipos || 0))],
+            ['', ''], // Space
+            ['POR COBRAR', formatCurrency(data.totalPending || 0)],
+            ['', ''], // Space
+            ['EFECTIVO', formatCurrency(efectivoBruto)],
+            ['TARJETAS', formatCurrency(data.cardIncome || 0)],
+            ['TRANSFERENCIAS', formatCurrency(data.transferIncome || 0)],
+            ['TOTAL VENTAS', formatCurrency(totalVentasPagos)],
+            ['', ''], // Space
+            ['EFECTIVO', formatCurrency(efectivoBruto)],
+            ['(-) GASTOS EN EFECTIVO', formatCurrency(data.totalExpenses || 0)],
+            ['', ''], // Space
+            ['TOTAL EN CAJA', formatCurrency(data.cashBalance || 0)]
         ];
 
         autoTable(doc, {
@@ -107,12 +122,37 @@ export function ExportReportButton({ date, cashState, summary, movements }: Expo
             theme: 'grid',
             styles: { fontSize: 8, cellPadding: 1.5 },
             columnStyles: {
+                0: { fontStyle: 'bold' },
                 1: { halign: 'right', fontStyle: 'bold' }
             },
             headStyles: { fillColor: colors.secondary },
             bodyStyles: { textColor: [30, 30, 30] },
-            alternateRowStyles: { fillColor: [250, 250, 250] },
-            margin: { left: 15, right: 15 }
+            alternateRowStyles: { fillColor: [255, 255, 255] },
+            margin: { left: 15, right: 15 },
+            didParseCell: (data) => {
+                const label = data.row.cells[0].text[0];
+                
+                // Highlight rows that are "Headers" or "Totals" in the UI
+                const highlightRows = [
+                    'VENTA DEL DIA (NOTAS NUEVAS)', 
+                    'A CUENTA (ANTICIPOS/ABONOS)',
+                    'VENTAS REGISTRADAS (TOTAL)', 
+                    'EFECTIVO', 
+                    'TOTAL VENTAS', 
+                    'TOTAL EN CAJA'
+                ];
+
+                if (highlightRows.includes(label)) {
+                    data.cell.styles.fillColor = [234, 88, 12]; // Orange-600
+                    data.cell.styles.textColor = [255, 255, 255];
+                }
+
+                // Transparent for empty rows
+                if (!label) {
+                    data.cell.styles.fillColor = [255, 255, 255];
+                    data.cell.styles.lineWidth = 0;
+                }
+            }
         });
 
         yPos = (doc as any).lastAutoTable.finalY + 8;
@@ -148,6 +188,9 @@ export function ExportReportButton({ date, cashState, summary, movements }: Expo
                 styles: { fontSize: 7, cellPadding: 1 },
                 columnStyles: { 3: { halign: 'right' } },
                 didParseCell: (data) => {
+                    if (data.section === 'head' && data.column.index === 3) {
+                        data.cell.styles.halign = 'right';
+                    }
                     if (data.row.index === cashRows.length - 1) {
                         data.cell.styles.fontStyle = 'bold';
                         data.cell.styles.fillColor = [240, 253, 244];
@@ -182,9 +225,49 @@ export function ExportReportButton({ date, cashState, summary, movements }: Expo
                 styles: { fontSize: 7, cellPadding: 1 },
                 columnStyles: { 3: { halign: 'right' } },
                 didParseCell: (data) => {
+                    if (data.section === 'head' && data.column.index === 3) {
+                        data.cell.styles.halign = 'right';
+                    }
                     if (data.row.index === cardRows.length - 1) {
                         data.cell.styles.fontStyle = 'bold';
                         data.cell.styles.fillColor = [239, 246, 255];
+                    }
+                }
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 4;
+        }
+
+        // --- SECCION: INGRESOS CON TRANSFERENCIA ---
+        const transferPayments = data.payments.filter((p: any) => p.payment_method === 'transferencia');
+        if (transferPayments.length > 0) {
+            doc.setFontSize(10);
+            doc.text('DETALLE DE INGRESOS CON TRANSFERENCIA', 15, yPos);
+            
+            const transRows = [
+                ...transferPayments.map((p: any) => [
+                    p.ticket?.ticket_number || 'S/F',
+                    p.ticket?.client?.full_name || 'MOSTRADOR',
+                    p.payment_type?.toUpperCase() || 'PAGO',
+                    formatCurrency(p.amount)
+                ]),
+                // Total row
+                ['', '', 'TOTAL TRANSFERENCIA', formatCurrency(data.transferIncome)]
+            ];
+ 
+            autoTable(doc, {
+                startY: yPos + 4,
+                head: [['Nota', 'Cliente', 'Concepto', 'Monto']],
+                body: transRows,
+                headStyles: { fillColor: [147, 51, 234], fontSize: 8 }, // purple-600
+                styles: { fontSize: 7, cellPadding: 1 },
+                columnStyles: { 3: { halign: 'right' } },
+                didParseCell: (data) => {
+                    if (data.section === 'head' && data.column.index === 3) {
+                        data.cell.styles.halign = 'right';
+                    }
+                    if (data.row.index === transRows.length - 1) {
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.fillColor = [250, 245, 255]; // purple-50
                     }
                 }
             });
@@ -214,6 +297,9 @@ export function ExportReportButton({ date, cashState, summary, movements }: Expo
                 styles: { fontSize: 7, cellPadding: 1 },
                 columnStyles: { 1: { halign: 'right' } },
                 didParseCell: (data) => {
+                    if (data.section === 'head' && data.column.index === 1) {
+                        data.cell.styles.halign = 'right';
+                    }
                     if (data.row.index === expenseRows.length - 1) {
                         data.cell.styles.fontStyle = 'bold';
                         data.cell.styles.fillColor = [254, 242, 242];
@@ -254,6 +340,14 @@ export function ExportReportButton({ date, cashState, summary, movements }: Expo
                 theme: 'striped',
                 headStyles: { fillColor: [249, 115, 22], fontSize: 8, halign: 'center' },
                 bodyStyles: { fontSize: 7, halign: 'center' },
+                columnStyles: {
+                    3: { halign: 'right' }
+                },
+                didParseCell: (data) => {
+                    if (data.section === 'head' && data.column.index === 3) {
+                        data.cell.styles.halign = 'right';
+                    }
+                },
                 margin: { left: 14, right: 14 },
             });
             yPos = (doc as any).lastAutoTable.finalY + 4;
@@ -282,10 +376,14 @@ export function ExportReportButton({ date, cashState, summary, movements }: Expo
             onClick={handleExport}
             variant="outline"
             disabled={!cashState && !summary}
-            className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600 bg-orange-50 hover:bg-orange-100 border-orange-200 shadow-sm"
+            className={className || "text-[10px] font-black uppercase tracking-[0.2em] text-orange-600 bg-orange-50 hover:bg-orange-100 border-orange-200 shadow-sm"}
         >
-            <Download size={14} className="mr-2" />
-            Exportar Reporte
+            {children || (
+                <>
+                    <Download size={14} className="mr-2" />
+                    Exportar Reporte
+                </>
+            )}
         </Button>
     );
 }

@@ -1,25 +1,24 @@
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
-import { Loader2, Calculator, CheckCircle2, AlertTriangle, Banknote, ArrowLeft } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertTriangle, ArrowLeft } from 'lucide-react';
 
 import { CashCutState, getCashCutState, performCashCut } from '@/features/dashboard/actions/cash-cut-actions';
 import { Button } from '@/shared/components/ui/Button';
-import { Input } from '@/shared/components/ui/Input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/Card';
-import { formatCurrency } from '@/shared/lib/utils';
+import { formatCurrency, cn } from '@/shared/lib/utils';
 
 const cashCutSchema = z.object({
-    initialCash: z.coerce.number().min(0, "El efectivo inicial no puede ser negativo"),
-    withdrawnCash: z.coerce.number().min(0, "El retiro no puede ser negativo"),
+    initialCash: z.coerce.number().min(0, "Mínimo 0"),
+    withdrawnCash: z.coerce.number().min(0, "Mínimo 0"),
     notes: z.string().optional(),
-    countedCash: z.coerce.number().min(0, "El conteo no puede ser negativo"),
-    countedCard: z.coerce.number().min(0, "El conteo no puede ser negativo"),
-    countedTransfer: z.coerce.number().min(0, "El conteo no puede ser negativo"),
+    countedCash: z.coerce.number().min(0, "Mínimo 0"),
+    countedCard: z.coerce.number().min(0, "Mínimo 0"),
+    countedTransfer: z.coerce.number().min(0, "Mínimo 0"),
 });
 
 type CashCutFormValues = z.infer<typeof cashCutSchema>;
@@ -33,14 +32,18 @@ export function CashCutForm({ branchId, userId }: CashCutFormProps) {
     const [state, setState] = useState<CashCutState | null>(null);
     const [loading, setLoading] = useState(true);
     const [isPending, startTransition] = useTransition();
+    const router = useRouter();
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [withdrawnManual, setWithdrawnManual] = useState(false);
 
     const form = useForm<CashCutFormValues>({
-        resolver: zodResolver(cashCutSchema) as any,
+        resolver: zodResolver(cashCutSchema as any),
+        mode: 'onChange',
         defaultValues: {
             initialCash: 0,
-            withdrawnCash: 0,
+            withdrawnCash: undefined as any,
             notes: '',
-            countedCash: 0,
+            countedCash: undefined as any,
             countedCard: 0,
             countedTransfer: 0,
         }
@@ -52,6 +55,7 @@ export function CashCutForm({ branchId, userId }: CashCutFormProps) {
         if (res.success && res.data) {
             setState(res.data);
             form.setValue('initialCash', res.data.totals.initialCash);
+            form.setValue('countedCard', res.data.totals.cardSales);
         } else {
             toast.error('Error al cargar estado de caja: ' + res.message);
         }
@@ -62,20 +66,79 @@ export function CashCutForm({ branchId, userId }: CashCutFormProps) {
         loadState();
     }, [branchId]);
 
+    // Escuchar eventos de actualización (ej: desde ExpenseModal)
+    useEffect(() => {
+        const handleRefresh = () => {
+            loadState();
+        };
+        window.addEventListener('cash-cut-refresh', handleRefresh);
+        return () => window.removeEventListener('cash-cut-refresh', handleRefresh);
+    }, [branchId]);
+
+    const { totals } = state || { totals: { grossSales: 0, anticipos: 0, totalPending: 0, cardSales: 0, cashSales: 0, expensesCash: 0, initialCash: 0, withdrawnCash: 0, calculatedCash: 0, transferSales: 0, totalSales: 0 }};
+    
+    // Cálculo de valores esperados
+    const efectivoEsperado = totals.calculatedCash;
+    const tarjetaEsperado = totals.cardSales + totals.transferSales;
+    const efectivoBruto = totals.initialCash + totals.cashSales;
+    const totalVentas = efectivoBruto + tarjetaEsperado;
+    
+    const watchedCountedCash = form.watch('countedCash');
+    const watchedWithdrawnCash = form.watch('withdrawnCash');
+
+    // Sincronizar retiro con contado por defecto si el usuario no ha puesto un valor manual
+    useEffect(() => {
+        if (!withdrawnManual && watchedCountedCash !== undefined && !isNaN(watchedCountedCash)) {
+            form.setValue('withdrawnCash', watchedCountedCash);
+        }
+    }, [watchedCountedCash, withdrawnManual, form]);
+
+    const efectivoReal = watchedCountedCash !== undefined && !isNaN(watchedCountedCash) ? Number(watchedCountedCash) : 0;
+    const efectivoRetirado = watchedWithdrawnCash !== undefined && !isNaN(watchedWithdrawnCash) ? Number(watchedWithdrawnCash) : 0;
+    const diferencia = efectivoReal - efectivoEsperado;
+    const efectivoDejado = efectivoReal - efectivoRetirado;
+
     const onSubmit = (data: CashCutFormValues) => {
         if (!state) return;
+        // Obligar a que el campo de efectivo físico sea capturado si hay diferencia
+        if (watchedCountedCash === undefined) {
+             toast.error('Debes capturar el EFECTIVO FÍSICO en caja.');
+             return;
+        }
+        if (efectivoRetirado > efectivoReal) {
+             toast.error('La cantidad a RETIRAR no puede ser mayor al EFECTIVO FÍSICO real.');
+             return;
+        }
+        if (diferencia !== 0 && (!data.notes || data.notes.trim() === '')) {
+            toast.error('Hay una diferencia de efectivo. Debes capturar una OBSERVACIÓN.');
+            return;
+        }
+        setShowConfirm(true);
+    };
+
+    const handleConfirm = () => {
+        if (!state) return;
+        const data = form.getValues();
 
         startTransition(async () => {
             const res = await performCashCut({
                 branchId,
                 userId,
-                ...data
+                // Si el usuario no ingresa el físico, se envía el esperado (idealmente ya fue bloqueado arriba)
+                countedCash: data.countedCash !== undefined ? data.countedCash : efectivoEsperado,
+                countedCard: data.countedCard,
+                countedTransfer: data.countedTransfer,
+                withdrawnCash: data.withdrawnCash !== undefined ? data.withdrawnCash : (data.countedCash || efectivoEsperado),
+                notes: data.notes
             });
 
             if (res.success) {
                 toast.success('Corte de caja realizado exitosamente');
+                setShowConfirm(false);
                 form.reset();
                 loadState();
+                
+                router.push('/dashboard/finance');
             } else {
                 toast.error('Error al realizar corte: ' + res.message);
             }
@@ -83,227 +146,239 @@ export function CashCutForm({ branchId, userId }: CashCutFormProps) {
     };
 
     if (loading) {
-        return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-orange-500" /></div>;
+        return <div className="p-8 flex items-center justify-center h-full"><Loader2 className="animate-spin text-orange-500 w-12 h-12" /></div>;
     }
 
-    if (!state) return <div className="text-red-500">No se pudo cargar la información de la caja.</div>;
-
-    const { totals } = state;
-
-    const watchedCountedCash = form.watch('countedCash');
-    const watchedWithdrawn = form.watch('withdrawnCash');
-
-    const difference = watchedCountedCash - totals.calculatedCash;
-    const cashLeft = watchedCountedCash - watchedWithdrawn;
+    if (!state) return <div className="text-red-500 p-8 text-center font-bold">No se pudo cargar la información de la caja.</div>;
 
     return (
-        <div className="flex flex-col h-full bg-slate-50">
-            {/* Header */}
-            <div className="flex items-center gap-4 p-6 bg-white border-b border-slate-200">
-                <button 
-                    onClick={() => window.history.back()}
-                    className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600"
-                >
-                    <ArrowLeft size={24} />
-                </button>
-                <h1 className="text-2xl font-bold text-[#1e3a8a]">Reporte Corte de Caja</h1>
-            </div>
-
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-auto p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto">
+        <div className="w-full bg-black rounded-3xl shadow-2xl relative border-4 border-black">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col w-full p-3 lg:p-4">
+                
+                {/* Contenedor central del Reporte */}
+                <div className="w-full max-w-2xl mx-auto flex flex-col justify-center gap-[2px]">
                     
-                    {/* Columna Izquierda: Información Básica */}
-                    <Card className="border border-slate-200 shadow-sm rounded-xl h-fit">
-                        <CardHeader className="border-b border-slate-100 bg-white">
-                            <CardTitle className="text-lg font-bold text-slate-700">Información Básica</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-6 space-y-5">
-                            <div className="space-y-1">
-                                <label className="text-sm font-bold text-slate-600 block">Caja</label>
-                                <select 
-                                    className="w-full h-11 px-3 rounded-lg border border-slate-300 bg-slate-50 text-slate-500 text-sm focus:outline-none cursor-not-allowed"
-                                    disabled
-                                    value="main"
-                                >
-                                    <option value="main">Sucursal Principal</option>
-                                </select>
+                    {/* Header */}
+                    <div className="border-[1.5px] border-white bg-[#ea580c] py-0.5 px-3 text-center shadow-lg mb-1.5 lg:mb-2">
+                        <h2 className="text-lg lg:text-xl font-black tracking-widest text-white uppercase leading-tight">CORTE DE CAJA</h2>
+                    </div>
+
+                    {/* Bloque 1 */}
+                    <div className="flex flex-col gap-[1.5px] mb-1.5 lg:mb-2">
+                        <TableRow label="Venta del Dia" value={formatCurrency(totals.grossSales)} bgClass="bg-[#ea580c]" />
+                        <TableRow label="A Cuenta" value={formatCurrency(totals.anticipos)} bgClass="bg-black" />
+                        <TableRow label="Ventas Registradas" value={formatCurrency(totals.grossSales + totals.anticipos)} bgClass="bg-[#ea580c]" />
+                    </div>
+
+                    {/* Bloque 2 */}
+                    <div className="flex flex-col gap-[1.5px] mb-1.5 lg:mb-2">
+                        <TableRow label="Por Cobrar" value={formatCurrency(totals.totalPending)} bgClass="bg-black" />
+                    </div>
+
+                    {/* Bloque 3 */}
+                    <div className="flex flex-col gap-[1.5px] mb-1.5 lg:mb-2">
+                        <TableRow label="Efectivo" value={formatCurrency(efectivoBruto)} bgClass="bg-[#ea580c]" />
+                        <TableRow label="Tarjetas" value={formatCurrency(totals.cardSales || 0)} bgClass="bg-black" />
+                        <TableRow label="Transferencias" value={formatCurrency(totals.transferSales || 0)} bgClass="bg-black" />
+                        <TableRow label="Total Ventas" value={formatCurrency(totalVentas)} bgClass="bg-[#ea580c]" />
+                    </div>
+
+                    {/* Bloque 4 */}
+                    <div className="flex flex-col gap-[1.5px] mb-1.5 lg:mb-2">
+                        <TableRow label="Efectivo" value={formatCurrency(efectivoBruto)} bgClass="bg-[#ea580c]" />
+                        <TableRow label="(-) Gastos en Efectivo" value={formatCurrency(totals.expensesCash)} bgClass="bg-black" />
+                    </div>
+
+                    {/* Bloque 5 */}
+                    <div className="flex flex-col gap-[1.5px] mb-1.5 lg:mb-2">
+                        <TableRow label="Total en Caja" value={formatCurrency(efectivoEsperado)} bgClass="bg-[#ea580c]" />
+                    </div>
+
+                    {/* Bloque 5: Entradas del usuario */}
+                    <div className="flex flex-col gap-[1.5px]">
+                        <div className="flex gap-[1.5px]">
+                            <div className="px-2 py-0.5 flex-[5] border-[1.5px] border-white bg-[#93400a] flex items-center">
+                                <span className="font-bold uppercase tracking-wide text-[10px] lg:text-[12px] text-white leading-none pt-[1px]">EFECTIVO FÍSICO REAL</span>
                             </div>
-
-                            <FormInput label="Efectivo inicial" name="initialCash" form={form} disabled={true} />
-                            
-                            <FormInput label="Efectivo retirado" name="withdrawnCash" form={form} />
-
-                            <div className="space-y-1">
-                                <label className="text-sm font-bold text-slate-600 block">Notas</label>
-                                <textarea
-                                    {...form.register('notes')}
-                                    className="w-full h-24 p-3 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-blue-500 placeholder:text-slate-400 resize-none"
-                                    placeholder="Notas adicionales..."
+                            <div className="px-2 py-0 flex-[4] border-[1.5px] border-white bg-[#93400a] flex items-center justify-end relative h-7 lg:h-8">
+                                <span className="text-sm lg:text-[15px] font-normal text-white absolute left-2 leading-none pt-[1px]">$</span>
+                                <input 
+                                    {...form.register('countedCash', {
+                                        setValueAs: (v) => v === "" ? undefined : parseFloat(v.toString().replace(/[^0-9.]/g, ""))
+                                    })}
+                                    type="text"
+                                    inputMode="decimal"
+                                    onBlur={(e) => {
+                                        const val = parseFloat(e.target.value.replace(/[^0-9.]/g, ""));
+                                        if (!isNaN(val)) {
+                                            form.setValue('countedCash', val.toFixed(2) as any);
+                                        }
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                            e.preventDefault();
+                                        }
+                                    }}
+                                    className="w-full h-full bg-transparent text-right text-sm lg:text-[15px] font-bold text-white focus:outline-none placeholder:text-white/30 leading-none pt-[1px]"
+                                    placeholder="0.00"
+                                    autoComplete="off"
                                 />
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
 
-                    {/* Columna Derecha: Declaración de Ventas */}
-                    <Card className="border border-slate-200 shadow-sm rounded-xl h-fit">
-                        <CardHeader className="border-b border-slate-100 bg-white">
-                            <CardTitle className="text-lg font-bold text-slate-700">Declaración de Ventas</CardTitle>
-                            <p className="text-xs text-slate-400 font-medium mt-1">
-                                Los movimientos de entrada y salida de la caja también son contados dentro del total
-                            </p>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            <table className="w-full text-sm">
-                                <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold">
-                                    <tr>
-                                        <th className="px-6 py-4 text-left">Concepto</th>
-                                        <th className="px-6 py-4 text-center">Contado</th>
-                                        <th className="px-6 py-4 text-right">Calculado</th>
-                                        <th className="px-6 py-4 text-right">Diferencia</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    <FormTableRow 
-                                        label="Efectivo" 
-                                        name="countedCash" 
-                                        calculated={totals.calculatedCash} 
-                                        form={form} 
-                                    />
-                                    <FormTableRow 
-                                        label="Tarjeta" 
-                                        name="countedCard" 
-                                        calculated={totals.cardSales} 
-                                        form={form} 
-                                    />
-                                    <FormTableRow 
-                                        label="Transferencia" 
-                                        name="countedTransfer" 
-                                        calculated={totals.transferSales} 
-                                        form={form} 
-                                    />
-                                </tbody>
-                                <tfoot className="bg-slate-50/50 font-bold border-t border-slate-100">
-                                    <TotalRow 
-                                        form={form} 
-                                        totals={{
-                                            expected: totals.calculatedCash + totals.cardSales + totals.transferSales
-                                        }} 
-                                    />
-                                </tfoot>
-                            </table>
-
-                            {/* Alerta de Discrepancia Global */}
-                            {watchedCountedCash > 0 && Math.abs(difference) > 50 && (
-                                <div className="m-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
-                                    <AlertTriangle className="text-red-500 shrink-0" size={20} />
-                                    <p className="text-xs text-red-700 leading-relaxed font-medium">
-                                        <strong>DISCREPANCIA ALTA:</strong> La diferencia en efectivo supera los $50. 
-                                        Verifica el conteo físico antes de proceder.
-                                    </p>
-                                </div>
-                            )}
-
-                            {/* Importe a Dejar en Caja (Informativo al estilo original pero integrado) */}
-                            <div className="m-6 pt-6 border-t border-slate-100">
-                                <div className="flex justify-between items-center mb-1">
-                                    <span className="text-sm font-bold text-slate-700">Importe Total a Dejar en Caja:</span>
-                                    <span className="text-xl font-black text-slate-900">{formatCurrency(cashLeft)}</span>
-                                </div>
-                                <p className="text-[10px] text-slate-400 font-medium">
-                                    (Conteo Efectivo - Efectivo Retirado). Este será el fondo inicial para la próxima jornada.
-                                </p>
+                        {/* Campo Retirado */}
+                        <div className="flex gap-[1.5px] mt-[1.5px]">
+                            <div className="px-2 py-0.5 flex-[5] border-[1.5px] border-white bg-black flex items-center">
+                                <span className="font-bold uppercase tracking-wide text-[10px] lg:text-[12px] text-white leading-none pt-[1px]">EFECTIVO A RETIRAR (DEPÓSITO)</span>
                             </div>
-                        </CardContent>
-                    </Card>
+                            <div className="px-2 py-0 flex-[4] border-[1.5px] border-white bg-black flex items-center justify-end relative h-7 lg:h-8">
+                                <span className="text-sm lg:text-[15px] font-normal text-white absolute left-2 leading-none pt-[1px]">$</span>
+                                <input 
+                                    {...form.register('withdrawnCash', {
+                                        setValueAs: (v) => v === "" ? undefined : parseFloat(v.toString().replace(/[^0-9.]/g, ""))
+                                    })}
+                                    type="text"
+                                    inputMode="decimal"
+                                    onChange={(e) => {
+                                        setWithdrawnManual(true);
+                                        const val = e.target.value.replace(/[^0-9.]/g, "");
+                                        form.setValue('withdrawnCash', val === "" ? undefined : val as any);
+                                    }}
+                                    onBlur={(e) => {
+                                        const val = parseFloat(e.target.value.replace(/[^0-9.]/g, ""));
+                                        if (!isNaN(val)) {
+                                            form.setValue('withdrawnCash', val.toFixed(2) as any);
+                                        }
+                                    }}
+                                    className="w-full h-full bg-transparent text-right text-sm lg:text-[15px] font-bold text-white focus:outline-none placeholder:text-white/30 leading-none pt-[1px]"
+                                    placeholder="0.00"
+                                    autoComplete="off"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Efectivo Dejado */}
+                        {efectivoReal > 0 && (
+                            <div className="flex gap-[1.5px] mt-[1.5px]">
+                                <div className="px-2 py-0.5 flex-[5] border-[1.5px] border-white bg-slate-800 flex items-center">
+                                    <span className="font-bold uppercase tracking-wide text-[10px] lg:text-[12px] text-indigo-400 leading-none pt-[1px]">EFECTIVO DEJADO EN CAJA</span>
+                                </div>
+                                <div className="px-2 py-0 flex-[4] border-[1.5px] border-white bg-slate-800 flex items-center justify-end h-7 lg:h-8">
+                                    <span className="text-sm lg:text-[15px] font-black text-white leading-none pt-[1px]">
+                                        {formatCurrency(efectivoDejado)}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+
+                        {watchedCountedCash !== undefined && !isNaN(watchedCountedCash) && diferencia !== 0 && (
+                            <div className="flex gap-[1.5px] animate-in slide-in-from-top-2 duration-300 mt-[1.5px]">
+                                <div className={cn("px-2 py-0.5 lg:py-1 flex-[5] border-[1.5px] border-white flex items-center", diferencia < 0 ? "bg-rose-700" : "bg-emerald-700")}>
+                                    <span className="font-bold uppercase tracking-wide text-[9px] lg:text-[11px] text-white leading-none">DIFERENCIA (Faltante/Sobrante)</span>
+                                </div>
+                                <div className={cn("px-2 py-0.5 lg:py-1 flex-[4] border-[1.5px] border-white flex items-center justify-end h-7 lg:h-8", diferencia < 0 ? "bg-rose-700" : "bg-emerald-700")}>
+                                    <span className="font-normal text-[13px] lg:text-[15px] text-white leading-none">
+                                        {diferencia > 0 ? '+' : ''}{formatCurrency(diferencia)}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+                        
+                        <div className="flex gap-[1.5px] mt-[1.5px]">
+                            <div className="px-2 py-1 flex-1 border-[1.5px] border-white bg-black flex items-center h-7 lg:h-8">
+                                <input 
+                                    {...form.register('notes')}
+                                    type="text"
+                                    className="w-full h-full bg-transparent text-[10px] lg:text-xs font-normal text-white focus:outline-none placeholder:text-white/40 uppercase leading-none"
+                                    placeholder="OBSERVACIONES DE DIFERENCIA..."
+                                    autoComplete="off"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Botón */}
+                    <div className="mt-2 flex justify-center pb-1">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                form.handleSubmit(onSubmit, (e) => {
+                                    if (e.countedCash) {
+                                         toast.error('Falta declarar el Efectivo Real');
+                                    } else {
+                                         toast.error('Revisa la captura de valores.');
+                                    }
+                                })();
+                            }}
+                            disabled={isPending}
+                            className="h-9 w-full max-w-sm rounded-[6px] bg-[#ea580c] hover:bg-[#c2410a] text-white font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] border border-white"
+                        >
+                            {isPending ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
+                            Finalizar y Cerrar Caja
+                        </button>
+                    </div>
+
                 </div>
             </form>
 
-            {/* Bottom Action Bar */}
-            <div className="bg-white border-t border-slate-200 p-4 sticky bottom-0 z-10">
-                <div className="max-w-7xl mx-auto flex gap-4">
-                    <Button
-                        variant="outline"
-                        type="button"
-                        onClick={() => window.history.back()}
-                        className="flex-1 h-12 rounded-lg bg-slate-400 hover:bg-slate-500 text-white border-none font-bold"
-                    >
-                        Cancelar
-                    </Button>
-                    <Button
-                        type="button"
-                        onClick={form.handleSubmit(onSubmit)}
-                        className="flex-1 h-12 rounded-lg bg-[#0047ab] hover:bg-[#003580] text-white border-none font-bold"
-                        disabled={isPending}
-                    >
-                        {isPending ? <Loader2 className="animate-spin mr-2" /> : null}
-                        Guardar
-                    </Button>
-                </div>
-            </div>
-        </div>
-    );
-}
+            {/* Modal de Confirmación */}
+            {showConfirm && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" onClick={() => !isPending && setShowConfirm(false)} />
+                    <div className="bg-white rounded-xl w-full max-w-sm relative z-10 shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-5 pb-2 flex flex-col items-center text-center">
+                            <div className="w-12 h-12 bg-orange-500/10 rounded-full flex items-center justify-center mb-3">
+                                <AlertTriangle size={24} className="text-orange-500" />
+                            </div>
+                            <h3 className="text-lg font-black text-slate-900 mb-1">¿Confirmar Corte?</h3>
+                            <p className="text-xs font-medium text-slate-500 mb-2">
+                                Efectivo físico total aportado: <b className="text-slate-900">{formatCurrency(efectivoReal)}</b>
+                            </p>
+                            {diferencia !== 0 && (
+                                <div className={cn("px-3 py-1.5 rounded-lg text-xs font-bold", diferencia < 0 ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700")}>
+                                    Diferencia: {formatCurrency(diferencia)}
+                                </div>
+                            )}
+                        </div>
 
-function FormInput({ label, name, form, disabled }: any) {
-    return (
-        <div className="space-y-1">
-            <label className="text-sm font-bold text-slate-600 block">{label}</label>
-            <div className="relative">
-                <input
-                    {...form.register(name)}
-                    type="number"
-                    step="0.01"
-                    className="w-full h-11 px-3 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-blue-500 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed font-medium"
-                    disabled={disabled}
-                />
-            </div>
-            {form.formState.errors[name] && (
-                <span className="text-[10px] text-red-500 font-medium block">{form.formState.errors[name]?.message}</span>
+                        <div className="p-5 space-y-3">
+                            <div className="flex gap-3 pt-1">
+                                <Button 
+                                    variant="secondary"
+                                    onClick={() => setShowConfirm(false)}
+                                    className="flex-1 h-10 rounded-lg font-black uppercase tracking-widest text-[10px]"
+                                    disabled={isPending}
+                                >
+                                    Revisar
+                                </Button>
+                                <Button 
+                                    onClick={handleConfirm}
+                                    className="flex-[2] h-10 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-black uppercase tracking-widest text-[10px]"
+                                    disabled={isPending}
+                                >
+                                    {isPending ? <Loader2 size={14} className="animate-spin mr-2" /> : <CheckCircle2 size={14} className="mr-2" />}
+                                    Sí, Cerrar Caja
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
 }
 
-function FormTableRow({ label, name, calculated, form }: any) {
-    const value = form.watch(name) || 0;
-    const diff = Number(value) - calculated;
+// Helper
 
+function TableRow({ label, value, bgClass }: { label: React.ReactNode, value: React.ReactNode, bgClass: string }) {
     return (
-        <tr className="hover:bg-slate-50/50 transition-colors">
-            <td className="px-6 py-4 font-bold text-slate-700">{label}</td>
-            <td className="px-6 py-4">
-                <input
-                    {...form.register(name)}
-                    type="number"
-                    step="0.01"
-                    className="w-24 h-9 px-2 text-center border border-slate-300 rounded-md focus:outline-none focus:border-blue-500"
-                />
-            </td>
-            <td className="px-6 py-4 text-right text-slate-600">{formatCurrency(calculated)}</td>
-            <td className={`px-6 py-4 text-right font-bold ${diff === 0 ? 'text-blue-500' : diff > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                {formatCurrency(diff)}
-            </td>
-        </tr>
-    );
-}
-
-function TotalRow({ form, totals }: any) {
-    const countedCash = Number(form.watch('countedCash') || 0);
-    const countedCard = Number(form.watch('countedCard') || 0);
-    const countedTransfer = Number(form.watch('countedTransfer') || 0);
-    
-    const totalCounted = countedCash + countedCard + countedTransfer;
-    const totalExpected = totals.expected;
-    const totalDiff = totalCounted - totalExpected;
-
-    return (
-        <tr>
-            <td className="px-6 py-5 text-slate-800">Total</td>
-            <td className="px-6 py-5 text-center text-slate-800">{formatCurrency(totalCounted)}</td>
-            <td className="px-6 py-5 text-right text-slate-800">{formatCurrency(totalExpected)}</td>
-            <td className={`px-6 py-5 text-right ${totalDiff === 0 ? 'text-blue-500' : totalDiff > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                {formatCurrency(totalDiff)}
-            </td>
-        </tr>
+        <div className="flex gap-[1.5px]">
+            <div className={cn("px-2 py-[2px] lg:py-0.5 flex-[5] border-[1.5px] border-white flex items-center", bgClass)}>
+                <span className="font-bold uppercase tracking-wide text-[10px] lg:text-[11px] text-white leading-none pt-[1px]">{label}</span>
+            </div>
+            <div className={cn("px-2 py-[2px] lg:py-0.5 flex-[4] border-[1.5px] border-white flex items-center justify-end", bgClass)}>
+                <span className="font-normal text-[13px] lg:text-[15px] text-white leading-none pt-[1px]">{value}</span>
+            </div>
+        </div>
     );
 }

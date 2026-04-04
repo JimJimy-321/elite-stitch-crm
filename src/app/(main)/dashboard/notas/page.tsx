@@ -15,16 +15,32 @@ import { HistoryFilters } from '@/features/dashboard/components/HistoryFilters';
 
 export default function NotasPage() {
     const [searchTerm, setSearchTerm] = useState('');
-    const [filters, setFilters] = useState<{ garment?: string, seamstress_id?: string }>({});
+    const [filters, setFilters] = useState<{ garment?: string, seamstress_id?: string, status?: string, startDate?: string, endDate?: string }>(() => {
+        const today = new Date();
+        return {
+            startDate: new Date(today.getFullYear(), 0, 1).toISOString().split('T')[0], // 01-01-YYYY
+            endDate: today.toISOString().split('T')[0] // Hoy
+        };
+    });
+    const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
     const [showFilters, setShowFilters] = useState(false);
     const { user } = useAuthStore();
     const searchParams = useSearchParams();
     const debouncedSearch = useDebounce(searchTerm, 500);
     const { notas, loading: notasLoading, refetch } = useNotas(debouncedSearch, filters) as any;
-    const { stats, loading: statsLoading, refetch: refetchStats } = useDashboardStats(user?.assigned_branch_id);
+    const { stats, loading: statsLoading, refetch: refetchStats } = useDashboardStats(user?.assigned_branch_id, filters);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedNota, setSelectedNota] = useState<any>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+    useEffect(() => {
+        const handleRefresh = () => {
+            refetch?.();
+            refetchStats?.();
+        };
+        window.addEventListener('cash-cut-refresh', handleRefresh);
+        return () => window.removeEventListener('cash-cut-refresh', handleRefresh);
+    }, [refetch, refetchStats]);
 
     // Auto-open modal or pre-fill search if coming from Chat
     useEffect(() => {
@@ -42,14 +58,14 @@ export default function NotasPage() {
     const isLoading = notasLoading || statsLoading;
 
     return (
-        <div className="space-y-10 animate-fade-in">
+        <div className="space-y-10 animate-fade-in pb-20">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-col gap-2">
                     <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
                         <div className="p-2 bg-orange-500/10 rounded-xl border border-orange-500/20">
                             <Ticket className="text-orange-600" size={28} />
                         </div>
-                        Notas de Servicio
+                        Historial de Servicio
                     </h1>
                     <p className="text-muted-foreground text-sm font-medium">Gestiona las órdenes, arreglos y entregas pendientes de todas tus sedes.</p>
                 </div>
@@ -94,16 +110,18 @@ export default function NotasPage() {
                             <HistoryFilters 
                                 currentFilters={filters}
                                 onFilterChange={setFilters}
+                                viewMode={viewMode}
+                                onViewModeChange={setViewMode}
                             />
                         </div>
                     )}
 
                     {/* Stats bar */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-                        <MiniNotaStat label="Recibidos" value={stats?.received?.toString() || "0"} color="text-amber-500" bg="bg-amber-50" border="border-amber-500" />
-                        <MiniNotaStat label="En Proceso" value={stats?.processing?.toString() || "0"} color="text-orange-500" bg="bg-orange-50" border="border-orange-500" />
-                        <MiniNotaStat label="Listos" value={stats?.ready?.toString() || "0"} color="text-emerald-500" bg="bg-emerald-50" border="border-emerald-500" />
-                        <MiniNotaStat label="Entregados" value={stats?.delivered?.toString() || "0"} color="text-slate-500" bg="bg-slate-50" border="border-slate-500" />
+                        <MiniNotaStat label="Recibidos" value={stats?.received?.toString() || "0"} color="text-amber-500" bg="bg-amber-50" borderClass="border-2 border-amber-300" />
+                        <MiniNotaStat label="En Proceso" value={stats?.processing?.toString() || "0"} color="text-orange-500" bg="bg-orange-50" borderClass="border-2 border-orange-300" />
+                        <MiniNotaStat label="Listos" value={stats?.ready?.toString() || "0"} color="text-emerald-500" bg="bg-emerald-50" borderClass="border-2 border-emerald-400" />
+                        <MiniNotaStat label="Entregados" value={stats?.delivered?.toString() || "0"} color="text-slate-500" bg="bg-slate-50" borderClass="border-2 border-slate-300" />
                     </div>
 
                     {isLoading ? (
@@ -112,19 +130,87 @@ export default function NotasPage() {
                             <div className="h-4 w-48 bg-slate-100 rounded"></div>
                         </div>
                     ) : notas.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {notas.map((n: any) => (
-                                <NotaCard
-                                    key={n.id}
-                                    nota={n}
-                                    onClick={() => {
-                                        setSelectedNota(n);
-                                        setIsDetailModalOpen(true);
-                                    }}
-                                />
-                            ))}
-                        </div>
+                        viewMode === 'cards' ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                {notas.map((n: any) => (
+                                    <NotaCard
+                                        key={n.id}
+                                        nota={n}
+                                        onClick={() => {
+                                            setSelectedNota(n);
+                                            setIsDetailModalOpen(true);
+                                            setTimeout(() => {
+                                                const container = document.getElementById('main-content-area');
+                                                if (container) {
+                                                    container.scrollTo({ top: 0, behavior: 'smooth' });
+                                                }
+                                            }, 100);
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto rounded-[2rem] border border-slate-100 bg-slate-50/30">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-white/50 backdrop-blur-sm border-b border-slate-100">
+                                            <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Nota</th>
+                                            <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Cliente</th>
+                                            <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Estado</th>
+                                            <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50">
+                                        {notas.map((n: any) => (
+                                            <tr 
+                                                key={n.id} 
+                                                onClick={() => {
+                                                    setSelectedNota(n);
+                                                    setIsDetailModalOpen(true);
+                                                    setTimeout(() => {
+                                                        const container = document.getElementById('main-content-area');
+                                                        if (container) {
+                                                            container.scrollTo({ top: 0, behavior: 'smooth' });
+                                                        }
+                                                    }, 100);
+                                                }}
+                                                className="hover:bg-orange-500/[0.02] cursor-pointer transition-colors group"
+                                            >
+                                                <td className="p-6">
+                                                    <span className="text-sm font-black text-foreground group-hover:text-orange-600 transition-colors uppercase">{n.ticket_number}</span>
+                                                </td>
+                                                <td className="p-6">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-xs uppercase">
+                                                            {n.client?.full_name?.charAt(0) || 'C'}
+                                                        </div>
+                                                        <span className="text-sm font-bold text-slate-600">{n.client?.full_name || 'Sin cliente'}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="p-6">
+                                                    <div className={cn(
+                                                        "inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                                                        n.status === 'received' ? "bg-amber-100 text-amber-600" :
+                                                        n.status === 'processing' ? "bg-orange-100 text-orange-600" :
+                                                        n.status === 'ready' ? "bg-emerald-100 text-emerald-600" :
+                                                        "bg-slate-100 text-slate-600"
+                                                    )}>
+                                                        {n.status === 'received' ? 'Recibido' :
+                                                         n.status === 'processing' ? 'En Proceso' :
+                                                         n.status === 'ready' ? 'Listo' : 'Entregado'}
+                                                    </div>
+                                                </td>
+                                                <td className="p-6 text-right">
+                                                    <span className="text-sm font-black text-foreground">${Number(n.total_amount).toLocaleString('es-MX')}</span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )
                     ) : (
+
                         /* Empty State */
                         <div className="flex flex-col items-center justify-center py-32 text-center border-2 border-dashed border-slate-100 rounded-[3rem] bg-slate-50/30 group hover:bg-orange-500/[0.02] hover:border-orange-500/20 transition-all duration-700">
                             <div className="relative mb-10">
@@ -193,12 +279,12 @@ export default function NotasPage() {
     );
 }
 
-function MiniNotaStat({ label, value, color, bg, border }: { label: string, value: string, color: string, bg: string, border?: string }) {
+function MiniNotaStat({ label, value, color, bg, borderClass }: { label: string, value: string, color: string, bg: string, borderClass?: string }) {
     return (
         <div className={cn(
-            "p-6 rounded-[1.75rem] border border-slate-100 text-center transition-all shadow-sm hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1 group",
+            "p-6 rounded-[1.75rem] border text-center transition-all shadow-sm hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1 group",
             bg,
-            border && `!${border} border-2`
+            borderClass ? borderClass : "border-slate-100"
         )}>
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">{label}</p>
             <p className={cn("text-3xl font-black tracking-tighter", color)}>{value}</p>
@@ -219,7 +305,7 @@ function NotaCard({ nota, onClick }: { nota: any, onClick: () => void }) {
     return (
         <div
             onClick={onClick}
-            className="p-5 bg-white border-2 border-orange-50 rounded-[2rem] hover:border-orange-200 hover:shadow-2xl hover:shadow-orange-500/10 transition-all group cursor-pointer"
+            className="p-5 bg-white border-[3px] border-slate-300 rounded-[2rem] hover:border-orange-200 hover:shadow-2xl hover:shadow-orange-500/10 transition-all group cursor-pointer"
         >
             <div className="flex justify-between items-start mb-6">
                 <div className="space-y-1">

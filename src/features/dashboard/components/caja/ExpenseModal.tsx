@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useRouter } from 'next/navigation';
 import { Loader2, PlusCircle, Banknote, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -29,6 +30,7 @@ interface ExpenseModalProps {
 }
 
 export function ExpenseModal({ branchId, userId, disabled }: ExpenseModalProps) {
+    const router = useRouter();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
 
@@ -66,6 +68,10 @@ export function ExpenseModal({ branchId, userId, disabled }: ExpenseModalProps) 
             toast.success('Movimiento registrado correctamente');
             setOpen(false);
             reset();
+
+            // Notificar a otros componentes y refrescar servidor
+            window.dispatchEvent(new CustomEvent('cash-cut-refresh'));
+            router.refresh();
         } catch (error) {
             toast.error('Error al registrar movimiento');
         } finally {

@@ -24,7 +24,7 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-10 pointer-events-none">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:p-10 pt-10 sm:pt-20 pointer-events-none overflow-y-auto">
             <div
                 className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm animate-in fade-in duration-300 pointer-events-auto"
                 onClick={onClose}

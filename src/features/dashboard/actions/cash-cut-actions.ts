@@ -25,6 +25,8 @@ export type CashCutState = {
         totalExpenses: number;
         grossSales: number;
         totalPending: number;
+        anticipos: number;
+        liquidaciones: number;
     };
     transactions: {
         payments: any[];
@@ -63,17 +65,8 @@ export async function getCashCutState(branchId: string): Promise<ActionResponse>
             startDate = lastCut.end_date;
             initialCash = Number(lastCut.cash_left) || 0;
         } else {
-            // Si no hay corte previo, buscamos la primera transacción de la historia
-            // o usamos una fecha muy antigua por defecto si está vacío
-            const { data: firstPayment } = await supabase
-                .from('ticket_payments')
-                .select('created_at')
-                .eq('branch_id', branchId)
-                .order('created_at', { ascending: true })
-                .limit(1)
-                .maybeSingle();
-
-            startDate = firstPayment?.created_at || new Date(0).toISOString(); // 1970 por defecto
+            // Si no hay corte previo, usamos el inicio de los tiempos para incluir todo (ej: primer pago)
+            startDate = new Date(0).toISOString();
         }
 
         const endDate = new Date().toISOString(); // "Ahora"
@@ -120,6 +113,7 @@ export async function getCashCutState(branchId: string): Promise<ActionResponse>
         const { data: newTickets } = await supabase
             .from('tickets')
             .select('total_amount, balance_due')
+            .eq('branch_id', branchId)
             .gte('created_at', startDate)
             .lte('created_at', endDate);
 
@@ -150,6 +144,14 @@ export async function getCashCutState(branchId: string): Promise<ActionResponse>
         const grossSales = newTickets?.reduce((sum, t) => sum + Number(t.total_amount), 0) || 0;
         const totalPending = newTickets?.reduce((sum, t) => sum + Number(t.balance_due || 0), 0) || 0;
 
+        const anticipos = currentPayments
+            .filter(p => p.payment_type === 'anticipo' || p.payment_type === 'parcial')
+            .reduce((sum, p) => sum + Number(p.amount), 0);
+            
+        const liquidaciones = currentPayments
+            .filter(p => p.payment_type === 'liquidacion' || p.payment_type === 'parcial' || p.payment_type === 'pago')
+            .reduce((sum, p) => sum + Number(p.amount), 0);
+
         // E. Cálculo Final (Solo Efectivo afecta la caja física)
         // Calculated = (Inicial + VentasEfec + IngresosEfec) - GastosEfec
         const calculatedCash = (initialCash + cashSales + incomesCash) - expensesCash;
@@ -171,7 +173,9 @@ export async function getCashCutState(branchId: string): Promise<ActionResponse>
                     totalSales: cashSales + cardSales + transferSales,
                     totalExpenses: expensesCash,
                     grossSales,
-                    totalPending
+                    totalPending,
+                    anticipos,
+                    liquidaciones
                 },
                 transactions: {
                     payments: currentPayments,
@@ -225,6 +229,11 @@ export async function performCashCut(data: {
             transfer_sales: totals.transferSales,
             expenses_cash: totals.expensesCash,
             incomes_cash: totals.incomesCash,
+
+            // Nuevos campos persistentes para integridad histórica
+            gross_sales: totals.grossSales,
+            anticipos: totals.anticipos,
+            total_pending: totals.totalPending,
 
             cash_withdrawn: data.withdrawnCash,
             calculated_cash: totals.calculatedCash,
@@ -341,7 +350,7 @@ export async function registerMovement(data: {
     }
 }
 // 6. Obtener Datos Detallados para Reporte Z
-export async function getReportZData(cutId: string): Promise<ActionResponse> {
+export async function getReportZData(cutId: string, _ts?: number): Promise<ActionResponse> {
     const supabase = await createClient();
 
     try {
@@ -377,14 +386,43 @@ export async function getReportZData(cutId: string): Promise<ActionResponse> {
             .lte('created_at', cut.end_date)
             .order('created_at', { ascending: true });
 
-        if (itemsError) throw itemsError;
+        // Pagos
+        const { data: payments } = await supabase
+            .from('ticket_payments')
+            .select(`
+                *,
+                ticket:tickets(
+                    ticket_number,
+                    client:clients(full_name)
+                )
+            `)
+            .eq('branch_id', cut.branch_id)
+            .gte('created_at', cut.start_date)
+            .lte('created_at', cut.end_date)
+            .order('created_at', { ascending: true });
+
+        // Movimientos
+        const { data: expenses } = await supabase
+            .from('expenses')
+            .select('*')
+            .eq('branch_id', cut.branch_id)
+            .gte('created_at', cut.start_date)
+            .lte('created_at', cut.end_date)
+            .order('created_at', { ascending: true });
+
+        console.log('--- GET REPORT Z DATA ---');
+        console.log('Payments count:', payments?.length);
+        console.log('Expenses count:', expenses?.length);
+        console.log('Items count:', items?.length);
 
         return {
             success: true,
             message: 'Datos de Reporte Z obtenidos',
             data: {
                 cut,
-                items: items || []
+                items: items || [],
+                payments: payments || [],
+                expenses: expenses || []
             }
         };
     } catch (error: any) {

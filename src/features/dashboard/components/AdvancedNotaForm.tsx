@@ -48,7 +48,13 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
         }
     }, [user, branches, selectedBranch]);
 
-    const [deliveryDate, setDeliveryDate] = useState<string>('');
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const [deliveryDate, setDeliveryDate] = useState<string>(() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 3);
+        return d.toISOString().split('T')[0];
+    });
     const [notes, setNotes] = useState<string>('');
     const [discountCode, setDiscountCode] = useState<string>('');
     const [appliedDiscount, setAppliedDiscount] = useState<any>(null);
@@ -79,6 +85,12 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
     const discountAmount = calculateDiscount();
     const total = Math.max(0, subtotal - discountAmount);
     const balance = Math.max(0, total - payment.amount);
+
+    useEffect(() => {
+        if (payment.amount > total) {
+            setPayment(prev => ({ ...prev, amount: total }));
+        }
+    }, [total, payment.amount]);
 
     const handleApplyDiscount = async () => {
         setDiscountError(null);
@@ -194,6 +206,7 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
 
         try {
             await createNota(notaData, itemData, paymentData);
+            window.dispatchEvent(new CustomEvent('cash-cut-refresh'));
             onSuccess();
         } catch (err: any) {
             console.error(err);
@@ -347,6 +360,7 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
                             id="field-delivery-date"
                             type="date"
                             required
+                            min={todayStr}
                             className="w-full bg-white border-2 border-slate-100 rounded-2xl px-12 h-14 font-black text-slate-800 focus:border-orange-500 outline-none transition-all shadow-sm"
                             value={deliveryDate}
                             onChange={(e) => setDeliveryDate(e.target.value)}
@@ -497,7 +511,8 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
                                 className="w-full bg-white/10 border border-white/20 rounded-2xl px-5 h-12 outline-none focus:ring-2 focus:ring-orange-500 transition-all font-black text-right pr-10 text-white"
                                 value={payment.amount || ''}
                                 onChange={(e) => {
-                                    const val = Number(e.target.value);
+                                    let val = Number(e.target.value);
+                                    if (val > total) val = total;
                                     setPayment({ ...payment, amount: val });
                                 }}
                                 placeholder="0"

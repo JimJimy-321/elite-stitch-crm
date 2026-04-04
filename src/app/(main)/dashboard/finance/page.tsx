@@ -16,13 +16,13 @@ export const metadata: Metadata = {
 };
 
 // Componente para tarjetas de resumen
-function StatCard({ title, value, icon, color, subvalue }: any) {
+function StatCard({ title, value, icon, color, subvalue, borderColor }: any) {
     return (
-        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center justify-between">
+        <div className={`bg-white p-6 rounded-[2rem] shadow-sm border-2 ${borderColor || 'border-slate-100'} flex items-center justify-between transition-all hover:shadow-md hover:-translate-y-1`}>
             <div>
-                <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">{title}</p>
+                <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">{title}</p>
                 <h3 className="text-2xl font-black text-slate-800 tracking-tight">{value}</h3>
-                {subvalue && <p className="text-xs text-slate-400 mt-1">{subvalue}</p>}
+                {subvalue && <p className="text-xs text-slate-400 mt-1 font-medium">{subvalue}</p>}
             </div>
             <div className={`p-4 rounded-2xl ${color}`}>
                 {icon}
@@ -91,6 +91,7 @@ export default async function FinancePage() {
                     value={formatCurrency(totals.grossSales)}
                     icon={<TrendingUp size={24} className="text-indigo-600" />}
                     color="bg-indigo-100"
+                    borderColor="border-indigo-300"
                     subvalue="Desde último corte"
                 />
                 <StatCard
@@ -98,27 +99,30 @@ export default async function FinancePage() {
                     value={formatCurrency(totals.calculatedCash)}
                     icon={<Wallet size={24} className="text-emerald-600" />}
                     color="bg-emerald-100"
+                    borderColor="border-emerald-300"
                     subvalue="Acumulado actual"
                 />
                 <StatCard
-                    title="Pagos con Tarjeta (Periodo)"
-                    value={formatCurrency(totals.cardSales)}
+                    title="Pagos con Tarjeta/Transferencias"
+                    value={formatCurrency((totals.cardSales || 0) + (totals.transferSales || 0))}
                     icon={<CreditCard size={24} className="text-blue-600" />}
                     color="bg-blue-100"
-                    subvalue="Acumulado tarjeta"
+                    borderColor="border-blue-300"
+                    subvalue="Acumulado tarjeta/Transf."
                 />
                 <StatCard
                     title="Gastos (Periodo)"
                     value={formatCurrency(totals.totalExpenses)}
                     icon={<TrendingDown size={24} className="text-rose-600" />}
                     color="bg-rose-100"
+                    borderColor="border-rose-300"
                     subvalue="Operativos + Retiros"
                 />
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
                 {/* Columna Principal: Formulario de Corte */}
-                <div className="xl:col-span-2 space-y-8">
+                <div className="xl:col-span-3 space-y-8">
                     <CashCutForm branchId={branchId} userId={user.id} />
 
                     <div className="space-y-4">
@@ -129,9 +133,9 @@ export default async function FinancePage() {
 
                 {/* Columna Lateral: Movimientos Recientes (In current period) */}
                 <div className="space-y-6">
-                    <Card className="border-none shadow-xl bg-white/60 backdrop-blur-sm rounded-[2rem]">
+                    <Card className="border-none shadow-xl bg-slate-900 rounded-[2rem]">
                         <CardContent className="p-6">
-                            <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                            <h3 className="text-lg font-bold text-slate-300 mb-6 flex items-center gap-2">
                                 <Activity size={20} className="text-slate-400" />
                                 Movimientos del Periodo
                             </h3>

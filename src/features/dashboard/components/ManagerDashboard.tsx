@@ -43,9 +43,19 @@ export function ManagerDashboard({ user: initialUser }: Props) {
     const { financials, loading: finLoading, refetch: refetchFin } = useDailyFinancials(initialUser?.assigned_branch_id);
     const { queue: activeQueue, loading: queueLoading, refetch: refetchQueue } = useActiveWorkQueue(initialUser?.assigned_branch_id);
 
-    const { notas, loading: notasLoading, refetch } = useNotas(debouncedSearch);
-
+    const { notas, loading: notasLoading, refetch: refetchNotas } = useNotas(debouncedSearch);
     const isLoading = notasLoading || statsLoading || finLoading || queueLoading;
+
+    React.useEffect(() => {
+        const handleRefresh = () => {
+            refetchNotas();
+            refetchStats();
+            refetchFin();
+            refetchQueue();
+        };
+        window.addEventListener('cash-cut-refresh', handleRefresh);
+        return () => window.removeEventListener('cash-cut-refresh', handleRefresh);
+    }, [refetchNotas, refetchStats, refetchFin, refetchQueue]);
 
     // Lógica de Prioridades
     const today = new Date().toISOString().split('T')[0];
@@ -97,11 +107,11 @@ export function ManagerDashboard({ user: initialUser }: Props) {
 
             {/* Dashboard Speed Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                <KPICard title="Ventas Totales" value={formatCurrency(financials?.income || 0)} icon={TrendingUp} color="orange" border="border-orange-500 shadow-orange-100" />
-                <KPICard title="Efectivo en Caja" value={formatCurrency(financials?.netCash || 0)} icon={Activity} color="emerald" border="!border-emerald-500 border-2" />
-                <KPICard title="Pagos con Tarjeta" value={formatCurrency(financials?.breakdown?.income?.methods?.card || 0)} icon={CreditCard} color="blue" border="!border-purple-500 border-2" />
-                <KPICard title="Gastos (Hoy)" value={formatCurrency(financials?.expense || 0)} icon={TrendingDown} color="rose" border="!border-rose-500 border-2" />
-                <KPICard title="Por Entregar" value={activeQueue.length.toString()} icon={Clock} color="blue" border="border-blue-500" />
+                <KPICard title="Venta Bruta (Notas)" value={formatCurrency(financials?.grossSales || 0)} icon={Plus} color="orange" border="border-[3px] border-orange-500 shadow-orange-100" />
+                <KPICard title="Cobranza Real" value={formatCurrency(financials?.income || 0)} icon={TrendingUp} color="emerald" border="border-[3px] border-emerald-500 shadow-emerald-100" />
+                <KPICard title="Efectivo en Caja" value={formatCurrency(financials?.netCash || 0)} icon={Activity} color="emerald" border="border-[3px] border-slate-300 shadow-sm" />
+                <KPICard title="Pagos Tarjeta/Transf." value={formatCurrency((financials?.breakdown?.methods?.card || 0) + (financials?.breakdown?.methods?.transfer || 0))} icon={CreditCard} color="blue" border="border-[3px] border-blue-500 shadow-blue-100" />
+                <KPICard title="Gastos (Periodo)" value={formatCurrency(financials?.expense || 0)} icon={TrendingDown} color="rose" border="border-[3px] border-rose-500 shadow-rose-100" />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-10">
@@ -157,7 +167,12 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                             {urgentNotas.length > 0 ? urgentNotas.map((t: any) => (
                                 <div key={t.id} onClick={() => { setSelectedNota(t); setIsDetailModalOpen(true); }} className="p-4 bg-orange-50/50 border border-orange-100 rounded-2xl hover:bg-orange-100 transition-all cursor-pointer group">
                                     <div className="flex justify-between items-center mb-1">
-                                        <span className="text-[10px] font-black text-orange-600 uppercase">NOTA {t.ticket_number}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-black text-orange-600 uppercase">NOTA {t.ticket_number}</span>
+                                            <span className="text-[9px] font-bold text-orange-400 border-l border-orange-200 pl-2">
+                                                {new Date(t.delivery_date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                                            </span>
+                                        </div>
                                         <History size={14} className="text-orange-400" />
                                     </div>
                                     <p className="text-xs font-black text-slate-800 truncate uppercase">{t.client?.full_name}</p>
@@ -179,7 +194,12 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                                 {overdueNotas.map((t: any) => (
                                     <div key={t.id} onClick={() => { setSelectedNota(t); setIsDetailModalOpen(true); }} className="p-4 bg-white/80 border border-rose-100 rounded-2xl hover:shadow-lg transition-all cursor-pointer group">
                                         <div className="flex justify-between items-center mb-1">
-                                            <span className="text-[10px] font-black text-rose-600 uppercase">NOTA {t.ticket_number}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] font-black text-rose-600 uppercase">NOTA {t.ticket_number}</span>
+                                                <span className="text-[9px] font-bold text-rose-400 border-l border-rose-200 pl-2">
+                                                    {new Date(t.delivery_date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                                                </span>
+                                            </div>
                                             <AlertTriangle size={14} className="text-rose-400" />
                                         </div>
                                         <p className="text-xs font-black text-slate-800 truncate uppercase">{t.client?.full_name}</p>
@@ -196,21 +216,26 @@ export function ManagerDashboard({ user: initialUser }: Props) {
             <Modal
                 isOpen={isDetailModalOpen}
                 onClose={() => { setIsDetailModalOpen(false); setSelectedNota(null); }}
-                title={`Detalles - Nota ${selectedNota?.ticket_number}`}
+                title={`Detalles de Nota - ${selectedNota?.ticket_number}`}
                 className="max-w-7xl"
             >
                 {selectedNota && (
                     <NotaDetailView
                         nota={selectedNota}
                         onUpdate={async () => {
-                            const newNotas = await refetch();
+                            // Update UI immediately for the selected nota if in a list
+                            const [newNotes, newQueue] = await Promise.all([
+                                refetchNotas(),
+                                refetchQueue()
+                            ]);
+                            
+                            // CRITICAL: Global financial refresh to keep KPIs in sync
+                            await refetchFin(); 
                             await refetchStats();
-                            await refetchFin();
-                            await refetchQueue();
-                            if (selectedNota) {
-                                const updated = newNotas.find((t: any) => t.id === selectedNota.id);
-                                if (updated) setSelectedNota(updated);
-                            }
+
+                            // Look in both collections
+                            const updated = [...newNotes, ...newQueue].find((t: any) => t.id === selectedNota.id);
+                            if (updated) setSelectedNota(updated);
                         }}
                     />
                 )}
@@ -226,7 +251,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                     onClose={() => setIsNewNotaModalOpen(false)}
                     onSuccess={async () => {
                         setIsNewNotaModalOpen(false);
-                        await refetch();
+                        await refetchNotas();
                         await refetchStats();
                         await refetchFin();
                         await refetchQueue();
@@ -246,7 +271,7 @@ function KPICard({ title, value, icon: Icon, color, border }: any) {
     };
 
     return (
-        <div className={cn("glass-card p-8 bg-white border-2 border-orange-100 shadow-xl shadow-slate-200/50 rounded-[2.5rem] transition-all hover:scale-[1.02]", border)}>
+        <div className={cn("glass-card p-8 bg-white border-[3px] border-slate-300 shadow-xl shadow-slate-200/50 rounded-[2.5rem] transition-all hover:scale-[1.02]", border)}>
             <div className="flex items-center justify-between mb-4">
                 <div className={cn("p-4 rounded-2xl", colorClasses[color])}>
                     <Icon size={24} />
@@ -269,7 +294,10 @@ function QuickNotaCard({ nota, onClick }: { nota: any, onClick: () => void }) {
     const status = statusMap[nota.status] || statusMap.received;
 
     return (
-        <div onClick={onClick} className="p-4 bg-white border-2 border-orange-50 rounded-[1.5rem] hover:border-orange-200 hover:shadow-xl hover:shadow-orange-500/5 transition-all group cursor-pointer relative overflow-hidden">
+        <div 
+            onClick={onClick}
+            className="p-5 bg-white border-[3px] border-slate-300 rounded-[2.5rem] hover:border-orange-200 hover:shadow-2xl hover:shadow-orange-500/10 transition-all group cursor-pointer relative overflow-hidden active:scale-[0.98]"
+        >
             <div className="flex justify-between items-start mb-3">
                 <div>
                     <span className="text-[8px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100 uppercase tracking-widest mb-1 shadow-sm block w-fit">NOTA {nota.ticket_number}</span>
@@ -289,16 +317,21 @@ function QuickNotaCard({ nota, onClick }: { nota: any, onClick: () => void }) {
             )}
 
             <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-1.5">
-                    <div className="flex -space-x-1">
+                <div className="flex items-center gap-1.5 overflow-hidden">
+                    <div className="flex flex-wrap gap-1">
                         {nota.items?.slice(0, 2).map((item: any, i: number) => (
-                            <div key={i} className="w-6 h-6 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-[8px] font-bold text-slate-400">
-                                {item.garment_name?.[0] || 'P'}
+                            <div key={i} className="px-2 py-0.5 rounded-md bg-slate-50 border border-slate-100 flex items-center justify-start text-[7px] font-black text-slate-500 uppercase tracking-tighter truncate max-w-[90px]">
+                                {item.garment_name || 'PRENDA'}
                             </div>
                         ))}
+                        {nota.items?.length > 2 && (
+                            <div className="px-1.5 py-0.5 rounded-md bg-slate-100 text-[7px] font-black text-slate-400">
+                                +{nota.items.length - 2}
+                            </div>
+                        )}
                     </div>
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{nota.items?.length || 0} pzs</span>
                 </div>
+
                 <div className="flex items-center gap-1.5">
                     <Calendar size={10} className="text-orange-500" />
                     <span className="text-[8px] font-black text-slate-500 uppercase">{new Date(nota.delivery_date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}</span>
@@ -308,7 +341,7 @@ function QuickNotaCard({ nota, onClick }: { nota: any, onClick: () => void }) {
             <div className="pt-2 border-t border-slate-50 flex items-center justify-between">
                 <span className="text-[8px] font-black text-slate-300 uppercase">Saldo</span>
                 <span className={cn("text-[11px] font-black", nota.balance_due > 0 ? "text-amber-500" : "text-emerald-500")}>
-                    {formatCurrency(nota.balance_due)}
+                    {formatCurrency(Math.max(0, nota.balance_due))}
                 </span>
             </div>
         </div>

@@ -5,7 +5,7 @@ import { dashboardService } from '../services/dashboardService';
 import { useAuthStore } from '@/features/auth/store/authStore'; // Ensure this is available if needed, but the hooks here are generic enough
 
 
-export function useDashboardStats(branchId?: string) {
+export function useDashboardStats(branchId?: string, filters?: { startDate?: string, endDate?: string }) {
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<any>(null);
@@ -13,7 +13,7 @@ export function useDashboardStats(branchId?: string) {
     const fetchStats = async () => {
         setLoading(true);
         try {
-            const data = await dashboardService.getStats();
+            const data = await dashboardService.getStats(branchId, filters);
             setStats(data);
             return data;
         } catch (err) {
@@ -26,12 +26,12 @@ export function useDashboardStats(branchId?: string) {
 
     useEffect(() => {
         fetchStats();
-    }, []);
+    }, [branchId, JSON.stringify(filters)]);
 
     return { stats, loading, error, refetch: fetchStats };
 }
 
-export function useNotas(search?: string, filters?: { garment?: string, seamstress_id?: string }) {
+export function useNotas(search?: string, filters?: { garment?: string, seamstress_id?: string, status?: string, startDate?: string, endDate?: string }) {
     const [notas, setNotas] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<any>(null);
@@ -235,16 +235,16 @@ export function useAdvancedNotas() {
         }
     };
 
-    const updateStatus = async (itemId: string, status: string) => {
+    const updateStatus = async (itemId: string, status: string, seamstressId?: string) => {
         setLoading(true);
         try {
-            return await dashboardService.updateItemStatus(itemId, status);
+            return await dashboardService.updateItemStatus(itemId, status, seamstressId);
         } finally {
             setLoading(false);
         }
     };
 
-    const collectPayment = async (notaId: string, amount: number, method: string, type: 'abono' | 'liquidacion', branchId: string) => {
+    const collectPayment = async (notaId: string, amount: number, method: string, type: 'parcial' | 'liquidacion', branchId: string) => {
         setLoading(true);
         try {
             return await dashboardService.addPayment(notaId, { amount, method, type, branch_id: branchId });
@@ -311,6 +311,7 @@ export function useDailyFinancials(branchId?: string) {
         try {
             const data = await dashboardService.getDailyFinancials(branchId);
             setFinancials(data);
+            return data;
         } finally {
             setLoading(false);
         }
@@ -332,6 +333,7 @@ export function useActiveWorkQueue(branchId?: string) {
         try {
             const data = await dashboardService.getActiveWorkQueue(branchId);
             setQueue(data);
+            return data;
         } finally {
             setLoading(false);
         }
@@ -342,4 +344,17 @@ export function useActiveWorkQueue(branchId?: string) {
     }, [branchId]);
 
     return { queue, loading, refetch: fetchQueue };
+}
+
+export function useStaffProfiles(organizationId?: string) {
+    const [profiles, setProfiles] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        dashboardService.getProfiles(organizationId)
+            .then(setProfiles)
+            .finally(() => setLoading(false));
+    }, [organizationId]);
+
+    return { profiles, loading };
 }

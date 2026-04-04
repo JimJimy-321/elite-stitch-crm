@@ -57,7 +57,7 @@ export function CashCutsHistory({ cuts }: { cuts: any[] }) {
                     <div
                         key={cut.id}
                         className={cn(
-                            "relative group bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:border-orange-100 transition-all duration-300",
+                            "relative group bg-white border-[3px] border-slate-300 rounded-[2rem] p-6 shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:border-orange-200 transition-all duration-300",
                             cut.status === 'annulled' && "opacity-60 bg-slate-50 grayscale"
                         )}
                     >
@@ -84,10 +84,17 @@ export function CashCutsHistory({ cuts }: { cuts: any[] }) {
                         </div>
 
                         {/* Key Metrics Grid */}
-                        <div className="space-y-3 mb-6 bg-slate-50/50 p-4 rounded-xl">
-                            <MetricRow label="Dejado en Caja" value={cut.cash_left} />
-                            <MetricRow label="Retirado" value={cut.cash_withdrawn} />
-                            <MetricRow label="Diferencia" value={cut.difference} highlight={cut.difference !== 0} />
+                        <div className="space-y-2 mb-6 bg-slate-50/50 p-4 rounded-xl">
+                            <MetricRow label="Efectivo" value={cut.cash_sales} />
+                            <MetricRow label="Tarjeta" value={cut.card_sales} />
+                            <MetricRow label="Transferencia" value={cut.transfer_sales} />
+                            <div className="pt-2 mt-1 border-t border-slate-100">
+                                <MetricRow 
+                                    label="Total Ventas" 
+                                    value={Number(cut.cash_sales || 0) + Number(cut.card_sales || 0) + Number(cut.transfer_sales || 0)} 
+                                    highlight 
+                                />
+                            </div>
                         </div>
 
                         {/* Actions Footer */}

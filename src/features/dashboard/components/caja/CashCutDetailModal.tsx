@@ -12,6 +12,7 @@ import { formatCurrency } from '@/shared/lib/utils';
 
 import { getReportZData } from '@/features/dashboard/actions/cash-cut-actions';
 import { ReportZModal } from './ReportZModal';
+import { ExportReportButton } from './ExportReportButton';
 
 interface CashCutDetailModalProps {
     cut: any;
@@ -22,15 +23,17 @@ interface CashCutDetailModalProps {
 export function CashCutDetailModal({ cut, isOpen, onClose }: CashCutDetailModalProps) {
     const [isReportZOpen, setIsReportZOpen] = useState(false);
     const [reportData, setReportData] = useState<any[]>([]);
+    const [fullData, setFullData] = useState<any>(null);
     const [isLoadingData, setIsLoadingData] = useState(false);
 
     React.useEffect(() => {
         if (isOpen && cut?.id) {
             const loadData = async () => {
                 setIsLoadingData(true);
-                const res = await getReportZData(cut.id);
-                if (res.success) {
-                    setReportData(res.data || []);
+                const res = await getReportZData(cut.id, Date.now());
+                if (res.success && res.data) {
+                    setFullData(res.data);
+                    setReportData(res.data.items || []);
                 }
                 setIsLoadingData(false);
             };
@@ -63,10 +66,26 @@ export function CashCutDetailModal({ cut, isOpen, onClose }: CashCutDetailModalP
                             <FileText size={14} className="mr-2" />
                             Ver Reporte Z
                         </Button>
-                        <Button variant="outline" className="h-8 text-xs rounded-lg" onClick={() => window.print()}>
+                        <ExportReportButton
+                            date={format(new Date(cut.end_date), "dd 'de' MMMM, yyyy • HH:mm", { locale: es })}
+                            summary={isLoadingData || !fullData ? null : {
+                                totalGross: Number(cut.gross_sales || 0),
+                                totalAnticipos: Number(cut.anticipos || 0),
+                                totalPending: Number(cut.total_pending || 0),
+                                totalCash: Number(cut.cash_sales),
+                                totalIncomes: Number(cut.incomes_cash),
+                                totalCard: Number(cut.card_sales),
+                                totalTransfer: Number(cut.transfer_sales),
+                                totalExpenses: Number(cut.expenses_cash),
+                                items: fullData.items || [],
+                                payments: fullData.payments || [],
+                                expenses: fullData.expenses || []
+                            }}
+                            className="h-8 text-[12px] font-black uppercase tracking-wide rounded-lg px-4 border-slate-200 text-slate-700 bg-white hover:bg-slate-50"
+                        >
                             <Printer size={14} className="mr-2" />
                             Imprimir
-                        </Button>
+                        </ExportReportButton>
                     </div>
                 </div>
 
@@ -82,6 +101,20 @@ export function CashCutDetailModal({ cut, isOpen, onClose }: CashCutDetailModalP
                     <DetailItem label="Físico" value={cut.counted_cash} highlight />
                     <DetailItem label="Diferencia" value={cut.difference} color={cut.difference !== 0 ? 'text-rose-600' : 'text-emerald-600'} />
                     <DetailItem label="Retirado" value={cut.cash_withdrawn} />
+                </div>
+
+                {/* Resultado del Día (Unificado con pantalla de cierre) */}
+                <div className="p-5 bg-orange-50/30 rounded-2xl border border-orange-100">
+                    <h3 className="text-xs font-black text-orange-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <div className="w-1 h-3 bg-orange-500 rounded-full" />
+                        Resultado del Día
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-3">
+                        <Row label="Venta del Día" value={cut.gross_sales || 0} bold />
+                        <Row label="A Cuenta (Anticipos)" value={cut.anticipos || 0} />
+                        <Row label="Ventas Registradas" value={cut.gross_sales || 0} bold color="text-indigo-600" />
+                        <Row label="Por Cobrar" value={cut.total_pending || 0} isNegative />
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -105,9 +138,12 @@ export function CashCutDetailModal({ cut, isOpen, onClose }: CashCutDetailModalP
                             Flujo de Efectivo
                         </h3>
                         <div className="space-y-2">
+                            <Row label="(+) Efectivo del dia" value={cut.cash_sales} />
                             <Row label="(+) Inicio/Anterior" value={cut.initial_cash} />
-                            <Row label="(+) Ingresos Extra" value={cut.incomes_cash} />
+                            {Number(cut.incomes_cash) > 0 && <Row label="(+) Ingresos Extra" value={cut.incomes_cash} />}
                             <Row label="(-) Gastos Operativos" value={cut.expenses_cash} isNegative />
+                            <hr className="border-slate-100 my-2" />
+                            <Row label="TOTAL EN CAJA" value={cut.calculated_cash} bold />
                         </div>
                     </div>
                 </div>
@@ -124,12 +160,14 @@ export function CashCutDetailModal({ cut, isOpen, onClose }: CashCutDetailModalP
                 </div>
 
                 {/* Notas */}
-                {cut.notes && (
-                    <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 text-amber-800 text-sm">
-                        <strong className="block text-xs uppercase opacity-70 mb-1">Notas:</strong>
-                        {cut.notes}
-                    </div>
-                )}
+                <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 text-amber-800 text-sm">
+                    <strong className="block text-xs uppercase opacity-70 mb-1">Observaciones / Notas:</strong>
+                    {cut.notes || cut.manual_notes ? (
+                        <span>{cut.notes || cut.manual_notes}</span>
+                    ) : (
+                        <span className="opacity-70 italic">No se registraron observaciones.</span>
+                    )}
+                </div>
 
                 {/* Detalle de Servicios (Reporte Z integrado para impresión) */}
                 <div className="space-y-4 pt-4 border-t border-slate-100">
@@ -199,11 +237,11 @@ function DetailItem({ label, value, highlight, color }: any) {
     );
 }
 
-function Row({ label, value, bold, isNegative }: any) {
+function Row({ label, value, bold, isNegative, color }: any) {
     return (
         <div className="flex justify-between items-center text-sm">
             <span className={`text-slate-500 ${bold && 'font-bold text-slate-700'}`}>{label}</span>
-            <span className={`font-medium ${bold && 'font-black text-slate-900'} ${isNegative && 'text-rose-500'}`}>
+            <span className={`font-medium ${bold && !color && 'font-black text-slate-900'} ${color || ''} ${isNegative && 'text-rose-500'}`}>
                 {isNegative ? '-' : ''}{formatCurrency(Number(value))}
             </span>
         </div>

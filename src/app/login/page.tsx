@@ -47,7 +47,7 @@ export default function LoginPage() {
 
                 <div className="relative z-10 w-full max-w-2xl">
                     <div className="w-24 h-24 bg-orange-500 rounded-[2.5rem] flex items-center justify-center mb-10 shadow-3xl shadow-orange-500/40 rotate-12 hover:rotate-0 transition-all duration-700 border border-orange-400">
-                        <Scissors size={48} className="text-white" />
+                        <Scissors size={48} className="text-white" suppressHydrationWarning />
                     </div>
 
                     <h1 className="text-7xl font-black text-white mb-8 tracking-tighter leading-none">
@@ -75,7 +75,7 @@ export default function LoginPage() {
                 <div className="max-w-md w-full mx-auto">
                     <div className="lg:hidden flex items-center gap-4 mb-12">
                         <div className="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center shadow-xl shadow-orange-500/20">
-                            <Scissors size={28} className="text-white" />
+                            <Scissors size={28} className="text-white" suppressHydrationWarning />
                         </div>
                         <span className="text-3xl font-black tracking-tighter text-slate-900">SastrePro</span>
                     </div>
@@ -96,7 +96,7 @@ export default function LoginPage() {
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Email Profesional</label>
                             <div className="relative group">
                                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-12 flex justify-center text-slate-300 group-focus-within:text-orange-500 transition-colors">
-                                    <Mail size={20} />
+                                    <Mail size={20} suppressHydrationWarning />
                                 </div>
                                 <input
                                     type="email"
@@ -116,7 +116,7 @@ export default function LoginPage() {
                             </div>
                             <div className="relative group">
                                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-12 flex justify-center text-slate-300 group-focus-within:text-orange-500 transition-colors">
-                                    <Lock size={20} />
+                                    <Lock size={20} suppressHydrationWarning />
                                 </div>
                                 <input
                                     type={showPassword ? "text" : "password"}
@@ -131,7 +131,7 @@ export default function LoginPage() {
                                     onClick={() => setShowPassword(!showPassword)}
                                     className="absolute right-0 top-1/2 -translate-y-1/2 w-12 flex justify-center text-slate-300 hover:text-orange-500 transition-colors"
                                 >
-                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                    {showPassword ? <EyeOff size={20} suppressHydrationWarning /> : <Eye size={20} suppressHydrationWarning />}
                                 </button>
                             </div>
                         </div>
@@ -146,7 +146,7 @@ export default function LoginPage() {
                             ) : (
                                 <span className="flex items-center justify-center gap-4">
                                     Iniciar Sesión
-                                    <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform duration-500" />
+                                    <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform duration-500" suppressHydrationWarning />
                                 </span>
                             )}
                         </button>

@@ -34,10 +34,10 @@ export default function BranchesPage() {
     const [capturedMetaIDs, setCapturedMetaIDs] = useState<{phone_number_id: string, waba_id: string} | null>(null);
     const [isSdkLoaded, setIsSdkLoaded] = useState(false);
 
-    // Manejar el retorno de Meta y el SDK
+    // Manejar la inicialización y retorno del SDK de Meta
     useEffect(() => {
-        // 1. Inicializar SDK si está listo
-        if ((window as any).FB && !isSdkLoaded) {
+        // 1. Configurar fbAsyncInit (Método oficial más robusto)
+        (window as any).fbAsyncInit = function() {
             try {
                 (window as any).FB.init({
                     appId: metaAppId,
@@ -46,10 +46,15 @@ export default function BranchesPage() {
                     version: 'v19.0'
                 });
                 setIsSdkLoaded(true);
-                console.log("SDK de Meta inicializado correctamente");
+                console.log("SDK de Meta inicializado vía fbAsyncInit");
             } catch (err) {
-                console.error("Error inicializando SDK de Meta:", err);
+                console.error("Error en FB.init:", err);
             }
+        };
+
+        // Si el SDK ya está cargado por alguna razón, inicializarlo manualmente
+        if ((window as any).FB && !isSdkLoaded) {
+            (window as any).fbAsyncInit();
         }
 
         // 2. Detectar 'code' en la URL (Redirección tradicional)
@@ -115,11 +120,15 @@ export default function BranchesPage() {
         console.log("Iniciando flujo de Coexistencia...");
         
         try {
-            // Si el SDK está cargado e inicializado, lo usamos
-            if ((window as any).FB && isSdkLoaded) {
-                console.log("Lanzando flujo vía SDK...");
+            // Asegurarnos de que el SDK esté inicializado. Si no, forzamos init.
+            if ((window as any).FB) {
+                if (!isSdkLoaded) {
+                    (window as any).fbAsyncInit();
+                }
+
+                console.log("Lanzando diálogo oficial de Meta...");
                 (window as any).FB.login((response: any) => {
-                    console.log("FB Login Callback:", response);
+                    console.log("Respuesta de Meta Login:", response);
                 }, {
                     scope: 'whatsapp_business_management,whatsapp_business_messaging',
                     extras: {
@@ -128,27 +137,20 @@ export default function BranchesPage() {
                         }
                     }
                 });
-                return;
-            }
-
-            // Fallback al flujo manual si el SDK no está listo o falla
-            console.log("Usando fallback de URL manual (SDK no listo)...");
-            const extras = JSON.stringify({
-                setup: {
-                    mobile_number_coexistence: true
-                }
-            });
-            const redirectUri = window.location.origin + '/dashboard/branches';
-            const scope = 'whatsapp_business_management,whatsapp_business_messaging';
-            const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${metaAppId}&display=popup&extras=${encodeURIComponent(extras)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
-            
-            const popup = window.open(url, 'MetaSignup', 'width=600,height=700,status=no,resizable=yes');
-            if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-                alert("El navegador bloqueó la ventana emergente. Por favor, permite las ventanas emergentes para sastrepro.com e intenta de nuevo.");
+            } else {
+                // Fallback extremo: Intento de URL manual optimizada
+                console.warn("SDK no detectado en el botón. Usando fallback...");
+                const extras = JSON.stringify({ setup: { mobile_number_coexistence: true } });
+                const redirectUri = window.location.origin + '/dashboard/branches';
+                const scope = 'whatsapp_business_management,whatsapp_business_messaging';
+                const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${metaAppId}&display=popup&extras=${encodeURIComponent(extras)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
+                
+                const popup = window.open(url, 'MetaSignup', 'width=600,height=700');
+                if (!popup) alert("Por favor habilita las ventanas emergentes.");
             }
         } catch (err) {
-            console.error("Error en handleLaunchCoexistence:", err);
-            alert("Hubo un error al intentar conectar con Meta. Por favor, intenta de nuevo o contacta a soporte.");
+            console.error("Error crítico en conexión Meta:", err);
+            alert("Error al conectar con Meta. Por favor refresca la página.");
         }
     };
 
@@ -235,10 +237,10 @@ export default function BranchesPage() {
         <div className="space-y-8 animate-fade-in relative">
             <Script 
                 src="https://connect.facebook.net/en_US/sdk.js" 
-                strategy="lazyOnload"
+                strategy="afterInteractive"
                 onLoad={() => {
-                    console.log("Script de Meta cargado");
-                    setIsSdkLoaded(false); // Gatillar el useEffect
+                    console.log("SDK Script cargado físicamente");
+                    if ((window as any).FB) (window as any).fbAsyncInit();
                 }}
             />
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -583,10 +585,25 @@ export default function BranchesPage() {
                                             <button 
                                                 type="button"
                                                 onClick={handleLaunchCoexistence}
-                                                className="w-full bg-blue-600 text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
+                                                disabled={!isSdkLoaded}
+                                                className={cn(
+                                                    "w-full py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2",
+                                                    isSdkLoaded 
+                                                        ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/20" 
+                                                        : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                                                )}
                                             >
-                                                <ExternalLink size={14} />
-                                                Vincular con App Móvil (Modo Híbrido)
+                                                {isSdkLoaded ? (
+                                                    <>
+                                                        <ExternalLink size={14} />
+                                                        Vincular con App Móvil (Modo Híbrido)
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Loader2 className="animate-spin" size={14} />
+                                                        Cargando conexión con Meta...
+                                                    </>
+                                                )}
                                             </button>
                                         </div>
                                     </div>

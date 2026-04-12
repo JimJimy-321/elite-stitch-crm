@@ -8,6 +8,7 @@ export const errorTranslations: Record<string, string> = {
     "JWT expired": "Tu sesión ha expirado. Por favor, inicia sesión de nuevo.",
     "User already exists": "El usuario ya existe.",
     "duplicate key value violates unique constraint \"unique_client_phone_org\"": "Este número de teléfono ya está registrado con otro cliente.",
+    "duplicate key value violates unique constraint \"unique_client_phone_org_branch\"": "Este número de teléfono ya está registrado con otro cliente en esta sede.",
 };
 
 export function translateError(error: any): string {

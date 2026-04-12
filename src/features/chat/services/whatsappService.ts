@@ -1,9 +1,13 @@
 import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
 
 const WHATSAPP_VERSION = process.env.NEXT_PUBLIC_WHATSAPP_VERSION || 'v21.0';
-const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
-const API_URL = `https://graph.facebook.com/${WHATSAPP_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}`;
+const DEFAULT_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
+const DEFAULT_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
+
+export interface WhatsAppConfig {
+    phoneNumberId: string;
+    accessToken: string;
+}
 
 export const whatsappService = {
     /**
@@ -35,20 +39,23 @@ export const whatsappService = {
     /**
      * Envía un mensaje de texto simple
      */
-    async sendTextMessage(to: string, text: string) {
-        if (!WHATSAPP_ACCESS_TOKEN || !WHATSAPP_PHONE_NUMBER_ID) {
+    async sendTextMessage(to: string, text: string, config?: WhatsAppConfig) {
+        const token = config?.accessToken || DEFAULT_ACCESS_TOKEN;
+        const phoneId = config?.phoneNumberId || DEFAULT_PHONE_NUMBER_ID;
+
+        if (!token || !phoneId) {
             console.error('WhatsApp configuration missing');
             return { success: false, error: 'Configuración de WhatsApp incompleta' };
         }
 
         const normalizedTo = this.normalizePhoneNumber(to);
-        const url = `https://graph.facebook.com/${WHATSAPP_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+        const url = `https://graph.facebook.com/${WHATSAPP_VERSION}/${phoneId}/messages`;
 
         try {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
@@ -71,13 +78,16 @@ export const whatsappService = {
     /**
      * Envía un mensaje con multimedia
      */
-    async sendMediaMessage(to: string, mediaUrl: string, type: 'image' | 'document' | 'video' | 'audio', caption?: string) {
-        if (!WHATSAPP_ACCESS_TOKEN || !WHATSAPP_PHONE_NUMBER_ID) {
+    async sendMediaMessage(to: string, mediaUrl: string, type: 'image' | 'document' | 'video' | 'audio', caption?: string, config?: WhatsAppConfig) {
+        const token = config?.accessToken || DEFAULT_ACCESS_TOKEN;
+        const phoneId = config?.phoneNumberId || DEFAULT_PHONE_NUMBER_ID;
+
+        if (!token || !phoneId) {
             return { success: false, error: 'Configuración de WhatsApp incompleta' };
         }
 
         const normalizedTo = this.normalizePhoneNumber(to);
-        const url = `https://graph.facebook.com/${WHATSAPP_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+        const url = `https://graph.facebook.com/${WHATSAPP_VERSION}/${phoneId}/messages`;
 
         const body: any = {
             messaging_product: 'whatsapp',
@@ -95,7 +105,7 @@ export const whatsappService = {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(body),
@@ -111,19 +121,22 @@ export const whatsappService = {
     /**
      * Envía una plantilla
      */
-    async sendTemplateMessage(to: string, templateName: string = 'hello_world', languageCode: string = 'en_US') {
-        if (!WHATSAPP_ACCESS_TOKEN || !WHATSAPP_PHONE_NUMBER_ID) {
+    async sendTemplateMessage(to: string, templateName: string = 'hello_world', languageCode: string = 'en_US', config?: WhatsAppConfig) {
+        const token = config?.accessToken || DEFAULT_ACCESS_TOKEN;
+        const phoneId = config?.phoneNumberId || DEFAULT_PHONE_NUMBER_ID;
+
+        if (!token || !phoneId) {
             return { success: false, error: 'Configuración de WhatsApp incompleta' };
         }
 
         const normalizedTo = this.normalizePhoneNumber(to);
-        const url = `https://graph.facebook.com/${WHATSAPP_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+        const url = `https://graph.facebook.com/${WHATSAPP_VERSION}/${phoneId}/messages`;
 
         try {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
@@ -142,6 +155,39 @@ export const whatsappService = {
             const data = await response.json();
             return { success: response.ok, data };
         } catch (error) {
+            return { success: false, error };
+        }
+    },
+
+    /**
+     * Registra un número de teléfono con la aplicación de Meta
+     */
+    async registerPhone(config: WhatsAppConfig) {
+        const url = `https://graph.facebook.com/${WHATSAPP_VERSION}/${config.phoneNumberId}/register`;
+        
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${config.accessToken}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    messaging_product: 'whatsapp',
+                    pin: '123456', // Pin por defecto para registro inicial si no tiene 2FA activado
+                }),
+            });
+
+            const data = await response.json();
+            
+            // Meta a veces devuelve error si ya está registrado, lo manejamos como éxito si el error indica eso
+            if (!response.ok && data.error?.code === 100 && data.error?.error_subcode === 2388051) {
+                return { success: true, message: 'El número ya estaba registrado', data };
+            }
+
+            return { success: response.ok, data };
+        } catch (error) {
+            console.error('Error registrando número en Meta:', error);
             return { success: false, error };
         }
     }

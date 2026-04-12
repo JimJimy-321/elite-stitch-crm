@@ -27,10 +27,21 @@ export async function middleware(request: NextRequest) {
         }
     )
 
-    // Do not run middleware on static files or API routes that don't need auth
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
+    // Do not run getUser on public routes or assets to avoid schema lookup errors on login page
+    const isPublicRoute = request.nextUrl.pathname.startsWith('/login') || 
+                         request.nextUrl.pathname.startsWith('/auth') ||
+                         request.nextUrl.pathname === '/';
+
+    let user = null;
+    
+    if (!isPublicRoute) {
+        try {
+            const { data } = await supabase.auth.getUser();
+            user = data.user;
+        } catch (e) {
+            console.error('Middleware getUser error:', e);
+        }
+    }
 
     // Simple protection for dashboard routes
     if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {

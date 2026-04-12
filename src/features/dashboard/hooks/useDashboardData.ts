@@ -2,10 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { dashboardService } from '../services/dashboardService';
-import { useAuthStore } from '@/features/auth/store/authStore'; // Ensure this is available if needed, but the hooks here are generic enough
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { adminAuthClient } from '@/lib/supabase/admin-client';
+
 
 
 export function useDashboardStats(branchId?: string, filters?: { startDate?: string, endDate?: string }) {
+    const { user } = useAuthStore();
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<any>(null);
@@ -13,7 +16,7 @@ export function useDashboardStats(branchId?: string, filters?: { startDate?: str
     const fetchStats = async () => {
         setLoading(true);
         try {
-            const data = await dashboardService.getStats(branchId, filters);
+            const data = await dashboardService.getStats(branchId, filters, user?.organization_id);
             setStats(data);
             return data;
         } catch (err) {
@@ -25,13 +28,14 @@ export function useDashboardStats(branchId?: string, filters?: { startDate?: str
     };
 
     useEffect(() => {
-        fetchStats();
-    }, [branchId, JSON.stringify(filters)]);
+        if (user !== undefined) fetchStats();
+    }, [branchId, JSON.stringify(filters), user?.organization_id]);
 
     return { stats, loading, error, refetch: fetchStats };
 }
 
-export function useNotas(search?: string, filters?: { garment?: string, seamstress_id?: string, status?: string, startDate?: string, endDate?: string }) {
+export function useNotas(search?: string, filters?: { garment?: string, seamstress_id?: string, status?: string, startDate?: string, endDate?: string }, branchId?: string) {
+    const { user } = useAuthStore();
     const [notas, setNotas] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<any>(null);
@@ -39,7 +43,7 @@ export function useNotas(search?: string, filters?: { garment?: string, seamstre
     const fetchNotas = async () => {
         setLoading(true);
         try {
-            const data = await dashboardService.getNotas(search, filters);
+            const data = await dashboardService.getNotas(search, filters, branchId, user?.organization_id);
             setNotas(data);
             return data;
         } catch (err) {
@@ -51,13 +55,14 @@ export function useNotas(search?: string, filters?: { garment?: string, seamstre
     };
 
     useEffect(() => {
-        fetchNotas();
-    }, [search, JSON.stringify(filters)]);
+        if (user !== undefined) fetchNotas();
+    }, [search, JSON.stringify(filters), branchId, user?.organization_id]);
 
     return { notas, loading, error, refetch: fetchNotas };
 }
 
-export function useClients(search?: string) {
+export function useClients(search?: string, branchId?: string) {
+    const { user } = useAuthStore();
     const [clients, setClients] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<any>(null);
@@ -65,7 +70,7 @@ export function useClients(search?: string) {
     const fetchClients = async () => {
         setLoading(true);
         try {
-            const data = await dashboardService.getClients(search);
+            const data = await dashboardService.getClients(search, branchId, user?.organization_id);
             setClients(data);
         } catch (err) {
             setError(err);
@@ -75,8 +80,8 @@ export function useClients(search?: string) {
     };
 
     useEffect(() => {
-        fetchClients();
-    }, [search]);
+        if (user !== undefined) fetchClients();
+    }, [search, branchId, user?.organization_id]);
 
     const createClient = async (data: any) => {
         const result = await dashboardService.createClient(data);
@@ -99,25 +104,51 @@ export function useClients(search?: string) {
 }
 
 export function useBranches() {
+    const { user } = useAuthStore();
     const [branches, setBranches] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<any>(null);
 
-    useEffect(() => {
-        async function fetchBranches() {
-            try {
-                const data = await dashboardService.getBranches();
-                setBranches(data);
-            } catch (err) {
-                setError(err);
-            } finally {
-                setLoading(false);
-            }
+    const fetchBranches = async () => {
+        setLoading(true);
+        try {
+            // Fetch only branches for the user's organization
+            const orgId = user?.organization_id;
+            const data = await dashboardService.getBranches(orgId);
+            setBranches(data);
+        } catch (err) {
+            setError(err);
+        } finally {
+            setLoading(false);
         }
-        fetchBranches();
-    }, []);
+    };
 
-    return { branches, loading, error };
+    useEffect(() => {
+        if (user) {
+            fetchBranches();
+        }
+    }, [user]);
+
+    const createBranch = async (data: any) => {
+        if (!user?.organization_id) throw new Error("No organization ID found");
+        const branchData = { ...data, organization_id: user.organization_id };
+        const result = await dashboardService.createBranch(branchData);
+        await fetchBranches();
+        return result;
+    };
+
+    const updateBranch = async (id: string, data: any) => {
+        const result = await dashboardService.updateBranch(id, data);
+        await fetchBranches();
+        return result;
+    };
+
+    const deleteBranch = async (id: string) => {
+        await dashboardService.deleteBranch(id);
+        await fetchBranches();
+    };
+
+    return { branches, loading, error, createBranch, updateBranch, deleteBranch, refetch: fetchBranches };
 }
 
 export function useOwners() {
@@ -262,32 +293,36 @@ export function useAdvancedNotas() {
         }
     };
 
-    const checkNotaExists = async (notaNumber: string) => {
-        return await dashboardService.checkNotaExists(notaNumber);
+    const checkNotaExists = async (notaNumber: string, branchId?: string) => {
+        return await dashboardService.checkNotaExists(notaNumber, branchId);
     };
 
     return { createNota, updateStatus, collectPayment, deliver, checkNotaExists, loading };
 }
 
 export function useDailyReport(branchId?: string) {
+    const { user } = useAuthStore();
     const [report, setReport] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        dashboardService.getDailyReport(branchId).then(setReport).finally(() => setLoading(false));
-    }, [branchId]);
+        if (user !== undefined) {
+            dashboardService.getDailyReport(branchId, user?.organization_id).then(setReport).finally(() => setLoading(false));
+        }
+    }, [branchId, user?.organization_id]);
 
     return { report, loading };
 }
 
-export function useFinanceStats() {
+export function useFinanceStats(filters?: { startDate?: string, endDate?: string }) {
+    const { user } = useAuthStore();
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     const fetchStats = async () => {
         setLoading(true);
         try {
-            const data = await dashboardService.getFinanceStats();
+            const data = await dashboardService.getFinanceStats(user?.organization_id, filters);
             setStats(data);
             return data;
         } finally {
@@ -296,20 +331,21 @@ export function useFinanceStats() {
     };
 
     useEffect(() => {
-        fetchStats();
-    }, []);
+        if (user !== undefined) fetchStats();
+    }, [user?.organization_id, JSON.stringify(filters)]);
 
     return { stats, loading, refetch: fetchStats };
 }
 
 export function useDailyFinancials(branchId?: string) {
+    const { user } = useAuthStore();
     const [financials, setFinancials] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     const fetchFinancials = async () => {
         setLoading(true);
         try {
-            const data = await dashboardService.getDailyFinancials(branchId);
+            const data = await dashboardService.getDailyFinancials(branchId, user?.organization_id);
             setFinancials(data);
             return data;
         } finally {
@@ -318,20 +354,21 @@ export function useDailyFinancials(branchId?: string) {
     };
 
     useEffect(() => {
-        fetchFinancials();
-    }, [branchId]);
+        if (user !== undefined) fetchFinancials();
+    }, [branchId, user?.organization_id]);
 
     return { financials, loading, refetch: fetchFinancials };
 }
 
 export function useActiveWorkQueue(branchId?: string) {
+    const { user } = useAuthStore();
     const [queue, setQueue] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchQueue = async () => {
         setLoading(true);
         try {
-            const data = await dashboardService.getActiveWorkQueue(branchId);
+            const data = await dashboardService.getActiveWorkQueue(branchId, user?.organization_id);
             setQueue(data);
             return data;
         } finally {
@@ -340,21 +377,63 @@ export function useActiveWorkQueue(branchId?: string) {
     };
 
     useEffect(() => {
-        fetchQueue();
-    }, [branchId]);
+        if (user !== undefined) fetchQueue();
+    }, [branchId, user?.organization_id]);
 
     return { queue, loading, refetch: fetchQueue };
 }
 
-export function useStaffProfiles(organizationId?: string) {
+
+
+export function useStaffProfiles(organizationId?: string, branchId?: string) {
     const [profiles, setProfiles] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        dashboardService.getProfiles(organizationId)
-            .then(setProfiles)
-            .finally(() => setLoading(false));
-    }, [organizationId]);
+    const fetchProfiles = async () => {
+        setLoading(true);
+        try {
+            const data = await dashboardService.getProfiles(organizationId, branchId);
+            setProfiles(data);
+        } catch(e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    return { profiles, loading };
+    useEffect(() => {
+        fetchProfiles();
+    }, [organizationId, branchId]);
+
+    const updateProfile = async (userId: string, data: any) => {
+        const response = await fetch('/api/admin/users', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: userId, ...data })
+        });
+        
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error);
+        
+        await fetchProfiles();
+        return result;
+    };
+
+    const createManager = async (managerData: any) => {
+        const response = await fetch('/api/admin/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...managerData, organization_id: organizationId })
+        });
+
+        const result = await response.json();
+        if (!result.success) {
+            throw new Error(result.error);
+        }
+
+        await fetchProfiles();
+        return result.user;
+    };
+
+    return { profiles, loading, updateProfile, createManager, refetch: fetchProfiles };
 }

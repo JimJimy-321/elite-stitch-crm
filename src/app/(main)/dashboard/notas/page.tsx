@@ -26,9 +26,10 @@ export default function NotasPage() {
     const [showFilters, setShowFilters] = useState(false);
     const { user } = useAuthStore();
     const searchParams = useSearchParams();
+    const branchId = searchParams.get('branchId') || user?.assigned_branch_id;
     const debouncedSearch = useDebounce(searchTerm, 500);
-    const { notas, loading: notasLoading, refetch } = useNotas(debouncedSearch, filters) as any;
-    const { stats, loading: statsLoading, refetch: refetchStats } = useDashboardStats(user?.assigned_branch_id, filters);
+    const { notas, loading: notasLoading, refetch } = useNotas(debouncedSearch, filters, branchId) as any;
+    const { stats, loading: statsLoading, refetch: refetchStats } = useDashboardStats(branchId, filters);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedNota, setSelectedNota] = useState<any>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -247,6 +248,7 @@ export default function NotasPage() {
             >
                 <AdvancedNotaForm
                     onClose={() => setIsModalOpen(false)}
+                    forceBranchId={branchId}
                     onSuccess={async () => {
                         setIsModalOpen(false);
                         await refetch?.();

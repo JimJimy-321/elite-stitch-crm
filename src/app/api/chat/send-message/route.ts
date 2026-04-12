@@ -13,11 +13,37 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: 'Phone is required' }, { status: 400 });
         }
 
+        // 1. Obtener la sucursal y sus credenciales de WhatsApp
+        const { data: convData, error: convError } = await supabase
+            .from('chat_conversations')
+            .select('branch_id')
+            .eq('id', conversationId)
+            .single();
+
+        if (convError || !convData?.branch_id) {
+            console.error('[SEND_API] Error obteniendo sucursal de la conversación:', convError);
+            return NextResponse.json({ success: false, error: 'Conversación o sucursal no encontrada' }, { status: 404 });
+        }
+
+        const { data: branch, error: branchError } = await supabase
+            .from('branches')
+            .select('wa_phone_number_id, wa_access_token')
+            .eq('id', convData.branch_id)
+            .single();
+
+        if (branchError) {
+            console.error('[SEND_API] Error obteniendo credenciales de sucursal:', branchError);
+        }
+
+        const waConfig = (branch?.wa_phone_number_id && branch?.wa_access_token) 
+            ? { phoneNumberId: branch.wa_phone_number_id, accessToken: branch.wa_access_token }
+            : undefined;
+
         let result;
         if (mediaUrl && mediaType) {
-            result = await whatsappService.sendMediaMessage(phone, mediaUrl, mediaType as any, content);
+            result = await whatsappService.sendMediaMessage(phone, mediaUrl, mediaType as any, content, waConfig);
         } else {
-            result = await whatsappService.sendTextMessage(phone, content);
+            result = await whatsappService.sendTextMessage(phone, content, waConfig);
         }
 
         if (!result.success) {
@@ -39,8 +65,6 @@ export async function POST(request: NextRequest) {
 
         if (dbError) {
             console.error('[SEND_API] DB Insert Error:', dbError);
-            // No fallamos el request si el mensaje se envió pero falló el log, 
-            // aunque idealmente ambos deben funcionar.
         }
 
         return NextResponse.json({ success: true, message, waData: result.data });

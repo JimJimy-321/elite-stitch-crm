@@ -47,12 +47,12 @@ export async function getCashCutState(branchId: string): Promise<ActionResponse>
     const supabase = await createClient();
 
     try {
-        // A. Obtener el ÚLTIMO corte activo
+        // A. Obtener el ÚLTIMO corte que NO esté anulado
         const { data: lastCut } = await supabase
             .from('cash_cuts')
             .select('*')
             .eq('branch_id', branchId)
-            .eq('status', 'active')
+            .neq('status', 'annulled')
             .order('end_date', { ascending: false })
             .limit(1)
             .maybeSingle();
@@ -65,7 +65,9 @@ export async function getCashCutState(branchId: string): Promise<ActionResponse>
             startDate = lastCut.end_date;
             initialCash = Number(lastCut.cash_left) || 0;
         } else {
-            // Si no hay corte previo, usamos el inicio de los tiempos para incluir todo (ej: primer pago)
+            // Si no hay corte previo en la historia, usamos el inicio de los tiempos
+            // Esto garantiza que en el sistema de "Corte Continuo" no se pierda dinero
+            // si el usuario no realiza cortes diarios.
             startDate = new Date(0).toISOString();
         }
 
@@ -83,7 +85,7 @@ export async function getCashCutState(branchId: string): Promise<ActionResponse>
                 )
             `)
             .eq('branch_id', branchId)
-            .gt('created_at', startDate)
+            .gte('created_at', startDate)
             .lte('created_at', endDate);
 
         // Movimientos (Gastos e Ingresos Extra de Caja)
@@ -91,7 +93,7 @@ export async function getCashCutState(branchId: string): Promise<ActionResponse>
             .from('expenses')
             .select('*')
             .eq('branch_id', branchId)
-            .gt('created_at', startDate)
+            .gte('created_at', startDate)
             .lte('created_at', endDate);
 
         // Tickets/Prendas procesadas en el rango (Entradas/Salidas)
@@ -99,12 +101,13 @@ export async function getCashCutState(branchId: string): Promise<ActionResponse>
             .from('ticket_items')
             .select(`
                 *,
-                ticket:tickets(
+                ticket:tickets!inner(
                     ticket_number,
-                    client:clients(full_name)
+                    branch_id
                 ),
                 seamstress:profiles(full_name)
             `)
+            .eq('ticket.branch_id', branchId)
             .gte('created_at', startDate)
             .lte('created_at', endDate)
             .order('created_at', { ascending: true });
@@ -375,13 +378,15 @@ export async function getReportZData(cutId: string, _ts?: number): Promise<Actio
                 service_name,
                 status,
                 seamstress:profiles(full_name),
-                ticket:tickets(
+                ticket:tickets!inner(
                     ticket_number,
                     created_at,
                     delivery_date,
+                    branch_id,
                     client:clients(full_name, phone)
                 )
             `)
+            .eq('ticket.branch_id', cut.branch_id)
             .gte('created_at', cut.start_date)
             .lte('created_at', cut.end_date)
             .order('created_at', { ascending: true });

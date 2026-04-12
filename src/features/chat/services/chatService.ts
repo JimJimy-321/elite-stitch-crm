@@ -170,10 +170,12 @@ export const chatService = {
         const normalizedPhone = cleanPhone.length === 10 ? `52${cleanPhone}` : cleanPhone;
         const basePhone = cleanPhone.slice(-10);
 
-        // 1. Buscar o Crear Cliente
+        // 1. Buscar o Crear Cliente (Filtrado por Sucursal)
         let { data: clients, error: searchError } = await supabase
             .from('clients')
             .select('id, full_name, phone, organization_id')
+            .eq('organization_id', organizationId)
+            .eq('last_branch_id', branchId)
             .ilike('phone', `%${basePhone}%`)
             .order('created_at', { ascending: false })
             .limit(1);
@@ -215,6 +217,7 @@ export const chatService = {
                 .insert({
                     client_id: client.id,
                     branch_id: branchId,
+                    organization_id: organizationId,
                     status: 'active',
                     channel: 'whatsapp',
                     last_message_content: 'Conversación iniciada por agente',
@@ -270,12 +273,17 @@ export const chatService = {
     },
 
     async updateClientName(clientId: string, newName: string) {
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('clients')
             .update({ full_name: newName.toUpperCase() })
-            .eq('id', clientId);
+            .eq('id', clientId)
+            .select('id');
 
         if (error) throw error;
+
+        if (!data || data.length === 0) {
+            throw new Error('No se pudo actualizar el nombre. Es posible que no tenga permisos sobre este cliente o que pertenezca a otra organización.');
+        }
     },
 
     async clearChat(conversationId: string) {

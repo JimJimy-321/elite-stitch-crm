@@ -27,9 +27,10 @@ interface ClientFormModalProps {
     onClose: () => void;
     onSuccess: (client: any) => void;
     initialData?: any;
+    branchId?: string;
 }
 
-export function ClientFormModal({ onClose, onSuccess, initialData }: ClientFormModalProps) {
+export function ClientFormModal({ onClose, onSuccess, initialData, branchId }: ClientFormModalProps) {
     const { user } = useAuthStore();
     const { createClient, updateClient } = useClients();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -85,7 +86,7 @@ export function ClientFormModal({ onClose, onSuccess, initialData }: ClientFormM
                 phone: `${data.country_code} ${data.phone.replace(/\D/g, '')}`,
                 email: data.email?.toLowerCase() || null,
                 organization_id: user?.organization_id,
-                last_branch_id: user?.assigned_branch_id,
+                last_branch_id: branchId || user?.assigned_branch_id,
             };
 
             const result = initialData?.id

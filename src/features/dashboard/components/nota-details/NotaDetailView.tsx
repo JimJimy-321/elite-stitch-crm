@@ -23,7 +23,7 @@ interface Props {
 
 export function NotaDetailView({ nota, onUpdate }: Props) {
     const { updateStatus, collectPayment, deliver, loading } = useAdvancedNotas();
-    const { profiles } = useStaffProfiles(nota.organization_id);
+    const { profiles } = useStaffProfiles(nota.organization_id, nota.branch_id);
     const [error, setError] = useState<string | null>(null);
     const [paymentAmount, setPaymentAmount] = useState<string>(nota.balance_due.toString());
     const [paymentMethod, setPaymentMethod] = useState<string>('efectivo');
@@ -31,6 +31,7 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
 
     const handleUpdateStatus = async (itemId: string, newStatus: string) => {
         try {
+            setError(null);
             const seamstressId = selectedSeamstresses[itemId];
             if (newStatus === 'in_process' && !seamstressId) {
                 setError("Por favor seleccione una costurera/sastre.");
@@ -47,13 +48,12 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
         const amount = parseFloat(paymentAmount);
         if (isNaN(amount) || amount <= 0) return;
         try {
+            setError(null);
             const type = amount >= nota.balance_due ? 'liquidacion' : 'parcial';
             await collectPayment(nota.id, amount, paymentMethod, type, nota.branch_id);
             toast.success("Abono registrado correctamente");
             window.dispatchEvent(new CustomEvent('cash-cut-refresh'));
             await onUpdate();
-            // Reset payment amount to the new balance (which will be updated by onUpdate)
-            // But we should do it after onUpdate finishes.
         } catch (err) {
             setError(translateError(err));
         }
@@ -70,6 +70,7 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
             return;
         }
         try {
+            setError(null);
             await deliver(nota.id);
             onUpdate();
         } catch (err) {
@@ -175,7 +176,10 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
                                             <select
                                                 className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-amber-500"
                                                 value={selectedSeamstresses[item.id] || ''}
-                                                onChange={(e) => setSelectedSeamstresses(prev => ({ ...prev, [item.id]: e.target.value }))}
+                                                onChange={(e) => {
+                                                    setSelectedSeamstresses(prev => ({ ...prev, [item.id]: e.target.value }));
+                                                    if (error?.includes('costurera')) setError(null);
+                                                }}
                                             >
                                                 <option value="">Asignar Costurera...</option>
                                                 {profiles.map(p => (

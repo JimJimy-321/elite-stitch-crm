@@ -8,11 +8,17 @@ import { Modal } from '@/shared/components/ui/Modal';
 import { ClientFormModal } from '@/features/dashboard/components/ClientFormModal';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useAuthStore } from '@/features/auth/store/authStore';
 
 export default function ClientsPage() {
+    const searchParams = useSearchParams();
+    const { user } = useAuthStore();
+    const branchId = searchParams.get('branchId') || user?.assigned_branch_id;
+
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearch = useDebounce(searchTerm, 500);
-    const { clients, loading, refetch, deleteClient } = useClients(debouncedSearch);
+    const { clients, loading, refetch, deleteClient } = useClients(debouncedSearch, branchId);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedClient, setSelectedClient] = useState<any>(null);
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -204,6 +210,7 @@ export default function ClientsPage() {
             >
                 <ClientFormModal
                     initialData={selectedClient}
+                    branchId={branchId}
                     onClose={handleCloseModal}
                     onSuccess={() => {
                         handleCloseModal();

@@ -12,10 +12,12 @@ import { getReportZData } from '@/features/dashboard/actions/cash-cut-actions';
 interface ReportZModalProps {
     cutId: string;
     isOpen: boolean;
+    branchName?: string;
+    preparedBy?: string;
     onClose: () => void;
 }
 
-export function ReportZModal({ cutId, isOpen, onClose }: ReportZModalProps) {
+export function ReportZModal({ cutId, isOpen, branchName, preparedBy, onClose }: ReportZModalProps) {
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -49,6 +51,20 @@ export function ReportZModal({ cutId, isOpen, onClose }: ReportZModalProps) {
                 </div>
             ) : data ? (
                 <div className="space-y-8 animate-in fade-in duration-500">
+                    {/* Header Info para Impresión */}
+                    <div className="hidden print:block border-b-2 border-slate-900 pb-4 mb-6">
+                        <div className="flex justify-between items-end">
+                            <div>
+                                <h1 className="text-2xl font-black text-slate-900 uppercase">SastrePro - Reporte Z</h1>
+                                <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Sede: {branchName?.toUpperCase()}</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-xs font-bold text-slate-400 uppercase">Generado por: {preparedBy?.toUpperCase()}</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase">Fecha: {data?.cut?.end_date ? format(new Date(data.cut.end_date), "dd/MM/yyyy HH:mm") : '-'}</p>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Resumen Superior */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <KPICard title="Venta Total" value={formatCurrency(Number(data.cut.cash_sales) + Number(data.cut.card_sales) + Number(data.cut.transfer_sales))} color="indigo" />

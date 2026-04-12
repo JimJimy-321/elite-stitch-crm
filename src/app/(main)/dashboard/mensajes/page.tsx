@@ -56,10 +56,16 @@ export default function ChatPage() {
     useEffect(() => {
         const loadChats = async () => {
             try {
-                // TODO: Obtener branch_id del usuario real. Por ahora hardcoded demo o fetch.
                 const { data: { user } } = await supabase.auth.getUser();
-                // Simulación: traer todas por ahora para el Dueño
-                const chats = await chatService.getConversations();
+                if (!user) return;
+
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('assigned_branch_id')
+                    .eq('id', user.id)
+                    .single();
+
+                const chats = await chatService.getConversations(profile?.assigned_branch_id);
                 setConversations(chats);
             } catch (error) {
                 console.error("Error loading chats", error);

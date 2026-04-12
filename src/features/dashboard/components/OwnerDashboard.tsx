@@ -11,7 +11,7 @@ import {
     MoreHorizontal,
     Wallet
 } from 'lucide-react';
-import { useFinanceStats } from '../hooks/useDashboardData';
+import { useFinanceStats, useDailyFinancials } from '../hooks/useDashboardData';
 import {
     CartesianGrid,
     Tooltip,
@@ -38,59 +38,76 @@ const salesData = [
 ];
 
 const performanceData = [
-    { name: 'Sede Norte', ingresos: 45000, rentabilidad: 65 },
-    { name: 'Sede Sur', ingresos: 32000, rentabilidad: 58 },
-    { name: 'Sede Este', ingresos: 28000, rentabilidad: 45 },
-    { name: 'Sede Centro', ingresos: 39000, rentabilidad: 72 },
+    { name: 'Sede Norte', ingresos: 45000, rentabilidad: 65, grossSales: 45000 },
+    { name: 'Sede Sur', ingresos: 32000, rentabilidad: 58, grossSales: 32000 },
+    { name: 'Sede Este', ingresos: 28000, rentabilidad: 45, grossSales: 28000 },
+    { name: 'Sede Centro', ingresos: 39000, rentabilidad: 72, grossSales: 39000 },
 ];
 
 export function OwnerDashboard({ user }: Props) {
-    const { stats, loading } = useFinanceStats();
+    const { stats, loading: statsLoading } = useFinanceStats();
+    const { financials, loading: finLoading } = useDailyFinancials(undefined);
+    const loading = statsLoading || finLoading;
+
     const firstName = user?.full_name?.split(' ')[0] || 'Dueño';
+
+    const chartData = stats?.weeklySales?.length > 0 ? stats.weeklySales : salesData;
+    const branchData = stats?.branchPerformance?.length > 0 ? stats.branchPerformance : performanceData;
+
+    // IA Insight logic with safety
+    const strongestBranch = branchData.length > 0 
+        ? branchData.reduce((prev: any, current: any) => (prev.grossSales > current.grossSales) ? prev : current, branchData[0])
+        : null;
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
-            <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-black tracking-tight text-foreground">Bienvenido, {firstName}</h1>
-                <p className="text-muted-foreground text-sm font-medium">Aquí tienes el resumen consolidado de tus 4 sucursales.</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex flex-col gap-2">
+                    <h1 className="text-3xl font-black tracking-tight text-foreground">Bienvenido, {firstName}</h1>
+                    <p className="text-muted-foreground text-sm font-medium">Resumen consolidado de <span className="text-orange-600 font-bold">{branchData.length || 0}</span> sedes activas.</p>
+                </div>
+                <div className="bg-orange-500/5 border border-orange-500/10 px-4 py-2 rounded-2xl flex items-center gap-3">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-orange-600">Datos en Tiempo Real: HOY (Corte Activo)</span>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <KPICard
-                    title="Ingresos Totales"
-                    value={formatCurrency(stats?.totalIncome || 0)}
-                    change="+0%"
+                    title="Venta Bruta (Notas Hoy)"
+                    value={formatCurrency(financials?.grossSales || 0)}
+                    change="HOY"
                     isPositive={true}
                     icon={TrendingUp}
                     color="orange"
-                    border="border-orange-500"
+                    border="border-orange-500 shadow-orange-100"
+                />
+                <KPICard
+                    title="Cobranza Real (Caja Hoy)"
+                    value={formatCurrency(financials?.income || 0)}
+                    change="HOY"
+                    isPositive={true}
+                    icon={Wallet}
+                    color="emerald"
+                    border="border-emerald-500 shadow-emerald-100"
                 />
                 <KPICard
                     title="Cuentas por Cobrar"
                     value={formatCurrency(stats?.totalReceivable || 0)}
-                    change="+0%"
+                    change="Total"
                     isPositive={true}
-                    icon={Wallet}
+                    icon={Clock}
                     color="blue"
-                    border="border-blue-500"
+                    border="border-blue-500 shadow-blue-100"
                 />
                 <KPICard
-                    title="Gastos Totales"
-                    value={formatCurrency(stats?.totalExpenses || 0)}
-                    change="0%"
+                    title="Gastos (Corte Activo)"
+                    value={formatCurrency(financials?.expense || 0)}
+                    change="HOY"
                     isPositive={false}
                     icon={Users}
                     color="purple"
-                    border="border-purple-500"
-                />
-                <KPICard
-                    title="Balance Neto"
-                    value={formatCurrency(stats?.netBalance || 0)}
-                    change="0%"
-                    isPositive={true}
-                    icon={Clock}
-                    color="emerald"
-                    border="border-emerald-500"
+                    border="border-purple-500 shadow-purple-100"
                 />
             </div>
 
@@ -106,62 +123,79 @@ export function OwnerDashboard({ user }: Props) {
                         </button>
                     </div>
                     <div className="h-[350px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={salesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                <defs>
-                                    <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#F97316" stopOpacity={0.1} />
-                                        <stop offset="95%" stopColor="#F97316" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                                <XAxis
-                                    dataKey="name"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fill: '#64748B', fontSize: 10, fontWeight: 700 }}
-                                    dy={15}
-                                />
-                                <YAxis hide={true} />
-                                <Tooltip
-                                    cursor={{ stroke: '#F97316', strokeWidth: 2, strokeDasharray: '4 4' }}
-                                    contentStyle={{
-                                        backgroundColor: '#FFFFFF',
-                                        border: 'none',
-                                        borderRadius: '12px',
-                                        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                                        padding: '12px'
-                                    }}
-                                    itemStyle={{ color: '#0F172A', fontWeight: 800, fontSize: '12px' }}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="total"
-                                    stroke="#F97316"
-                                    strokeWidth={4}
-                                    fillOpacity={1}
-                                    fill="url(#colorTotal)"
-                                    animationDuration={1500}
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                        {loading ? (
+                            <div className="h-full w-full flex items-center justify-center bg-slate-50/50 rounded-2xl animate-pulse">
+                                <TrendingUp className="text-slate-200 animate-bounce" size={40} />
+                            </div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#F97316" stopOpacity={0.1} />
+                                            <stop offset="95%" stopColor="#F97316" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                                    <XAxis
+                                        dataKey="name"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#64748B', fontSize: 10, fontWeight: 700 }}
+                                        dy={15}
+                                    />
+                                    <YAxis hide={true} />
+                                    <Tooltip
+                                        cursor={{ stroke: '#F97316', strokeWidth: 2, strokeDasharray: '4 4' }}
+                                        contentStyle={{
+                                            backgroundColor: '#FFFFFF',
+                                            border: 'none',
+                                            borderRadius: '12px',
+                                            boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                                            padding: '12px'
+                                        }}
+                                        itemStyle={{ color: '#0F172A', fontWeight: 800, fontSize: '12px' }}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="total"
+                                        stroke="#F97316"
+                                        strokeWidth={4}
+                                        fillOpacity={1}
+                                        fill="url(#colorTotal)"
+                                        animationDuration={1500}
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
 
                 <div className="glass-card p-8 border-none shadow-2xl bg-gradient-to-b from-card to-background">
-                    <h3 className="font-black text-foreground uppercase text-[11px] tracking-[0.2em] mb-8">Rendimiento por Sede</h3>
+                    <h3 className="font-black text-foreground uppercase text-[11px] tracking-[0.2em] mb-8">Venta Bruta por Sede (HOY)</h3>
                     <div className="space-y-8">
-                        {performanceData.map((branch) => (
+                        {loading ? (
+                             [1,2,3,4].map(i => (
+                                <div key={i} className="space-y-3 animate-pulse">
+                                    <div className="flex justify-between h-4 bg-slate-100 rounded w-full" />
+                                    <div className="h-2 bg-slate-50 rounded-full w-full" />
+                                </div>
+                             ))
+                        ) : branchData.map((branch: any) => (
                             <div key={branch.name} className="space-y-3">
                                 <div className="flex justify-between items-end">
                                     <span className="text-xs font-black text-slate-700 tracking-tight">{branch.name}</span>
-                                    <span className="text-xs text-orange-600 font-black">{formatCurrency(branch.ingresos)}</span>
+                                    <span className="text-xs text-orange-600 font-black">{formatCurrency(branch.grossSales || 0)}</span>
                                 </div>
-                                <div className="relative h-2 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                                <div className="relative h-2 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner flex items-center">
                                     <div
                                         className="absolute top-0 left-0 h-full bg-gradient-to-r from-orange-500 to-orange-400 rounded-full transition-all duration-1000"
-                                        style={{ width: `${(branch.ingresos / 50000) * 100}%` }}
+                                        style={{ width: `${Math.min(100, (branch.grossSales / (stats?.totalGross || 1)) * 100)}%` }}
                                     />
+                                </div>
+                                <div className="flex justify-between items-center text-[9px] font-bold text-muted-foreground uppercase">
+                                    <span>Cobrado: {formatCurrency(branch.ingresos || 0)}</span>
+                                    <span>{Math.round((branch.grossSales / (stats?.totalGross || 1)) * 100)}% del total</span>
                                 </div>
                             </div>
                         ))}
@@ -170,7 +204,11 @@ export function OwnerDashboard({ user }: Props) {
                     <div className="mt-10 p-5 bg-orange-500/5 rounded-2xl border border-orange-500/10 border-l-4 border-l-orange-500">
                         <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-2">Insight IA</p>
                         <p className="text-xs text-muted-foreground leading-relaxed font-medium">
-                            La <span className="text-foreground font-bold">"Sede Centro"</span> muestra una rentabilidad del 72%, un 5% arriba del promedio general.
+                            {strongestBranch ? (
+                                <>Tu sede más fuerte hoy es <span className="text-foreground font-bold font-black italic">"{strongestBranch.name}"</span>, con una venta bruta de <span className="text-orange-600 font-black">{formatCurrency(strongestBranch.grossSales)}</span>.</>
+                            ) : (
+                                "Inicia operaciones en tus sedes para recibir insights hoy."
+                            )}
                         </p>
                     </div>
                 </div>

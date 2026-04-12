@@ -18,10 +18,14 @@ import {
     Plus,
     Activity,
     CreditCard,
-    TrendingDown
+    TrendingDown,
+    ArrowLeft,
+    Monitor,
+    Store
 } from 'lucide-react';
 import { cn, formatCurrency } from '@/shared/lib/utils';
-import { useNotas, useAdvancedNotas, useDashboardStats, useDailyFinancials, useActiveWorkQueue } from '../hooks/useDashboardData';
+import { useNotas, useAdvancedNotas, useDashboardStats, useDailyFinancials, useActiveWorkQueue, useBranches } from '../hooks/useDashboardData';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { NotaDetailView } from './nota-details/NotaDetailView';
 import { AdvancedNotaForm } from './AdvancedNotaForm';
 import { Modal } from '@/shared/components/ui/Modal';
@@ -43,8 +47,14 @@ export function ManagerDashboard({ user: initialUser }: Props) {
     const { financials, loading: finLoading, refetch: refetchFin } = useDailyFinancials(initialUser?.assigned_branch_id);
     const { queue: activeQueue, loading: queueLoading, refetch: refetchQueue } = useActiveWorkQueue(initialUser?.assigned_branch_id);
 
-    const { notas, loading: notasLoading, refetch: refetchNotas } = useNotas(debouncedSearch);
+    const { user: currentUser } = useAuthStore();
+    const { branches } = useBranches();
+    const { notas, loading: notasLoading, refetch: refetchNotas } = useNotas(debouncedSearch, undefined, initialUser?.assigned_branch_id);
     const isLoading = notasLoading || statsLoading || finLoading || queueLoading;
+
+    // Detect if we are in "Monitor Mode" (Owner looking at a branch)
+    const isMonitorMode = currentUser?.role === 'owner' && initialUser?.assigned_branch_id;
+    const monitoredBranch = branches.find(b => b.id === initialUser?.assigned_branch_id);
 
     React.useEffect(() => {
         const handleRefresh = () => {
@@ -76,13 +86,60 @@ export function ManagerDashboard({ user: initialUser }: Props) {
 
     return (
         <div className="space-y-10 animate-fade-in pb-20">
+            {/* Monitor Mode or Branch Info Banner */}
+            {isMonitorMode ? (
+                <div className="bg-orange-600 text-white p-4 rounded-[2rem] shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4 animate-in slide-in-from-top duration-500 border-b-4 border-orange-700">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-xl">
+                            <Monitor size={24} className="text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-black tracking-tight flex items-center gap-2">
+                                MODO MONITOR: <span className="text-orange-200 uppercase">{monitoredBranch?.name || 'Sucursal Seleccionada'}</span>
+                            </h2>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-orange-100 opacity-80">Estás visualizando las operaciones en tiempo real de esta sede</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => router.push('/dashboard')}
+                        className="bg-white text-orange-600 px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-50 transition-all flex items-center gap-2 shadow-lg active:scale-95"
+                    >
+                        <ArrowLeft size={16} />
+                        Volver al Resumen
+                    </button>
+                </div>
+            ) : (
+                currentUser?.role === 'manager' && (
+                    <div className="bg-slate-900 text-white p-4 rounded-[2rem] shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4 animate-in slide-in-from-top duration-500 border-b-4 border-orange-500">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-orange-500/10 rounded-2xl flex items-center justify-center backdrop-blur-xl border border-orange-500/20">
+                                <Store size={24} className="text-orange-500" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-black tracking-tight flex items-center gap-2">
+                                    SEDE ACTUAL: <span className="text-orange-500 uppercase">{branches.find(b => b.id === currentUser?.assigned_branch_id)?.name || 'Cargando...'}</span>
+                                </h2>
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 opacity-80">Panel de control exclusivo para la gestión de esta sucursal</p>
+                            </div>
+                        </div>
+                        <div className="px-4 py-2 bg-white/5 rounded-xl border border-white/10 hidden md:block">
+                             <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">Acceso Verificado</span>
+                        </div>
+                    </div>
+                )
+            )}
+
             {/* Header / Search */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative">
+
+
                 <div className="space-y-2">
                     <h1 className="text-4xl font-black tracking-tighter text-slate-900 flex items-center gap-4">
-                        Centro de Control <span className="text-orange-500">Operativo</span>
+                        Centro de Control <span className="text-orange-500">{isMonitorMode ? 'de Sede' : 'Operativo'}</span>
                     </h1>
-                    <p className="text-slate-500 font-bold text-sm uppercase tracking-widest">SastrePro Intelligence v3.0</p>
+                    <p className="text-slate-500 font-bold text-sm uppercase tracking-widest">
+                        {isMonitorMode ? `Monitoreando: ${monitoredBranch?.name}` : 'SastrePro Intelligence v3.0'}
+                    </p>
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -147,7 +204,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                     </div>
 
                     <button 
-                        onClick={() => router.push('/dashboard/notas')}
+                        onClick={() => router.push(`/dashboard/notas?branchId=${initialUser?.assigned_branch_id}`)}
                         className="w-full py-6 text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 hover:text-orange-600 transition-all group flex items-center justify-center gap-3"
                     >
                         Ver todas las notas <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
@@ -249,6 +306,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
             >
                 <AdvancedNotaForm
                     onClose={() => setIsNewNotaModalOpen(false)}
+                    forceBranchId={initialUser?.assigned_branch_id}
                     onSuccess={async () => {
                         setIsNewNotaModalOpen(false);
                         await refetchNotas();

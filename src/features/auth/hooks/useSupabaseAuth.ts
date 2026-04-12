@@ -7,6 +7,11 @@ export function useSupabaseAuth() {
     const { setUser, logout, setInitialized } = useAuthStore();
 
     useEffect(() => {
+        // Limpiamos el localStorage antiguo si existe para evitar conflictos
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('auth-storage');
+        }
+
         // Obtener sesión actual
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session?.user) {

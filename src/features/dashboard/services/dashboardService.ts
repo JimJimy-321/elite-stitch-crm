@@ -3,18 +3,31 @@ import { createClient } from '@/lib/supabase/client';
 const supabase = createClient();
 
 export const dashboardService = {
-    async checkNotaExists(notaNumber: string) {
+    async checkNotaExists(notaNumber: string, branchId?: string) {
+        if (!branchId) {
+            console.warn('checkNotaExists called without branchId');
+            return false; // No podemos validar sin sucursal, asumimos que no existe para no bloquear
+        }
+
         const { data, error } = await supabase
             .from('tickets')
             .select('id')
             .eq('ticket_number', notaNumber)
+            .eq('branch_id', branchId)
             .maybeSingle();
 
         if (error) throw error;
         return !!data;
     },
 
-    async getNotas(search?: string, filters?: { garment?: string, seamstress_id?: string, status?: string, startDate?: string, endDate?: string }) {
+    async getNotas(search?: string, filters?: { garment?: string, seamstress_id?: string, status?: string, startDate?: string, endDate?: string }, branchId?: string, orgId?: string) {
+        let branchIds: string[] = [];
+        if (!branchId && orgId) {
+            const { data } = await supabase.from('branches').select('id').eq('organization_id', orgId);
+            branchIds = data?.map(b => b.id) || [];
+            if (branchIds.length === 0) return [];
+        }
+
         let query = supabase
             .from('tickets')
             .select(`
@@ -23,6 +36,12 @@ export const dashboardService = {
                 branch:branches(name),
                 items:ticket_items(*)
             `);
+
+        if (branchId) {
+            query = query.eq('branch_id', branchId);
+        } else if (branchIds.length > 0) {
+            query = query.in('branch_id', branchIds);
+        }
 
         // Filtros de BD directos
         if (filters?.status) {
@@ -68,10 +87,18 @@ export const dashboardService = {
         return normalizedData;
     },
 
-    async getClients(search?: string) {
+    async getClients(search?: string, branchId?: string, orgId?: string) {
         let query = supabase
             .from('clients')
             .select('*');
+
+        if (orgId) {
+            query = query.eq('organization_id', orgId);
+        }
+
+        if (branchId) {
+            query = query.eq('last_branch_id', branchId);
+        }
 
         if (search) {
             const s = search.toUpperCase();
@@ -80,7 +107,7 @@ export const dashboardService = {
 
         const { data, error } = await query
             .order('created_at', { ascending: false })
-            .limit(20);
+            .limit(100);
 
         if (error) throw error;
         return data;
@@ -139,19 +166,88 @@ export const dashboardService = {
         return true;
     },
 
-    async getBranches() {
-        const { data, error } = await supabase
+    async getBranches(organizationId?: string) {
+        let query = supabase
             .from('branches')
             .select('*')
             .order('name', { ascending: true });
+
+        if (organizationId) {
+            query = query.eq('organization_id', organizationId);
+        }
+
+        const { data, error } = await query;
 
         if (error) throw error;
         return data;
     },
 
-    async getStats(branchId?: string, filters?: { startDate?: string, endDate?: string }) {
+    async createBranch(branchData: { name: string, address: string, organization_id: string }) {
+        const { data, error } = await supabase
+            .from('branches')
+            .insert(branchData)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    async updateBranch(id: string, branchData: any) {
+        const { data, error } = await supabase
+            .from('branches')
+            .update(branchData)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    async deleteBranch(id: string) {
+        // Verificar si tiene tickets
+        const { data: hasTickets } = await supabase
+            .from('tickets')
+            .select('id')
+            .eq('branch_id', id)
+            .limit(1);
+
+        if (hasTickets && hasTickets.length > 0) {
+            throw new Error("No se puede eliminar la sede porque tiene órdenes o historial registrado.");
+        }
+
+        const { error } = await supabase
+            .from('branches')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        return true;
+    },
+
+    async updateProfile(userId: string, updates: any) {
+        const { data, error } = await supabase
+            .from('profiles')
+            .update(updates)
+            .eq('id', userId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    async getStats(branchId?: string, filters?: { startDate?: string, endDate?: string }, orgId?: string) {
         const today = new Date().toLocaleDateString('en-CA');
         
+        let branchIds: string[] = [];
+        if (!branchId && orgId) {
+            const { data } = await supabase.from('branches').select('id').eq('organization_id', orgId);
+            branchIds = data?.map(b => b.id) || [];
+            if (branchIds.length === 0) return { received: 0, processing: 0, ready: 0, delivered: 0, totalRevenue: 0 };
+        }
+
         // Fetch ALL active tickets for the queue counts (Recibidos, En Proceso, Listos)
         let activeQuery = supabase
             .from('tickets')
@@ -160,6 +256,8 @@ export const dashboardService = {
 
         if (branchId) {
             activeQuery = activeQuery.eq('branch_id', branchId);
+        } else if (branchIds.length > 0) {
+            activeQuery = activeQuery.in('branch_id', branchIds);
         }
         
         if (filters?.startDate) {
@@ -178,7 +276,11 @@ export const dashboardService = {
             .select('*', { count: 'exact', head: true })
             .eq('status', 'delivered');
             
-        if (branchId) deliveredQuery = deliveredQuery.eq('branch_id', branchId);
+        if (branchId) {
+            deliveredQuery = deliveredQuery.eq('branch_id', branchId);
+        } else if (branchIds.length > 0) {
+            deliveredQuery = deliveredQuery.in('branch_id', branchIds);
+        }
         
         if (filters?.startDate) {
             deliveredQuery = deliveredQuery.gte('created_at', `${filters.startDate}T00:00:00`);
@@ -199,7 +301,11 @@ export const dashboardService = {
             .gte('created_at', `${today}T00:00:00`)
             .lte('created_at', `${today}T23:59:59`);
         
-        if (branchId) revenueQuery = revenueQuery.eq('branch_id', branchId);
+        if (branchId) {
+            revenueQuery = revenueQuery.eq('branch_id', branchId);
+        } else if (branchIds.length > 0) {
+            revenueQuery = revenueQuery.in('branch_id', branchIds);
+        }
         const { data: todayPayments } = await revenueQuery;
 
         const stats = {
@@ -226,13 +332,17 @@ export const dashboardService = {
         return data;
     },
 
-    async getProfiles(organizationId?: string) {
+    async getProfiles(organizationId?: string, branchId?: string) {
         let query = supabase
             .from('profiles')
-            .select('id, full_name, role');
+            .select('*');
 
         if (organizationId) {
             query = query.eq('organization_id', organizationId);
+        }
+
+        if (branchId) {
+            query = query.eq('assigned_branch_id', branchId);
         }
 
         const { data, error } = await query.order('full_name', { ascending: true });
@@ -366,8 +476,17 @@ export const dashboardService = {
         return ticket;
     },
 
-    async getDailyReport(branchId?: string) {
+    async getDailyReport(branchId?: string, orgId?: string) {
         const today = new Date().toLocaleDateString('en-CA');
+
+        let branchIds: string[] = [];
+        if (!branchId && orgId) {
+            const { data } = await supabase.from('branches').select('id').eq('organization_id', orgId);
+            branchIds = data?.map(b => b.id) || [];
+            if (branchIds.length === 0) return {
+                payments: [], expenses: [], tickets: [], items: [], summary: { totalCash: 0, totalCard: 0, totalTransfer: 0, totalExpenses: 0, totalIncomes: 0, totalGross: 0, totalPending: 0 }
+            };
+        }
 
         let query = supabase
             .from('ticket_payments')
@@ -376,6 +495,7 @@ export const dashboardService = {
             .lte('created_at', `${today}T23:59:59`);
 
         if (branchId) query = query.eq('branch_id', branchId);
+        else if (branchIds.length > 0) query = query.in('branch_id', branchIds);
 
         const { data: payments, error: pError } = await query;
         if (pError) throw pError;
@@ -387,6 +507,7 @@ export const dashboardService = {
             .lte('created_at', `${today}T23:59:59`);
 
         if (branchId) expQuery = expQuery.eq('branch_id', branchId);
+        else if (branchIds.length > 0) expQuery = expQuery.in('branch_id', branchIds);
 
         const { data: expenses, error: eError } = await expQuery;
         if (eError) throw eError;
@@ -398,6 +519,7 @@ export const dashboardService = {
             .lte('created_at', `${today}T23:59:59`);
 
         if (branchId) ticketsQuery = ticketsQuery.eq('branch_id', branchId);
+        else if (branchIds.length > 0) ticketsQuery = ticketsQuery.in('branch_id', branchIds);
 
         const { data: tickets, error: tError } = await ticketsQuery;
         if (tError) throw tError;
@@ -410,6 +532,7 @@ export const dashboardService = {
             .lte('created_at', `${today}T23:59:59`);
 
         if (branchId) itemsQuery = itemsQuery.eq('branch_id', branchId);
+        else if (branchIds.length > 0) itemsQuery = itemsQuery.in('branch_id', branchIds);
         const { data: items, error: iError } = await itemsQuery;
         if (iError) throw iError;
 
@@ -421,6 +544,7 @@ export const dashboardService = {
             .neq('status', 'delivered');
         
         if (branchId) allPendingQuery = allPendingQuery.eq('branch_id', branchId);
+        else if (branchIds.length > 0) allPendingQuery = allPendingQuery.in('branch_id', branchIds);
         const { data: allPending } = await allPendingQuery;
 
         return {
@@ -465,22 +589,84 @@ export const dashboardService = {
         return data;
     },
 
-    async getFinanceStats() {
-        const [{ data: payments }, { data: expenses }, { data: tickets }] = await Promise.all([
-            supabase.from('ticket_payments').select('amount'),
-            supabase.from('expenses').select('amount'),
-            supabase.from('tickets').select('balance_due')
-        ]);
+    async getFinanceStats(orgId?: string, filters?: { startDate?: string, endDate?: string }) {
+        let branchIds: string[] = [];
+        let branches: any[] = [];
+        if (orgId) {
+            const { data } = await supabase.from('branches').select('id, name').eq('organization_id', orgId);
+            branchIds = data?.map(b => b.id) || [];
+            branches = data || [];
+            if (branchIds.length === 0) {
+                return { totalIncome: 0, totalExpenses: 0, totalReceivable: 0, totalGross: 0, netBalance: 0, weeklySales: [], branchPerformance: [] };
+            }
+        }
+
+        let q1 = supabase.from('ticket_payments').select('amount, branch_id, created_at');
+        let q2 = supabase.from('expenses').select('amount, branch_id, created_at');
+        let q3 = supabase.from('tickets').select('total_amount, balance_due, branch_id, created_at');
+
+        if (branchIds.length > 0) {
+            q1 = q1.in('branch_id', branchIds);
+            q2 = q2.in('branch_id', branchIds);
+            q3 = q3.in('branch_id', branchIds);
+        }
+
+        if (filters?.startDate) {
+            q1 = q1.gte('created_at', filters.startDate);
+            q2 = q2.gte('created_at', filters.startDate);
+            q3 = q3.gte('created_at', filters.startDate);
+        }
+        if (filters?.endDate) {
+            q1 = q1.lte('created_at', filters.endDate);
+            q2 = q2.lte('created_at', filters.endDate);
+            q3 = q3.lte('created_at', filters.endDate);
+        }
+
+        const [{ data: payments }, { data: expenses }, { data: tickets }] = await Promise.all([q1, q2, q3]);
 
         const totalIncome = payments?.reduce((acc, p) => acc + Number(p.amount), 0) || 0;
         const totalExpenses = expenses?.reduce((acc, e) => acc + Number(e.amount), 0) || 0;
         const totalReceivable = tickets?.reduce((acc, t) => acc + Number(t.balance_due), 0) || 0;
+        const totalGross = tickets?.reduce((acc, t) => acc + Number(t.total_amount), 0) || 0;
+
+        // Calculate Weekly Sales
+        const last7Days = Array.from({ length: 7 }, (_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - (6 - i));
+            return d.toLocaleDateString('es-ES', { weekday: 'short' }).replace('.', '');
+        });
+
+        const weeklySales = last7Days.map(dayName => {
+            const dayPayments = payments?.filter(p => {
+                const pDate = new Date(p.created_at).toLocaleDateString('es-ES', { weekday: 'short' }).replace('.', '');
+                return pDate === dayName;
+            });
+            return {
+                name: dayName.charAt(0).toUpperCase() + dayName.slice(1),
+                total: dayPayments?.reduce((acc, p) => acc + Number(p.amount), 0) || 0
+            };
+        });
+
+        // Calculate Branch Performance
+        const branchPerformance = branches.map(b => {
+            const bPayments = payments?.filter(p => p.branch_id === b.id);
+            const bTickets = tickets?.filter(t => t.branch_id === b.id);
+            return {
+                name: b.name,
+                ingresos: bPayments?.reduce((acc, p) => acc + Number(p.amount), 0) || 0,
+                grossSales: bTickets?.reduce((acc, t) => acc + Number(t.total_amount), 0) || 0,
+                rentabilidad: 70 
+            };
+        });
 
         return {
             totalIncome,
             totalExpenses,
             totalReceivable,
-            netBalance: totalIncome - totalExpenses
+            totalGross,
+            netBalance: totalIncome - totalExpenses,
+            weeklySales,
+            branchPerformance
         };
     },
 
@@ -558,45 +744,74 @@ export const dashboardService = {
         return true;
     },
 
-    async getDailyFinancials(branch_id?: string) {
-        if (!branch_id) return null;
+    async getDailyFinancials(branch_id?: string, orgId?: string) {
+        let branchIds: string[] = [];
+        if (!branch_id && orgId) {
+            const { data } = await supabase.from('branches').select('id').eq('organization_id', orgId);
+            branchIds = data?.map(b => b.id) || [];
+            if (branchIds.length === 0) return {
+                income: 0, grossSales: 0, expense: 0, netCash: 0,
+                breakdown: { initialCash: 0, methods: { cash: 0, card: 0, transfer: 0 }, extraIncomes: 0 }
+            };
+        } else if (!branch_id) {
+            return null; // Need either branch or orgId
+        }
 
-        // IMPORT: getCashCutState is a server action, but we are in a client service.
-        // We'll reimplement or import the logic here to ensure consistency.
-        // Actually, the best way to ensure 100% consistency is to use the SAME SQL logic.
-        
-        // Let's fetch the data directly since this is a client-side service
-        // using the same logic as getCashCutState.
-
-        // 1. Get last active cut
-        const { data: activeCut } = await supabase
+        // 1. Get last non-annulled cut for branch or branches
+        let cutsQuery = supabase
             .from('cash_cuts')
             .select('*')
-            .eq('branch_id', branch_id)
-            .eq('status', 'active')
-            .order('end_date', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+            .neq('status', 'annulled')
+            .order('end_date', { ascending: false });
+        
+        if (branch_id) {
+            cutsQuery = cutsQuery.eq('branch_id', branch_id).limit(1);
+        } else if (branchIds.length > 0) {
+            cutsQuery = cutsQuery.in('branch_id', branchIds);
+        }
+        
+        const { data: lastCuts } = await cutsQuery;
 
-        let startDate: string;
+        // Default: Start of the day (safety for new branches)
+        let startDate: string = new Date(new Date().setHours(0,0,0,0)).toISOString(); 
         let initialCash = 0;
 
-        if (activeCut) {
-            startDate = activeCut.end_date;
-            initialCash = Number(activeCut.cash_left) || 0;
+        if (lastCuts && lastCuts.length > 0) {
+            const cutsWithEndDate = lastCuts.filter(c => c.end_date);
+            if (cutsWithEndDate.length > 0) {
+                if (branch_id) {
+                    // Solo una sucursal: empezar desde su último corte
+                    startDate = lastCuts[0].end_date;
+                } else {
+                    // Múltiples sucursales: usar el más antiguo de los últimos cortes
+                    const timeStamps = cutsWithEndDate.map(c => new Date(c.end_date).getTime());
+                    startDate = new Date(Math.min(...timeStamps)).toISOString();
+                }
+            }
+            initialCash = lastCuts.reduce((sum, c) => sum + (Number(c.cash_left) || 0), 0);
         } else {
-            // Si no hay corte previo, usamos el inicio de los tiempos para incluir todo
-            startDate = new Date(0).toISOString(); 
+            // Si no hay cortes en absoluto, empezar de cero para no perder el primer movimiento histórico
+            startDate = new Date(0).toISOString();
         }
 
         const endDate = new Date().toISOString();
 
-        // 2. Fetch Transactions (Same as getCashCutState)
-        const [paymentsRes, movementsRes, ticketsRes] = await Promise.all([
-            supabase.from('ticket_payments').select('amount, payment_method, payment_type').eq('branch_id', branch_id).gt('created_at', startDate).lte('created_at', endDate),
-            supabase.from('expenses').select('amount, type').eq('branch_id', branch_id).gt('created_at', startDate).lte('created_at', endDate),
-            supabase.from('tickets').select('total_amount').eq('branch_id', branch_id).gt('created_at', startDate).lte('created_at', endDate)
-        ]);
+        // 2. Fetch Transactions
+        let q1 = supabase.from('ticket_payments').select('amount, payment_method, payment_type').gte('created_at', startDate).lte('created_at', endDate);
+        let q2 = supabase.from('expenses').select('amount, type').gte('created_at', startDate).lte('created_at', endDate);
+        let q3 = supabase.from('tickets').select('total_amount').gte('created_at', startDate).lte('created_at', endDate);
+
+        if (branch_id) {
+            q1 = q1.eq('branch_id', branch_id);
+            q2 = q2.eq('branch_id', branch_id);
+            q3 = q3.eq('branch_id', branch_id);
+        } else if (branchIds.length > 0) {
+            q1 = q1.in('branch_id', branchIds);
+            q2 = q2.in('branch_id', branchIds);
+            q3 = q3.in('branch_id', branchIds);
+        }
+
+        const [paymentsRes, movementsRes, ticketsRes] = await Promise.all([q1, q2, q3]);
 
         const payments = paymentsRes.data || [];
         const movements = movementsRes.data || [];
@@ -633,7 +848,14 @@ export const dashboardService = {
         };
     },
 
-    async getActiveWorkQueue(branchId?: string) {
+    async getActiveWorkQueue(branchId?: string, orgId?: string) {
+        let branchIds: string[] = [];
+        if (!branchId && orgId) {
+            const { data } = await supabase.from('branches').select('id').eq('organization_id', orgId);
+            branchIds = data?.map(b => b.id) || [];
+            if (branchIds.length === 0) return [];
+        }
+
         let query = supabase
             .from('tickets')
             .select(`
@@ -646,6 +868,8 @@ export const dashboardService = {
 
         if (branchId) {
             query = query.eq('branch_id', branchId);
+        } else if (branchIds.length > 0) {
+            query = query.in('branch_id', branchIds);
         }
 
         const { data, error } = await query.order('delivery_date', { ascending: true });

@@ -13,6 +13,8 @@ import { formatCurrency } from '@/shared/lib/utils';
 import { getReportZData } from '@/features/dashboard/actions/cash-cut-actions';
 import { ReportZModal } from './ReportZModal';
 import { ExportReportButton } from './ExportReportButton';
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { useBranches } from '@/features/dashboard/hooks/useDashboardData';
 
 interface CashCutDetailModalProps {
     cut: any;
@@ -21,10 +23,14 @@ interface CashCutDetailModalProps {
 }
 
 export function CashCutDetailModal({ cut, isOpen, onClose }: CashCutDetailModalProps) {
+    const { user } = useAuthStore();
+    const { branches } = useBranches();
     const [isReportZOpen, setIsReportZOpen] = useState(false);
     const [reportData, setReportData] = useState<any[]>([]);
     const [fullData, setFullData] = useState<any>(null);
     const [isLoadingData, setIsLoadingData] = useState(false);
+
+    const branchName = branches?.find(b => b.id === cut?.branch_id)?.name || 'Sede';
 
     React.useEffect(() => {
         if (isOpen && cut?.id) {
@@ -68,6 +74,8 @@ export function CashCutDetailModal({ cut, isOpen, onClose }: CashCutDetailModalP
                         </Button>
                         <ExportReportButton
                             date={format(new Date(cut.end_date), "dd 'de' MMMM, yyyy • HH:mm", { locale: es })}
+                            branchName={branchName}
+                            preparedBy={user?.full_name}
                             summary={isLoadingData || !fullData ? null : {
                                 totalGross: Number(cut.gross_sales || 0),
                                 totalAnticipos: Number(cut.anticipos || 0),
@@ -92,6 +100,8 @@ export function CashCutDetailModal({ cut, isOpen, onClose }: CashCutDetailModalP
                 <ReportZModal
                     cutId={cut.id}
                     isOpen={isReportZOpen}
+                    branchName={branchName}
+                    preparedBy={user?.full_name}
                     onClose={() => setIsReportZOpen(false)}
                 />
 

@@ -12,13 +12,13 @@ import { useDebounce } from '@/shared/hooks/useDebounce';
 interface AdvancedNotaFormProps {
     onClose: () => void;
     onSuccess: () => void;
+    forceBranchId?: string;
 }
 
-export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) {
+export function AdvancedNotaForm({ onClose, onSuccess, forceBranchId }: AdvancedNotaFormProps) {
     const { user } = useAuthStore();
     const [clientSearch, setClientSearch] = useState('');
     const debouncedClientSearch = useDebounce(clientSearch, 500);
-    const { clients } = useClients(debouncedClientSearch.toUpperCase());
     const { branches } = useBranches();
     const { garments } = useGarments();
     const { services } = useServices();
@@ -33,11 +33,12 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
 
     // Auto-select branch from user
     const [selectedBranch, setSelectedBranch] = useState<any>(null);
+    const { clients } = useClients(debouncedClientSearch.toUpperCase(), selectedBranch?.id);
 
     useEffect(() => {
         if (branches.length > 0) {
-            // Buscamos la sucursal del usuario
-            const assignedId = user?.assigned_branch_id;
+            // Priority order: forceBranchId > user.assigned_branch_id > first branch
+            const assignedId = forceBranchId || user?.assigned_branch_id;
             const branch = assignedId
                 ? branches.find(b => b.id === assignedId)
                 : branches[0];
@@ -46,7 +47,7 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
                 setSelectedBranch(branch);
             }
         }
-    }, [user, branches, selectedBranch]);
+    }, [user, branches, selectedBranch, forceBranchId]);
 
     const todayStr = new Date().toISOString().split('T')[0];
 
@@ -138,10 +139,11 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
         if (!val || val.length === 0) return;
         setIsValidatingNota(true);
         setNotaNumberError(null);
+        const targetBranchId = selectedBranch?.id || user?.assigned_branch_id;
         try {
-            const exists = await checkNotaExists(val);
+            const exists = await checkNotaExists(val, targetBranchId);
             if (exists) {
-                setNotaNumberError("EL NÚMERO DE NOTA YA EXISTE");
+                setNotaNumberError("EL NÚMERO DE NOTA YA EXISTE EN ESTA SUCURSAL");
             }
         } catch (err) {
             console.error(err);
@@ -334,9 +336,18 @@ export function AdvancedNotaForm({ onClose, onSuccess }: AdvancedNotaFormProps) 
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Sucursal</label>
                     <div className="relative">
                         <select
-                            disabled
-                            className="w-full bg-slate-100 border-2 border-slate-100 rounded-2xl px-12 h-14 font-black text-slate-500 appearance-none cursor-not-allowed text-[11px] tracking-widest shadow-inner uppercase"
+                            disabled={!!forceBranchId || user?.role !== 'owner'}
+                            className={cn(
+                                "w-full border-2 rounded-2xl px-12 h-14 font-black transition-all appearance-none text-[11px] tracking-widest shadow-inner uppercase",
+                                (!!forceBranchId || user?.role !== 'owner') 
+                                    ? "bg-slate-100 border-slate-100 text-slate-500 cursor-not-allowed" 
+                                    : "bg-white border-orange-500/20 text-orange-600 cursor-pointer focus:border-orange-500"
+                            )}
                             value={selectedBranch?.id || ''}
+                            onChange={(e) => {
+                                const branch = branches.find(b => b.id === e.target.value);
+                                if (branch) setSelectedBranch(branch);
+                            }}
                         >
                             {branches.length === 0 ? (
                                 <option value="">Cargando...</option>

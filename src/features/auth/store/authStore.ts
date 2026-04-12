@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 export type UserRole = 'super_admin' | 'owner' | 'manager';
 
@@ -31,6 +31,7 @@ export const useAuthStore = create<AuthState>()(
         }),
         {
             name: 'auth-storage',
+            storage: createJSONStorage(() => sessionStorage),
         }
     )
 );

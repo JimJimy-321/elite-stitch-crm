@@ -9,6 +9,8 @@ import { CashCutState } from '@/features/dashboard/actions/cash-cut-actions';
 
 interface ExportReportButtonProps {
     date?: string;
+    branchName?: string;
+    preparedBy?: string;
     cashState?: CashCutState | null;
     // Legacy support
     summary?: any;
@@ -17,7 +19,7 @@ interface ExportReportButtonProps {
     children?: React.ReactNode;
 }
 
-export function ExportReportButton({ date, cashState, summary, movements, className, children }: ExportReportButtonProps) {
+export function ExportReportButton({ date, branchName, preparedBy, cashState, summary, movements, className, children }: ExportReportButtonProps) {
     const handleExport = () => {
         const doc = new jsPDF();
         const reportDate = date || new Date().toLocaleDateString('es-MX', {
@@ -25,6 +27,9 @@ export function ExportReportButton({ date, cashState, summary, movements, classN
             month: 'long',
             day: 'numeric'
         });
+
+        const displayBranch = branchName || cashState?.transactions?.payments?.[0]?.branch?.name || 'SEDE PRINCIPAL';
+        const displayUser = preparedBy || 'ADMINISTRADOR';
 
         // --- Estilos y Paleta ---
         const colors: Record<string, [number, number, number]> = {
@@ -38,7 +43,7 @@ export function ExportReportButton({ date, cashState, summary, movements, classN
 
         // --- Fondo y Header ---
         doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
-        doc.rect(0, 0, 210, 25, 'F');
+        doc.rect(0, 0, 210, 30, 'F');
  
         doc.setFontSize(20);
         doc.setTextColor(255, 255, 255);
@@ -49,9 +54,17 @@ export function ExportReportButton({ date, cashState, summary, movements, classN
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(230, 230, 230);
         doc.text('REPORTE OPERATIVO DE CAJA', 15, 20);
- 
+        
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
         doc.setTextColor(255, 255, 255);
-        doc.text(`Emitido: ${reportDate}`, 195, 15, { align: 'right' });
+        doc.text(`SEDE: ${displayBranch.toUpperCase()}`, 15, 26);
+ 
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(255, 255, 255);
+        doc.text(`Emitido: ${reportDate}`, 195, 13, { align: 'right' });
+        doc.text(`Generado por: ${displayUser.toUpperCase()}`, 195, 18, { align: 'right' });
  
         // --- Data Source ---
         const data = cashState ? {

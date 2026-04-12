@@ -118,8 +118,29 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
             </nav>
 
             {/* User Info & Logout */}
-            <div className="p-6 border-t border-slate-50 bg-slate-50/30">
-                {/* Información de usuario eliminada por solicitud */}
+            <div className="p-4 border-t border-slate-50 bg-slate-50/30 space-y-2">
+                {user && (
+                    <div className={cn(
+                        "flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500",
+                        collapsed ? "justify-center px-0" : "px-4"
+                    )}>
+                        <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center shrink-0 border border-orange-200 shadow-sm">
+                            <span className="text-orange-600 font-black text-xs">
+                                {user.full_name?.charAt(0).toUpperCase()}
+                            </span>
+                        </div>
+                        {!collapsed && (
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-800 truncate">
+                                    {user.full_name}
+                                </span>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase truncate">
+                                    {role}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                )}
                 <button
                     onClick={() => signOut()}
                     className={cn(

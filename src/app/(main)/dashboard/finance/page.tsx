@@ -45,7 +45,12 @@ export default async function FinancePage() {
     // Get user profile for branch_id
     const { data: profile } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+            *,
+            branches:assigned_branch_id (
+                name
+            )
+        `)
         .eq('id', user.id)
         .single();
 
@@ -80,7 +85,11 @@ export default async function FinancePage() {
                         userId={user.id}
                         disabled={false} // Always enabled in continuous mode
                     />
-                    <ExportReportButton cashState={cashState} />
+                    <ExportReportButton 
+                        cashState={cashState} 
+                        branchName={(profile as any)?.branches?.name}
+                        preparedBy={profile?.full_name || user.email}
+                    />
                 </div>
             </div>
 

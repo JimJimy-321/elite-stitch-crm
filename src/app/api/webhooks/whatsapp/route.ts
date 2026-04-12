@@ -43,8 +43,25 @@ export async function POST(request: NextRequest) {
                 body.entry[0].changes[0].value.messages[0]
             ) {
                 const message = body.entry[0].changes[0].value.messages[0];
-                const from = message.from; // Número de teléfono (e.g., 5215512345678)
+                const metadata = body.entry[0].changes[0].value.metadata;
+                const businessPhone = metadata?.display_phone_number;
+                const from = message.from; // Número de teléfono del remitente
                 const type = message.type;
+                
+                // DETECCIÓN DE ECO (Mensaje enviado desde el celular)
+                // Si el remitente es el mismo número del negocio, es un eco.
+                const isEcho = from === businessPhone;
+                
+                // Si es un eco, el destinatario real está en el objeto 'contacts' o en la metadata del mensaje
+                let targetPhone = from;
+                if (isEcho) {
+                    // En los ecos, Meta suele enviar el contacto del destinatario en la misma respuesta
+                    const contact = body.entry[0].changes[0].value.contacts?.[0];
+                    if (contact && contact.wa_id) {
+                        targetPhone = contact.wa_id;
+                    }
+                    console.log(`[ECHO] Mensaje enviado desde el celular hacia: ${targetPhone}`);
+                }
 
                 let content = '';
                 let mediaUrl = undefined;
@@ -53,28 +70,29 @@ export async function POST(request: NextRequest) {
                 if (type === 'text') {
                     content = message.text.body;
                 } else if (type === 'image') {
-                    content = message.image.caption || 'Imagen recibida';
+                    content = message.image.caption || 'Imagen enviada/recibida';
                     mediaUrl = `/api/chat/media/${message.image.id}`;
                     mediaType = 'image';
                 } else if (type === 'sticker') {
-                    content = 'Sticker recibido';
+                    content = 'Sticker';
                     mediaUrl = `/api/chat/media/${message.sticker.id}`;
-                    mediaType = 'image'; // Stickers can be treated as images
+                    mediaType = 'image';
                 } else {
-                    content = `Mensaje de tipo ${type} recibido`;
+                    content = `Mensaje de tipo ${type}`;
                 }
 
-                console.log(`Mensaje recibido de ${from}: ${content}`);
+                console.log(`${isEcho ? '[ECO] ' : ''}Mensaje de ${from}: ${content}`);
 
-                // Procesar mensaje usando el RPC Seguro para saltar RLS
-                const phoneNumberId = body.entry[0].changes[0].value.metadata?.phone_number_id || null;
+                // Procesar mensaje usando el RPC Seguro
+                const phoneNumberId = metadata?.phone_number_id || null;
 
                 const { error: rpcError } = await supabase.rpc('process_incoming_whatsapp', {
-                    p_phone: from,
+                    p_phone: targetPhone,
                     p_content: content,
                     p_phone_number_id: phoneNumberId,
                     p_media_url: mediaUrl,
-                    p_media_type: mediaType
+                    p_media_type: mediaType,
+                    p_is_echo: isEcho
                 });
 
                 if (rpcError) {

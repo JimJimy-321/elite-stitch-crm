@@ -184,7 +184,10 @@ export function OwnerDashboard({ user }: Props) {
                         ) : branchData.map((branch: any) => (
                             <div key={branch.name} className="space-y-3">
                                 <div className="flex justify-between items-end">
-                                    <span className="text-xs font-black text-slate-700 tracking-tight">{branch.name}</span>
+                                    <span className="text-xs font-black text-slate-700 tracking-tight">
+                                        <span className="bg-slate-100 text-[10px] px-1.5 py-0.5 rounded mr-2 border border-slate-200">{branch.shortId}</span>
+                                        {branch.name}
+                                    </span>
                                     <span className="text-xs text-orange-600 font-black">{formatCurrency(branch.grossSales || 0)}</span>
                                 </div>
                                 <div className="relative h-2 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner flex items-center">

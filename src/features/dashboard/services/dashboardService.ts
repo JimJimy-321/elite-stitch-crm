@@ -652,6 +652,8 @@ export const dashboardService = {
             const bPayments = payments?.filter(p => p.branch_id === b.id);
             const bTickets = tickets?.filter(t => t.branch_id === b.id);
             return {
+                id: b.id,
+                shortId: b.id.substring(0, 3).toUpperCase(),
                 name: b.name,
                 ingresos: bPayments?.reduce((acc, p) => acc + Number(p.amount), 0) || 0,
                 grossSales: bTickets?.reduce((acc, t) => acc + Number(t.total_amount), 0) || 0,

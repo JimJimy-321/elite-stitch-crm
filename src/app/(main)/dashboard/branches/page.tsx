@@ -34,43 +34,67 @@ export default function BranchesPage() {
 
     // Manejar el retorno de Meta (Capturar el code de la URL y los postMessage)
     React.useEffect(() => {
-        // 1. Detectar 'code' en la URL (Redirección tradicional)
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
-        if (code) {
-            console.log("Meta OAuth Code detectado:", code);
-            // Si hay un code, mostramos un mensaje más amigable
-            // En el futuro esto podría disparar un intercambio automático de tokens
+
+        // 1. Lógica para la ventana emergente (Popup)
+        // Si tenemos un "opener" (ventana padre) y un code, estamos en el popup redirigido
+        if (code && typeof window !== 'undefined' && window.opener && window.opener !== window) {
+            console.log("Detectado code en popup, notificando al padre y cerrando...");
+            try {
+                window.opener.postMessage({ 
+                    type: 'WA_EMBEDDED_SIGNUP_EVENT', 
+                    event: 'FINISH',
+                    data: { code } 
+                }, window.location.origin);
+            } catch (err) {
+                console.error("Error enviando mensaje al padre:", err);
+            }
+            
+            // Limpiar la UI del popup para feedback visual antes de cerrar
+            document.body.innerHTML = `
+                <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;background:#fff;font-family:sans-serif;text-align:center;padding:20px;">
+                    <div style="color:#10b981;font-size:48px;margin-bottom:20px;">✓</div>
+                    <h2 style="margin:0;font-weight:900;">Conexión con Meta Exitosa</h2>
+                    <p style="color:#64748b;margin-top:10px;">Esta ventana se cerrará automáticamente...</p>
+                </div>
+            `;
+            setTimeout(() => window.close(), 1500);
+            return;
         }
 
-        // 2. Escuchar mensajes del popup (Embedded Signup Flow)
+        // 2. Detectar 'code' en la URL (Redirección tradicional o captura del paso 1)
+        if (code) {
+            console.log("Meta OAuth Code detectado en ventana principal:", code);
+        }
+
+        // 3. Escuchar mensajes del popup
         const handleMessage = (event: MessageEvent) => {
-            // Solo procesar mensajes de Facebook
-            if (event.origin !== "https://www.facebook.com") return;
+            if (event.origin !== window.location.origin && event.origin !== "https://www.facebook.com") return;
             
             try {
-                // El formato de Meta puede ser string o objeto
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
                 
                 if (data.type === 'WA_EMBEDDED_SIGNUP_EVENT' && data.event === 'FINISH') {
-                    const { phone_number_id, waba_id } = data.data;
-                    console.log("Meta IDs capturados con éxito:", { phone_number_id, waba_id });
-
-                    // Guardar IDs capturados para feedback visual
-                    setCapturedMetaIDs({ phone_number_id, waba_id });
-
-                    // Auto-llenar el formulario
-                    setWaForm(prev => ({
-                        ...prev,
-                        phoneNumberId: phone_number_id || prev.phoneNumberId,
-                        wabaId: waba_id || prev.wabaId
-                    }));
-
-                    // Notificar al usuario y abrir el modal si hay una sucursal lista
-                    // alert(`✓ Conexión con Meta exitosa.\n\nPhone ID: ${phone_number_id}\nWABA ID: ${waba_id}\n\nLos códigos se han cargado automáticamente en el formulario.`);
+                    const { phone_number_id, waba_id, code: receivedCode } = data.data;
+                    
+                    if (phone_number_id && waba_id) {
+                        console.log("Meta IDs capturados con éxito:", { phone_number_id, waba_id });
+                        setCapturedMetaIDs({ phone_number_id, waba_id });
+                        setWaForm(prev => ({
+                            ...prev,
+                            phoneNumberId: phone_number_id || prev.phoneNumberId,
+                            wabaId: waba_id || prev.wabaId
+                        }));
+                        alert(`✓ ¡Conexión Exitosa!\n\nPhone ID: ${phone_number_id}\nWABA ID: ${waba_id}\n\nLos códigos se han cargado automáticamente.`);
+                    } else if (receivedCode) {
+                        // Si recibimos el code pero no los IDs (común sin App Secret)
+                        console.log("Code recibido del popup:", receivedCode);
+                        alert("✓ Conexión con Meta establecida.\n\nPor favor, ingresa manualmente el 'Phone Number ID' y el 'WABA ID' que aparecieron en la pantalla de Meta para finalizar la configuración.");
+                    }
                 }
             } catch (e) {
-                // Ignorar otros mensajes
+                // Ignorar
             }
         };
 

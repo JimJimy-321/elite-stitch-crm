@@ -30,7 +30,11 @@ export default function BranchesPage() {
         phoneNumber: '' 
     });
     const [isWaSubmitting, setIsWaSubmitting] = useState(false);
-    const [metaAppId, setMetaAppId] = useState('3780486202082501');
+    
+    // Configuración de Meta (Deberían venir de env vars en el futuro)
+    const META_APP_ID = '3780486202082501';
+    const META_CONFIG_ID = '1540306380183062';
+
     const [capturedMetaIDs, setCapturedMetaIDs] = useState<{phone_number_id: string, waba_id: string} | null>(null);
     const [isSdkLoaded, setIsSdkLoaded] = useState(false);
 
@@ -40,7 +44,7 @@ export default function BranchesPage() {
         (window as any).fbAsyncInit = function() {
             try {
                 (window as any).FB.init({
-                    appId: metaAppId,
+                    appId: META_APP_ID,
                     cookie: true,
                     xfbml: true,
                     version: 'v19.0'
@@ -130,14 +134,18 @@ export default function BranchesPage() {
 
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
-    }, [isSdkLoaded, metaAppId]);
+    }, [isSdkLoaded]);
 
     const handleLaunchCoexistence = () => {
         console.log("Iniciando flujo de Coexistencia...");
         const extrasObj = { setup: { mobile_number_coexistence: true } };
         const redirectUri = window.location.origin + '/dashboard/branches';
         const scope = 'whatsapp_business_management,whatsapp_business_messaging';
-        const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${metaAppId}&display=popup&extras=${encodeURIComponent(JSON.stringify(extrasObj))}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
+        
+        // CORRECCIÓN: Agregar config_id obligatorio a la URL manual
+        const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${META_APP_ID}&config_id=${META_CONFIG_ID}&display=popup&extras=${encodeURIComponent(JSON.stringify(extrasObj))}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
+        
+        console.log("URL de respaldo generada:", url);
 
         let popup: Window | null = null;
         
@@ -147,7 +155,7 @@ export default function BranchesPage() {
                 (window as any).FB.login((response: any) => {
                     console.log("Respuesta de FB.login:", response);
                 }, {
-                    config_id: '1540306380183062', 
+                    config_id: META_CONFIG_ID, 
                     response_type: 'code',
                     override_default_response_type: true,
                     scope: scope,
@@ -619,20 +627,21 @@ export default function BranchesPage() {
                                             </div>
                                             <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-800">Activación de Coexistencia (Recomendado)</h4>
                                         </div>
-                                        
                                         <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 space-y-3">
                                             <p className="text-[10px] text-blue-900 font-medium leading-relaxed">
                                                 Este asistente configurará el <strong>Modo Híbrido</strong>. Tu WhatsApp Business seguirá funcionando en tu aplicación móvil mientras sincronizamos los datos con SastrePro.
                                             </p>
                                             
                                             <div className="space-y-1">
-                                                <label className="text-[9px] font-black text-blue-700 uppercase">App ID de Meta</label>
-                                                <input 
-                                                    type="text" 
-                                                    className="w-full bg-white border border-blue-200 rounded-lg px-3 py-1.5 text-xs font-bold focus:ring-2 focus:ring-blue-500/20 outline-none"
-                                                    value={metaAppId}
-                                                    onChange={e => setMetaAppId(e.target.value)}
-                                                />
+                                                <label className="text-[9px] font-black text-blue-700 uppercase">App ID / Config ID (Meta)</label>
+                                                <div className="flex gap-2">
+                                                    <div className="bg-white/50 border border-blue-200 rounded-lg px-3 py-1.5 text-xs font-bold flex-1 opacity-70">
+                                                        App: {META_APP_ID}
+                                                    </div>
+                                                    <div className="bg-white/50 border border-blue-200 rounded-lg px-3 py-1.5 text-xs font-bold flex-1 opacity-70">
+                                                        Cfg: {META_CONFIG_ID}
+                                                    </div>
+                                                </div>
                                             </div>
 
                                             <button 

@@ -138,20 +138,29 @@ export default function BranchesPage() {
 
     const handleLaunchCoexistence = () => {
         console.log("Iniciando flujo de Coexistencia...");
-        const extrasObj = { setup: { mobile_number_coexistence: true } };
+        
+        // Estructura oficial para Embedded Signup v2.0
+        const extrasObj = { 
+            feature: 'whatsapp_embedded_signup',
+            version: 2,
+            setup: { 
+                mobile_number_coexistence: true,
+                prefilled_phone_number: '525578437260' 
+            } 
+        };
+
         const redirectUri = window.location.origin + '/dashboard/branches';
         const scope = 'whatsapp_business_management,whatsapp_business_messaging';
         
-        // CORRECCIÓN: Agregar config_id obligatorio a la URL manual
-        const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${META_APP_ID}&config_id=${META_CONFIG_ID}&display=popup&extras=${encodeURIComponent(JSON.stringify(extrasObj))}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
+        // URL V20.0 con config_id explícito
+        const url = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${META_APP_ID}&config_id=${META_CONFIG_ID}&display=popup&extras=${encodeURIComponent(JSON.stringify(extrasObj))}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
         
-        console.log("URL de respaldo generada:", url);
+        console.log("URL generada (v20.0):", url);
 
         let popup: Window | null = null;
-        
         try {
             if (isSdkLoaded && (window as any).FB) {
-                console.log("Lanzando diálogo vía Meta SDK...");
+                console.log("Lanzando diálogo vía Meta SDK (v20.0)...");
                 (window as any).FB.login((response: any) => {
                     console.log("Respuesta de FB.login:", response);
                 }, {
@@ -161,8 +170,6 @@ export default function BranchesPage() {
                     scope: scope,
                     extras: extrasObj
                 });
-                // Con el SDK no siempre tenemos referencia a la ventana,
-                // pero capturamos por el listener global de mensajes.
             } else {
                 console.warn("SDK no detectado, usando ventana manual...");
                 popup = window.open(url, 'MetaSignup', 'width=600,height=700');

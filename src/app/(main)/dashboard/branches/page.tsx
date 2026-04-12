@@ -134,39 +134,76 @@ export default function BranchesPage() {
 
     const handleLaunchCoexistence = () => {
         console.log("Iniciando flujo de Coexistencia...");
+        const extrasObj = { setup: { mobile_number_coexistence: true } };
+        const redirectUri = window.location.origin + '/dashboard/branches';
+        const scope = 'whatsapp_business_management,whatsapp_business_messaging';
+        const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${metaAppId}&display=popup&extras=${encodeURIComponent(JSON.stringify(extrasObj))}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
+
+        let popup: Window | null = null;
         
         try {
-            // Asegurarnos de que el SDK esté inicializado. Si no, forzamos init.
-            if ((window as any).FB) {
-                if (!isSdkLoaded) {
-                    (window as any).fbAsyncInit();
-                }
-
-                console.log("Lanzando diálogo oficial de Meta...");
+            if (isSdkLoaded && (window as any).FB) {
+                console.log("Lanzando diálogo vía Meta SDK...");
                 (window as any).FB.login((response: any) => {
-                    console.log("Respuesta de Meta Login:", response);
+                    console.log("Respuesta de FB.login:", response);
                 }, {
-                    scope: 'whatsapp_business_management,whatsapp_business_messaging',
-                    extras: {
-                        setup: {
-                            mobile_number_coexistence: true
+                    config_id: '1540306380183062', 
+                    response_type: 'code',
+                    override_default_response_type: true,
+                    scope: scope,
+                    extras: extrasObj
+                });
+                // Con el SDK no siempre tenemos referencia a la ventana,
+                // pero capturamos por el listener global de mensajes.
+            } else {
+                console.warn("SDK no detectado, usando ventana manual...");
+                popup = window.open(url, 'MetaSignup', 'width=600,height=700');
+            }
+            
+            // RADAR DE CAPTURA (Polling)
+            const pollInterval = setInterval(() => {
+                try {
+                    if (popup && popup.closed) {
+                        clearInterval(pollInterval);
+                        return;
+                    }
+
+                    if (popup) {
+                        const currentUrl = popup.location.href;
+                        // Si la URL contiene los IDs (después del redirect)
+                        if (currentUrl.includes('phone_number_id=') || currentUrl.includes('waba_id=')) {
+                            const params = new URLSearchParams(popup.location.search);
+                            const phone_id = params.get('phone_number_id');
+                            const waba_id = params.get('waba_id');
+                            
+                            if (phone_id || waba_id) {
+                                console.log("¡RADAR! IDs atrapados:", { phone_id, waba_id });
+                                setCapturedMetaIDs({ 
+                                    phone_number_id: phone_id || '', 
+                                    waba_id: waba_id || '' 
+                                });
+                                setWaForm(prev => ({
+                                    ...prev,
+                                    phoneNumberId: phone_id || prev.phoneNumberId,
+                                    wabaId: waba_id || prev.wabaId
+                                }));
+                                clearInterval(pollInterval);
+                                popup.close();
+                                alert("✓ ¡IDs capturados automáticamente!");
+                            }
                         }
                     }
-                });
-            } else {
-                // Fallback extremo: Intento de URL manual optimizada
-                console.warn("SDK no detectado en el botón. Usando fallback...");
-                const extras = JSON.stringify({ setup: { mobile_number_coexistence: true } });
-                const redirectUri = window.location.origin + '/dashboard/branches';
-                const scope = 'whatsapp_business_management,whatsapp_business_messaging';
-                const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${metaAppId}&display=popup&extras=${encodeURIComponent(extras)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
-                
-                const popup = window.open(url, 'MetaSignup', 'width=600,height=700');
-                if (!popup) alert("Por favor habilita las ventanas emergentes.");
-            }
+                } catch (e) {
+                    // Error de Cross-Origin mientras está en FB, ignorar
+                }
+            }, 600);
+
+            // Limpieza a los 5 min
+            setTimeout(() => clearInterval(pollInterval), 5 * 60 * 1000);
+
         } catch (err) {
-            console.error("Error crítico en conexión Meta:", err);
-            alert("Error al conectar con Meta. Por favor refresca la página.");
+            console.error("Error en conexión Meta:", err);
+            alert("Error al abrir Meta. Por favor habilita los popups.");
         }
     };
 

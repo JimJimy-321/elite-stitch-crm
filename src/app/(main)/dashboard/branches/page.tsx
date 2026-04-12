@@ -30,17 +30,52 @@ export default function BranchesPage() {
     });
     const [isWaSubmitting, setIsWaSubmitting] = useState(false);
     const [metaAppId, setMetaAppId] = useState('3780486202082501');
+    const [capturedMetaIDs, setCapturedMetaIDs] = useState<{phone_number_id: string, waba_id: string} | null>(null);
 
-    // Manejar el retorno de Meta (Capturar el code de la URL)
+    // Manejar el retorno de Meta (Capturar el code de la URL y los postMessage)
     React.useEffect(() => {
+        // 1. Detectar 'code' en la URL (Redirección tradicional)
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
         if (code) {
-            console.log("Meta Code detectado:", code);
-            // Podríamos automatizar el intercambio de tokens aquí si tuviéramos un endpoint listo
-            // Por ahora, le diremos al usuario que continue con los IDs que Meta le dio
-            alert("✓ Conexión con Meta establecida. Por favor, ingresa los IDs que aparecen en la ventana de Meta para finalizar.");
+            console.log("Meta OAuth Code detectado:", code);
+            // Si hay un code, mostramos un mensaje más amigable
+            // En el futuro esto podría disparar un intercambio automático de tokens
         }
+
+        // 2. Escuchar mensajes del popup (Embedded Signup Flow)
+        const handleMessage = (event: MessageEvent) => {
+            // Solo procesar mensajes de Facebook
+            if (event.origin !== "https://www.facebook.com") return;
+            
+            try {
+                // El formato de Meta puede ser string o objeto
+                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                
+                if (data.type === 'WA_EMBEDDED_SIGNUP_EVENT' && data.event === 'FINISH') {
+                    const { phone_number_id, waba_id } = data.data;
+                    console.log("Meta IDs capturados con éxito:", { phone_number_id, waba_id });
+
+                    // Guardar IDs capturados para feedback visual
+                    setCapturedMetaIDs({ phone_number_id, waba_id });
+
+                    // Auto-llenar el formulario
+                    setWaForm(prev => ({
+                        ...prev,
+                        phoneNumberId: phone_number_id || prev.phoneNumberId,
+                        wabaId: waba_id || prev.wabaId
+                    }));
+
+                    // Notificar al usuario y abrir el modal si hay una sucursal lista
+                    // alert(`✓ Conexión con Meta exitosa.\n\nPhone ID: ${phone_number_id}\nWABA ID: ${waba_id}\n\nLos códigos se han cargado automáticamente en el formulario.`);
+                }
+            } catch (e) {
+                // Ignorar otros mensajes
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
     }, []);
 
     const handleLaunchCoexistence = () => {
@@ -53,9 +88,10 @@ export default function BranchesPage() {
         const redirectUri = window.location.origin + '/dashboard/branches';
         const scope = 'whatsapp_business_management,whatsapp_business_messaging';
         
-        const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${metaAppId}&display=page&extras=${encodeURIComponent(extras)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
+        // Optimizamos para que use 'display=popup' y funcione mejor con el event listener
+        const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${metaAppId}&display=popup&extras=${encodeURIComponent(extras)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
         
-        window.open(url, 'MetaSignup', 'width=600,height=700');
+        window.open(url, 'MetaSignup', 'width=600,height=700,status=no,resizable=yes');
     };
 
     const handleCreateBranch = async (e: React.FormEvent) => {
@@ -395,6 +431,23 @@ export default function BranchesPage() {
                                     Conectividad WhatsApp (Sede)
                                 </h3>
                                 <div className="glass-card p-6 border-orange-100 bg-orange-50/30 space-y-5">
+                                    {capturedMetaIDs && (
+                                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 flex items-center gap-3 animate-in zoom-in-95">
+                                            <div className="bg-emerald-500 p-1.5 rounded-lg">
+                                                <Star className="text-white" size={14} />
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-[10px] font-black text-emerald-700 uppercase">IDs capturados con éxito</p>
+                                                <p className="text-[9px] text-emerald-600 font-medium">Meta ha devuelto tus credenciales automáticamente.</p>
+                                            </div>
+                                            <button 
+                                                onClick={() => setCapturedMetaIDs(null)}
+                                                className="text-[9px] font-bold text-emerald-700 underline"
+                                            >
+                                                Limpiar
+                                            </button>
+                                        </div>
+                                    )}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
                                             <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Phone Number ID <span className="text-red-500">*</span></label>

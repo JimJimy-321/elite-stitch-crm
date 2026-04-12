@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, Suspense } from 'react';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { OwnerDashboard } from '@/features/dashboard/components/OwnerDashboard';
 import { ManagerDashboard } from '@/features/dashboard/components/ManagerDashboard';
@@ -9,6 +9,19 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function DashboardPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex flex-col items-center justify-center min-h-[40vh] space-y-4 animate-pulse">
+                <div className="w-12 h-12 bg-slate-100 rounded-full" />
+                <div className="h-4 w-48 bg-slate-100 rounded" />
+            </div>
+        }>
+            <DashboardContent />
+        </Suspense>
+    );
+}
+
+function DashboardContent() {
     const { user } = useAuthStore();
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -75,3 +88,4 @@ export default function DashboardPage() {
         </div>
     );
 }
+

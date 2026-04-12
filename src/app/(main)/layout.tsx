@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Sidebar } from '@/shared/components/layout/Sidebar';
 import { Search, Bell, User, ChevronDown, Sparkles, Store, Scissors } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
@@ -10,6 +10,25 @@ import { AuthGuard } from '@/features/auth/components/AuthGuard';
 import { useBranches } from '@/features/dashboard/hooks/useDashboardData';
 
 export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+    return (
+        <Suspense fallback={
+      <div className="flex bg-slate-50 min-h-screen items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cargando Interfaz...</p>
+        </div>
+      </div>
+    }>
+      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+    </Suspense>
+    );
+}
+
+function DashboardLayoutContent({
   children,
 }: {
   children: React.ReactNode;
@@ -102,3 +121,4 @@ export default function DashboardLayout({
     </AuthGuard>
   );
 }
+

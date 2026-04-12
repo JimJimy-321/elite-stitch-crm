@@ -7,11 +7,24 @@ import { cn } from '@/shared/lib/utils';
 import { Modal } from '@/shared/components/ui/Modal';
 import { ClientFormModal } from '@/features/dashboard/components/ClientFormModal';
 import { useDebounce } from '@/shared/hooks/useDebounce';
-import { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/features/auth/store/authStore';
 
 export default function ClientsPage() {
+    return (
+        <Suspense fallback={
+            <div className="py-20 flex flex-col items-center justify-center animate-pulse">
+                <div className="w-16 h-16 bg-slate-100 rounded-full mb-4"></div>
+                <div className="h-4 w-48 bg-slate-100 rounded"></div>
+            </div>
+        }>
+            <ClientsContent />
+        </Suspense>
+    );
+}
+
+function ClientsContent() {
     const searchParams = useSearchParams();
     const { user } = useAuthStore();
     const branchId = searchParams.get('branchId') || user?.assigned_branch_id;
@@ -221,3 +234,4 @@ export default function ClientsPage() {
         </div>
     );
 }
+

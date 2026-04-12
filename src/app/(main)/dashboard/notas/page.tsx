@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Ticket, Plus, Search, Filter, Sparkles, Activity, Clock, ChevronRight, User as UserIcon, MapPin } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { useNotas, useDashboardStats } from '@/features/dashboard/hooks/useDashboardData';
@@ -8,12 +8,24 @@ import { Modal } from '@/shared/components/ui/Modal';
 import { AdvancedNotaForm } from '@/features/dashboard/components/AdvancedNotaForm';
 import { NotaDetailView } from '@/features/dashboard/components/nota-details/NotaDetailView';
 import { useDebounce } from '@/shared/hooks/useDebounce';
-import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { HistoryFilters } from '@/features/dashboard/components/HistoryFilters';
 
 export default function NotasPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex flex-col items-center justify-center py-20 animate-pulse">
+                <div className="w-16 h-16 bg-slate-100 rounded-full mb-4"></div>
+                <div className="h-4 w-48 bg-slate-100 rounded"></div>
+            </div>
+        }>
+            <NotasContent />
+        </Suspense>
+    );
+}
+
+function NotasContent() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filters, setFilters] = useState<{ garment?: string, seamstress_id?: string, status?: string, startDate?: string, endDate?: string }>(() => {
         const today = new Date();
@@ -280,6 +292,7 @@ export default function NotasPage() {
         </div>
     );
 }
+
 
 function MiniNotaStat({ label, value, color, bg, borderClass }: { label: string, value: string, color: string, bg: string, borderClass?: string }) {
     return (

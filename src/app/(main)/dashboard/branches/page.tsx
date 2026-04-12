@@ -112,36 +112,44 @@ export default function BranchesPage() {
     }, [isSdkLoaded, metaAppId]);
 
     const handleLaunchCoexistence = () => {
-        // Si el SDK está cargado, lo usamos (vía window.FB.login o el flujo integrado)
-        if ((window as any).FB) {
-            console.log("Lanzando flujo vía SDK...");
-            (window as any).FB.login((response: any) => {
-                if (response.authResponse) {
-                    // El SDK maneja el mensaje WA_EMBEDDED_SIGNUP_EVENT automáticamente
-                    // Pero también podemos capturarlo aquí si es necesario
-                    console.log("FB Login Success:", response);
-                }
-            }, {
-                scope: 'whatsapp_business_management,whatsapp_business_messaging',
-                extras: {
-                    setup: {
-                        mobile_number_coexistence: true
+        console.log("Iniciando flujo de Coexistencia...");
+        
+        try {
+            // Si el SDK está cargado e inicializado, lo usamos
+            if ((window as any).FB && isSdkLoaded) {
+                console.log("Lanzando flujo vía SDK...");
+                (window as any).FB.login((response: any) => {
+                    console.log("FB Login Callback:", response);
+                }, {
+                    scope: 'whatsapp_business_management,whatsapp_business_messaging',
+                    extras: {
+                        setup: {
+                            mobile_number_coexistence: true
+                        }
                     }
+                });
+                return;
+            }
+
+            // Fallback al flujo manual si el SDK no está listo o falla
+            console.log("Usando fallback de URL manual (SDK no listo)...");
+            const extras = JSON.stringify({
+                setup: {
+                    mobile_number_coexistence: true
                 }
             });
-            return;
-        }
-
-        // Fallback al flujo manual si el SDK falla
-        const extras = JSON.stringify({
-            setup: {
-                mobile_number_coexistence: true
+            const redirectUri = window.location.origin + '/dashboard/branches';
+            const scope = 'whatsapp_business_management,whatsapp_business_messaging';
+            const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${metaAppId}&display=popup&extras=${encodeURIComponent(extras)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
+            
+            const popup = window.open(url, 'MetaSignup', 'width=600,height=700,status=no,resizable=yes');
+            if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+                alert("El navegador bloqueó la ventana emergente. Por favor, permite las ventanas emergentes para sastrepro.com e intenta de nuevo.");
             }
-        });
-        const redirectUri = window.location.origin + '/dashboard/branches';
-        const scope = 'whatsapp_business_management,whatsapp_business_messaging';
-        const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${metaAppId}&display=popup&extras=${encodeURIComponent(extras)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
-        window.open(url, 'MetaSignup', 'width=600,height=700,status=no,resizable=yes');
+        } catch (err) {
+            console.error("Error en handleLaunchCoexistence:", err);
+            alert("Hubo un error al intentar conectar con Meta. Por favor, intenta de nuevo o contacta a soporte.");
+        }
     };
 
     const handleCreateBranch = async (e: React.FormEvent) => {
@@ -228,7 +236,10 @@ export default function BranchesPage() {
             <Script 
                 src="https://connect.facebook.net/en_US/sdk.js" 
                 strategy="lazyOnload"
-                onLoad={() => setIsSdkLoaded(false)} // Forzamos un re-render para el useEffect
+                onLoad={() => {
+                    console.log("Script de Meta cargado");
+                    setIsSdkLoaded(false); // Gatillar el useEffect
+                }}
             />
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-col gap-2">
@@ -570,6 +581,7 @@ export default function BranchesPage() {
                                             </div>
 
                                             <button 
+                                                type="button"
                                                 onClick={handleLaunchCoexistence}
                                                 className="w-full bg-blue-600 text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
                                             >

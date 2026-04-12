@@ -151,22 +151,21 @@ export default function BranchesPage() {
         const redirectUri = window.location.origin + '/dashboard/branches';
         const scope = 'whatsapp_business_management,whatsapp_business_messaging';
         
-        // BYPASS SDK: Construcción manual de la URL oficial de Embedded Signup v2.0
-        const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth` +
-            `?client_id=${META_APP_ID}` +
+        // BYPASS SDK: Uso del endpoint específico para WhatsApp Business (v21.0)
+        // Este endpoint es el oficial para Embedded Signup v2.0 y procesa config_id correctamente
+        const oauthUrl = `https://www.facebook.com/v21.0/dialog/whatsapp_business` +
+            `?app_id=${META_APP_ID}` +
             `&config_id=${META_CONFIG_ID}` +
             `&display=popup` +
             `&extras=${encodeURIComponent(JSON.stringify(extrasObj))}` +
             `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-            `&response_type=code` +
-            `&override_default_response_type=true` +
             `&scope=${encodeURIComponent(scope)}`;
         
-        console.log("URL de conexión directa:", oauthUrl);
+        console.log("URL de conexión directa (WhatsApp dialog):", oauthUrl);
 
         let popup: Window | null = null;
         try {
-            // Usamos window.open directo para evitar que el SDK de FB sobreescriba parámetros críticos como config_id
+            // Usamos window.open directo para evitar interferencias del SDK de Facebook
             popup = window.open(oauthUrl, 'MetaSignup', 'width=600,height=700');
             
             if (!popup) {

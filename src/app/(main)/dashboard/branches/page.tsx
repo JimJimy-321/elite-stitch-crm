@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Script from 'next/script';
 import { Store, MapPin, User, ExternalLink, Activity, Plus, Smartphone, Star, X, Loader2, MoreVertical, Edit2, Trash2, Settings } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { useBranches, useStaffProfiles } from '@/features/dashboard/hooks/useDashboardData';
@@ -31,14 +32,30 @@ export default function BranchesPage() {
     const [isWaSubmitting, setIsWaSubmitting] = useState(false);
     const [metaAppId, setMetaAppId] = useState('3780486202082501');
     const [capturedMetaIDs, setCapturedMetaIDs] = useState<{phone_number_id: string, waba_id: string} | null>(null);
+    const [isSdkLoaded, setIsSdkLoaded] = useState(false);
 
-    // Manejar el retorno de Meta (Capturar el code de la URL y los postMessage)
-    React.useEffect(() => {
+    // Manejar el retorno de Meta y el SDK
+    useEffect(() => {
+        // 1. Inicializar SDK si está listo
+        if ((window as any).FB && !isSdkLoaded) {
+            try {
+                (window as any).FB.init({
+                    appId: metaAppId,
+                    cookie: true,
+                    xfbml: true,
+                    version: 'v19.0'
+                });
+                setIsSdkLoaded(true);
+                console.log("SDK de Meta inicializado correctamente");
+            } catch (err) {
+                console.error("Error inicializando SDK de Meta:", err);
+            }
+        }
+
+        // 2. Detectar 'code' en la URL (Redirección tradicional)
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
 
-        // 1. Lógica para la ventana emergente (Popup)
-        // Si tenemos un "opener" (ventana padre) y un code, estamos en el popup redirigido
         if (code && typeof window !== 'undefined' && window.opener && window.opener !== window) {
             console.log("Detectado code en popup, notificando al padre y cerrando...");
             try {
@@ -51,7 +68,6 @@ export default function BranchesPage() {
                 console.error("Error enviando mensaje al padre:", err);
             }
             
-            // Limpiar la UI del popup para feedback visual antes de cerrar
             document.body.innerHTML = `
                 <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;background:#fff;font-family:sans-serif;text-align:center;padding:20px;">
                     <div style="color:#10b981;font-size:48px;margin-bottom:20px;">✓</div>
@@ -63,12 +79,7 @@ export default function BranchesPage() {
             return;
         }
 
-        // 2. Detectar 'code' en la URL (Redirección tradicional o captura del paso 1)
-        if (code) {
-            console.log("Meta OAuth Code detectado en ventana principal:", code);
-        }
-
-        // 3. Escuchar mensajes del popup
+        // 3. Escuchar mensajes (tanto del SDK como del Popup)
         const handleMessage = (event: MessageEvent) => {
             if (event.origin !== window.location.origin && event.origin !== "https://www.facebook.com") return;
             
@@ -86,11 +97,9 @@ export default function BranchesPage() {
                             phoneNumberId: phone_number_id || prev.phoneNumberId,
                             wabaId: waba_id || prev.wabaId
                         }));
-                        alert(`✓ ¡Conexión Exitosa!\n\nPhone ID: ${phone_number_id}\nWABA ID: ${waba_id}\n\nLos códigos se han cargado automáticamente.`);
                     } else if (receivedCode) {
-                        // Si recibimos el code pero no los IDs (común sin App Secret)
-                        console.log("Code recibido del popup:", receivedCode);
-                        alert("✓ Conexión con Meta establecida.\n\nPor favor, ingresa manualmente el 'Phone Number ID' y el 'WABA ID' que aparecieron en la pantalla de Meta para finalizar la configuración.");
+                        console.log("Code recibido del flujo Meta:", receivedCode);
+                        alert("✓ Conexión establecida.\n\nEl sistema detectó tu cuenta. Por favor, asegúrate de ingresar los IDs de Phone y WABA si no se llenaron automáticamente.");
                     }
                 }
             } catch (e) {
@@ -100,21 +109,38 @@ export default function BranchesPage() {
 
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
-    }, []);
+    }, [isSdkLoaded, metaAppId]);
 
     const handleLaunchCoexistence = () => {
+        // Si el SDK está cargado, lo usamos (vía window.FB.login o el flujo integrado)
+        if ((window as any).FB) {
+            console.log("Lanzando flujo vía SDK...");
+            (window as any).FB.login((response: any) => {
+                if (response.authResponse) {
+                    // El SDK maneja el mensaje WA_EMBEDDED_SIGNUP_EVENT automáticamente
+                    // Pero también podemos capturarlo aquí si es necesario
+                    console.log("FB Login Success:", response);
+                }
+            }, {
+                scope: 'whatsapp_business_management,whatsapp_business_messaging',
+                extras: {
+                    setup: {
+                        mobile_number_coexistence: true
+                    }
+                }
+            });
+            return;
+        }
+
+        // Fallback al flujo manual si el SDK falla
         const extras = JSON.stringify({
             setup: {
                 mobile_number_coexistence: true
             }
         });
-        
         const redirectUri = window.location.origin + '/dashboard/branches';
         const scope = 'whatsapp_business_management,whatsapp_business_messaging';
-        
-        // Optimizamos para que use 'display=popup' y funcione mejor con el event listener
         const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${metaAppId}&display=popup&extras=${encodeURIComponent(extras)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
-        
         window.open(url, 'MetaSignup', 'width=600,height=700,status=no,resizable=yes');
     };
 
@@ -199,6 +225,11 @@ export default function BranchesPage() {
 
     return (
         <div className="space-y-8 animate-fade-in relative">
+            <Script 
+                src="https://connect.facebook.net/en_US/sdk.js" 
+                strategy="lazyOnload"
+                onLoad={() => setIsSdkLoaded(false)} // Forzamos un re-render para el useEffect
+            />
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-col gap-2">
                     <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">

@@ -47,7 +47,7 @@ export default function BranchesPage() {
                     appId: META_APP_ID,
                     cookie: true,
                     xfbml: true,
-                    version: 'v19.0'
+                    version: 'v21.0'
                 });
                 setIsSdkLoaded(true);
                 console.log("SDK de Meta inicializado vía fbAsyncInit");
@@ -137,9 +137,8 @@ export default function BranchesPage() {
     }, [isSdkLoaded]);
 
     const handleLaunchCoexistence = () => {
-        console.log("Iniciando flujo de Coexistencia...");
+        console.log("Iniciando flujo de Coexistencia (Direct Connection)...");
         
-        // Estructura oficial para Embedded Signup v2.0
         const extrasObj = { 
             feature: 'whatsapp_embedded_signup',
             version: 2,
@@ -152,30 +151,30 @@ export default function BranchesPage() {
         const redirectUri = window.location.origin + '/dashboard/branches';
         const scope = 'whatsapp_business_management,whatsapp_business_messaging';
         
-        // URL V20.0 con config_id explícito
-        const url = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${META_APP_ID}&config_id=${META_CONFIG_ID}&display=popup&extras=${encodeURIComponent(JSON.stringify(extrasObj))}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
+        // BYPASS SDK: Construcción manual de la URL oficial de Embedded Signup v2.0
+        const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth` +
+            `?client_id=${META_APP_ID}` +
+            `&config_id=${META_CONFIG_ID}` +
+            `&display=popup` +
+            `&extras=${encodeURIComponent(JSON.stringify(extrasObj))}` +
+            `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+            `&response_type=code` +
+            `&override_default_response_type=true` +
+            `&scope=${encodeURIComponent(scope)}`;
         
-        console.log("URL generada (v20.0):", url);
+        console.log("URL de conexión directa:", oauthUrl);
 
         let popup: Window | null = null;
         try {
-            if (isSdkLoaded && (window as any).FB) {
-                console.log("Lanzando diálogo vía Meta SDK (v20.0)...");
-                (window as any).FB.login((response: any) => {
-                    console.log("Respuesta de FB.login:", response);
-                }, {
-                    config_id: META_CONFIG_ID, 
-                    response_type: 'code',
-                    override_default_response_type: true,
-                    scope: scope,
-                    extras: extrasObj
-                });
-            } else {
-                console.warn("SDK no detectado, usando ventana manual...");
-                popup = window.open(url, 'MetaSignup', 'width=600,height=700');
-            }
+            // Usamos window.open directo para evitar que el SDK de FB sobreescriba parámetros críticos como config_id
+            popup = window.open(oauthUrl, 'MetaSignup', 'width=600,height=700');
             
-            // RADAR DE CAPTURA (Polling)
+            if (!popup) {
+                alert("Por favor habilita los popups para continuar con la vinculación.");
+                return;
+            }
+
+            // RADAR DE CAPTURA (Polling) para detectar cierre de ventana y captura de parámetros
             const pollInterval = setInterval(() => {
                 try {
                     if (popup && popup.closed) {
@@ -183,7 +182,7 @@ export default function BranchesPage() {
                         return;
                     }
 
-                    if (popup) {
+                    if (popup && popup.location) {
                         const currentUrl = popup.location.href;
                         // Si la URL contiene los IDs (después del redirect)
                         if (currentUrl.includes('phone_number_id=') || currentUrl.includes('waba_id=')) {

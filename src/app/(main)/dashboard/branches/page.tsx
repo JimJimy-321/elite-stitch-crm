@@ -62,12 +62,19 @@ export default function BranchesPage() {
         const code = urlParams.get('code');
 
         if (code && typeof window !== 'undefined' && window.opener && window.opener !== window) {
-            console.log("Detectado code en popup, notificando al padre y cerrando...");
+            console.log("Popup detectado con parámetros. Escaneando IDs...");
+            const phone_id = urlParams.get('phone_number_id');
+            const waba_id = urlParams.get('waba_id');
+
             try {
                 window.opener.postMessage({ 
                     type: 'WA_EMBEDDED_SIGNUP_EVENT', 
                     event: 'FINISH',
-                    data: { code } 
+                    data: { 
+                        code,
+                        phone_number_id: phone_id,
+                        waba_id: waba_id
+                    } 
                 }, window.location.origin);
             } catch (err) {
                 console.error("Error enviando mensaje al padre:", err);
@@ -77,38 +84,47 @@ export default function BranchesPage() {
                 <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;background:#fff;font-family:sans-serif;text-align:center;padding:20px;">
                     <div style="color:#10b981;font-size:48px;margin-bottom:20px;">✓</div>
                     <h2 style="margin:0;font-weight:900;">Conexión con Meta Exitosa</h2>
-                    <p style="color:#64748b;margin-top:10px;">Esta ventana se cerrará automáticamente...</p>
+                    <p style="color:#64748b;margin-top:10px;">Capturando credenciales...</p>
+                    ${(phone_id || waba_id) ? `<p style="font-size:12px;color:#10b981;margin-top:10px;">IDs capturados correctamente</p>` : ''}
                 </div>
             `;
-            setTimeout(() => window.close(), 1500);
+            setTimeout(() => window.close(), 2500); // 1 segundo extra para asegurar el postMessage
             return;
         }
 
         // 3. Escuchar mensajes (tanto del SDK como del Popup)
         const handleMessage = (event: MessageEvent) => {
-            if (event.origin !== window.location.origin && event.origin !== "https://www.facebook.com") return;
+            // Aceptar mensajes de sastrepro y de facebook
+            if (!event.origin.includes("sastrepro.com") && 
+                !event.origin.includes("facebook.com") && 
+                event.origin !== window.location.origin) return;
             
             try {
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                console.log("Mensaje recibido de Meta/Popup:", data);
                 
-                if (data.type === 'WA_EMBEDDED_SIGNUP_EVENT' && data.event === 'FINISH') {
-                    const { phone_number_id, waba_id, code: receivedCode } = data.data;
+                // Formato Estándar de Meta y Nuestro Proxy
+                if (data.type === 'WA_EMBEDDED_SIGNUP_EVENT') {
+                    const payload = data.data || data;
+                    const { phone_number_id, waba_id, code: receivedCode } = payload;
                     
-                    if (phone_number_id && waba_id) {
-                        console.log("Meta IDs capturados con éxito:", { phone_number_id, waba_id });
-                        setCapturedMetaIDs({ phone_number_id, waba_id });
+                    if (phone_number_id || waba_id) {
+                        console.log("IDs Detectados!", { phone_number_id, waba_id });
+                        setCapturedMetaIDs({ 
+                            phone_number_id: phone_number_id || '', 
+                            waba_id: waba_id || '' 
+                        });
                         setWaForm(prev => ({
                             ...prev,
                             phoneNumberId: phone_number_id || prev.phoneNumberId,
                             wabaId: waba_id || prev.wabaId
                         }));
                     } else if (receivedCode) {
-                        console.log("Code recibido del flujo Meta:", receivedCode);
-                        alert("✓ Conexión establecida.\n\nEl sistema detectó tu cuenta. Por favor, asegúrate de ingresar los IDs de Phone y WABA si no se llenaron automáticamente.");
+                        console.log("Code detectado, esperando IDs...");
                     }
                 }
             } catch (e) {
-                // Ignorar
+                // Silencioso
             }
         };
 

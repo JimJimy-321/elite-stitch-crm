@@ -74,8 +74,12 @@ export const whatsappService = {
      * Paso 3: Verificar el código y activar el número
      */
     async verifyCode(phoneId: string, accessToken: string, code: string) {
+        if (!phoneId || phoneId.trim() === "") {
+            throw new Error("Phone Number ID is required for verification.");
+        }
+        
         try {
-            const response = await fetch(`https://graph.facebook.com/${GRAPH_API_VERSION}/${phoneId}/verify_code`, {
+            const response = await fetch(`https://graph.facebook.com/${GRAPH_API_VERSION}/${phoneId.trim()}/verify_code`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -49,10 +49,10 @@ export default function BranchesPage() {
                     appId: META_APP_ID,
                     cookie: true,
                     xfbml: true,
-                    version: 'v20.0'
+                    version: 'v21.0'
                 });
                 setIsSdkLoaded(true);
-                console.log("SDK de Meta inicializado vía fbAsyncInit");
+                console.log("SDK de Meta inicializado vía fbAsyncInit (v21.0)");
             } catch (err) {
                 console.error("Error en FB.init:", err);
             }
@@ -97,10 +97,11 @@ export default function BranchesPage() {
             setTimeout(() => window.close(), 2500); // 1 segundo extra para asegurar el postMessage
             return;
         }
+    }, []);
 
-        // 3. Escuchar mensajes (tanto del SDK como del Popup)
+    // 2. Manejar mensajes del Popup (Captura de IDs)
+    useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
-            // Aceptar mensajes de sastrepro y de facebook
             if (!event.origin.includes("sastrepro.com") && 
                 !event.origin.includes("facebook.com") && 
                 event.origin !== window.location.origin) return;
@@ -109,58 +110,47 @@ export default function BranchesPage() {
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
                 console.log("Mensaje recibido de Meta/Popup:", data);
                 
-                // Formato Estándar de Meta y Nuestro Proxy
                 if (data.type === 'WA_EMBEDDED_SIGNUP_EVENT') {
                     const payload = data.data || data;
-                    const { phone_number_id, waba_id, code: receivedCode } = payload;
+                    const { phone_number_id, waba_id } = payload;
                     
                     if (phone_number_id || waba_id) {
-                        console.log("IDs Detectados!", { phone_number_id, waba_id });
-                        setCapturedMetaIDs({ 
-                            phone_number_id: phone_number_id || '', 
-                            waba_id: waba_id || '' 
-                        });
+                        toast.success("¡IDs de Meta capturados!");
                         setWaForm(prev => ({
                             ...prev,
                             phoneNumberId: phone_number_id || prev.phoneNumberId,
                             wabaId: waba_id || prev.wabaId
                         }));
-                    } else if (receivedCode) {
-                        console.log("Code detectado, esperando IDs...");
                     }
                 }
-            } catch (e) {
-                // Silencioso
-            }
+            } catch (e) {}
         };
 
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
-    }, [isSdkLoaded]);
-    const handleLaunchCoexistence = () => {
-        console.log("Iniciando flujo de Coexistencia (Direct URL Connection)...");
-        
-        const extrasObj = { 
-            feature: 'whatsapp_embedded_signup',
-            version: 2,
-            setup: { 
-                mobile_number_coexistence: true,
-                prefilled_phone_number: '525578437260' 
-            } 
-        };
+    }, []);
 
-        const redirectUri = window.location.origin + '/dashboard/branches';
+    const handleLaunchCoexistence = () => {
+        if (!(window as any).FB) {
+            toast.error("El SDK de Meta aún se está cargando...");
+            return;
+        }
+
+        console.log("Iniciando flujo de Meta basado en documentación oficial...");
         
-        // CORRECCIÓN DE ENDPOINT: Usar dialog/oauth (v21.0) con client_id para evitar 404
-        const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth` +
-            `?client_id=${META_APP_ID}` +
-            `&config_id=${META_CONFIG_ID}` +
-            `&response_type=code` +
-            `&extras=${encodeURIComponent(JSON.stringify(extrasObj))}` +
-            `&redirect_uri=${encodeURIComponent(redirectUri)}`;
-        
-        console.log("URL de conexión (OAuth Endpoint):", oauthUrl);
-        window.open(oauthUrl, 'MetaSignup', 'width=600,height=700');
+        (window as any).FB.login((response: any) => {
+            if (response.authResponse) {
+                console.log("Respuesta de Meta (Autorizado):", response);
+                toast.success("¡Vinculación autorizada! Verifica los IDs en el formulario.");
+            } else {
+                console.log("El usuario no completó el flujo.");
+                toast.error("No se completó la vinculación.");
+            }
+        }, {
+            config_id: META_CONFIG_ID,
+            response_type: 'code',
+            override_default_response_type: true
+        });
     };
 
     const handleCreateBranch = async (e: React.FormEvent) => {

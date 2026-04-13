@@ -145,40 +145,42 @@ export default function BranchesPage() {
                 const { accessToken } = response.authResponse;
                 toast.success("¡Vinculación autorizada! Capturando IDs...");
                 
-                try {
-                    // 1. Obtener cuentas de WhatsApp Business vinculadas
-                    const accountsResponse = await fetch(`https://graph.facebook.com/v21.0/me/whatsapp_business_accounts?access_token=${accessToken}`);
-                    const accountsData = await accountsResponse.json();
-                    
-                    if (accountsData.data && accountsData.data.length > 0) {
-                        const wabaId = accountsData.data[0].id;
+                const fb = (window as any).FB;
+                
+                // 1. Obtener cuentas de WhatsApp Business
+                fb.api('/me/whatsapp_business_accounts', (accountsResponse: any) => {
+                    if (accountsResponse.data && accountsResponse.data.length > 0) {
+                        const firstWaba = accountsResponse.data[0];
                         
-                        // 2. Obtener números de teléfono de esa cuenta
-                        const phonesResponse = await fetch(`https://graph.facebook.com/v21.0/${wabaId}/phone_numbers?access_token=${accessToken}`);
-                        const phonesData = await phonesResponse.json();
-                        
-                        if (phonesData.data && phonesData.data.length > 0) {
-                            const phoneId = phonesData.data[0].id;
-                            
-                            // 3. Poblar el formulario
-                            setWaForm(prev => ({
-                                ...prev,
-                                phoneNumberId: phoneId,
-                                wabaId: wabaId,
-                                accessToken: accessToken // Token temporal para el registro
-                            }));
-                            
-                            toast.success("¡IDs de Meta capturados correctamente!");
-                        } else {
-                            toast.error("No se encontraron números de teléfono en la cuenta vinculada.");
-                        }
+                        // 2. Obtener números de esa cuenta
+                        fb.api(`/${firstWaba.id}/phone_numbers`, (phonesResponse: any) => {
+                            if (phonesResponse.data && phonesResponse.data.length > 0) {
+                                // Intentar encontrar el número que el usuario escribió
+                                const targetClean = waForm.phoneNumber.replace(/\D/g, '');
+                                const foundPhone = phonesResponse.data.find((p: any) => 
+                                    p.display_phone_number.replace(/\D/g, '').includes(targetClean)
+                                ) || phonesResponse.data[0];
+
+                                setWaForm(prev => ({
+                                    ...prev,
+                                    phoneNumberId: foundPhone.id,
+                                    wabaId: firstWaba.id,
+                                    accessToken: accessToken
+                                }));
+
+                                if (foundPhone.display_phone_number.replace(/\D/g, '').includes(targetClean)) {
+                                    toast.success("¡Número vinculado y datos capturados!");
+                                } else {
+                                    toast.warning(`Se vinculó la cuenta, pero el número ${waForm.phoneNumber} no está en Meta. Se cargó el número disponible: ${foundPhone.display_phone_number}`);
+                                }
+                            } else {
+                                toast.error("La cuenta de Meta no tiene números de teléfono registrados.");
+                            }
+                        });
                     } else {
                         toast.error("No se encontró una cuenta de WhatsApp Business vinculada.");
                     }
-                } catch (err) {
-                    console.error("Error consultando Graph API:", err);
-                    toast.error("Error al obtener los IDs de Meta.");
-                }
+                });
             } else {
                 toast.error("No se completó la vinculación.");
             }

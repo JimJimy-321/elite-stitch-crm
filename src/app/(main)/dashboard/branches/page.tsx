@@ -133,7 +133,11 @@ export default function BranchesPage() {
         const handleMessage = (event: MessageEvent) => {
             if (!event.origin.includes("facebook.com") && 
                 !event.origin.includes("sastrepro.com") && 
-                event.origin !== window.location.origin) return;
+                !event.origin.includes("localhost") &&
+                event.origin !== window.location.origin) {
+                console.warn("Origen de mensaje no reconocido:", event.origin);
+                return;
+            }
             
             try {
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
@@ -204,7 +208,7 @@ export default function BranchesPage() {
                 config_id: META_CONFIG_ID,
                 response_type: 'token,code',
                 override_default_response_type: true,
-                scope: 'whatsapp_business_management,whatsapp_business_messaging,business_management'
+                scope: 'whatsapp_business_management,whatsapp_business_messaging'
             });
         } catch (err: any) {
             toast.error("Error al abrir Meta: " + err.message);

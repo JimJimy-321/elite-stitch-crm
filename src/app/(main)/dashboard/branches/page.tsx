@@ -9,6 +9,8 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { dashboardService } from '@/features/dashboard/services/dashboardService';
 
+import { toast } from 'sonner';
+
 export default function BranchesPage() {
     const router = useRouter();
     const { user } = useAuthStore();
@@ -137,7 +139,12 @@ export default function BranchesPage() {
     }, [isSdkLoaded]);
 
     const handleLaunchCoexistence = () => {
-        console.log("Iniciando flujo de Coexistencia (Direct Connection)...");
+        if (!(window as any).FB) {
+            toast.error("El SDK de Meta no se ha cargado. Por favor, recarga la página.");
+            return;
+        }
+
+        console.log("Iniciando flujo de Coexistencia vía SDK (FB.login)...");
         
         const extrasObj = { 
             feature: 'whatsapp_embedded_signup',
@@ -148,77 +155,25 @@ export default function BranchesPage() {
             } 
         };
 
-        const redirectUri = window.location.origin + '/dashboard/branches';
-        const scope = 'whatsapp_business_management,whatsapp_business_messaging';
-        
-        // BYPASS SDK: Uso del endpoint específico para WhatsApp Business (v20.0)
-        // Este endpoint es el oficial para Embedded Signup v2.0 y procesa config_id correctamente
-        const oauthUrl = `https://www.facebook.com/v20.0/dialog/whatsapp_business` +
-            `?app_id=${META_APP_ID}` +
-            `&config_id=${META_CONFIG_ID}` +
-            `&response_type=code` +
-            `&display=popup` +
-            `&extras=${encodeURIComponent(JSON.stringify(extrasObj))}` +
-            `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-            `&scope=${encodeURIComponent(scope)}`;
-        
-        console.log("URL de conexión directa (WhatsApp dialog):", oauthUrl);
-
-        let popup: Window | null = null;
-        try {
-            // Usamos window.open directo para evitar interferencias del SDK de Facebook
-            popup = window.open(oauthUrl, 'MetaSignup', 'width=600,height=700');
-            
-            if (!popup) {
-                alert("Por favor habilita los popups para continuar con la vinculación.");
-                return;
-            }
-
-            // RADAR DE CAPTURA (Polling) para detectar cierre de ventana y captura de parámetros
-            const pollInterval = setInterval(() => {
-                try {
-                    if (popup && popup.closed) {
-                        clearInterval(pollInterval);
-                        return;
-                    }
-
-                    if (popup && popup.location) {
-                        const currentUrl = popup.location.href;
-                        // Si la URL contiene los IDs (después del redirect)
-                        if (currentUrl.includes('phone_number_id=') || currentUrl.includes('waba_id=')) {
-                            const params = new URLSearchParams(popup.location.search);
-                            const phone_id = params.get('phone_number_id');
-                            const waba_id = params.get('waba_id');
-                            
-                            if (phone_id || waba_id) {
-                                console.log("¡RADAR! IDs atrapados:", { phone_id, waba_id });
-                                setCapturedMetaIDs({ 
-                                    phone_number_id: phone_id || '', 
-                                    waba_id: waba_id || '' 
-                                });
-                                setWaForm(prev => ({
-                                    ...prev,
-                                    phoneNumberId: phone_id || prev.phoneNumberId,
-                                    wabaId: waba_id || prev.wabaId
-                                }));
-                                clearInterval(pollInterval);
-                                popup.close();
-                                alert("✓ ¡IDs capturados automáticamente!");
-                            }
-                        }
-                    }
-                } catch (e) {
-                    // Error de Cross-Origin mientras está en FB, ignorar
+        (window as any).FB.login((response: any) => {
+            if (response.authResponse) {
+                console.log("Respuesta de Meta (SDK):", response);
+                const code = response.authResponse.code;
+                
+                if (code) {
+                    toast.success("¡Vinculación autorizada! Ahora puedes registrar los IDs.");
+                    console.log("Authorization Code recibido:", code);
                 }
-            }, 600);
-
-            // Limpieza a los 5 min
-            setTimeout(() => clearInterval(pollInterval), 5 * 60 * 1000);
-
-        } catch (err) {
-            console.error("Error en conexión Meta:", err);
-            alert("Error al abrir Meta. Por favor habilita los popups.");
-        }
+            } else {
+                console.log("El usuario canceló el flujo o no se autorizó.");
+                toast.error("No se completó la vinculación con Meta.");
+            }
+        }, {
+            config_id: META_CONFIG_ID,
+            response_type: 'code',
+            override_default_response_type: true,
+            extras: extrasObj
+        });
     };
 
     const handleCreateBranch = async (e: React.FormEvent) => {

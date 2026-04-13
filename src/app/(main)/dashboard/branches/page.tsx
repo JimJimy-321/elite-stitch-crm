@@ -131,19 +131,32 @@ export default function BranchesPage() {
     }, []);
 
     const handleLaunchCoexistence = () => {
-        console.log("Iniciando flujo de vinculación DIRECTO (Verified Manual Flow)...");
+        if (!(window as any).FB) {
+            toast.error("El SDK de Meta aún se está cargando...");
+            return;
+        }
+
+        console.log("Iniciando flujo de Meta con captura automática de IDs...");
         
-        const redirectUri = 'https://sastrepro.com/dashboard/branches';
-        
-        // URL Limpia y Verificada (Resuelve el error "BSP/TP" al eliminar el parámetro extras)
-        const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth` +
-            `?client_id=${META_APP_ID}` +
-            `&config_id=${META_CONFIG_ID}` +
-            `&response_type=code` +
-            `&redirect_uri=${encodeURIComponent(redirectUri)}`;
-        
-        console.log("Abriendo ventana de Meta (Direct Flow):", oauthUrl);
-        window.open(oauthUrl, 'MetaSignup', 'width=600,height=700');
+        (window as any).FB.login((response: any) => {
+            console.log("Respuesta completa de Meta SDK:", response);
+            
+            if (response.authResponse) {
+                // Meta devuelve los IDs en el objeto authResponse o vía eventos
+                const { code } = response.authResponse;
+                toast.success("¡Vinculación autorizada!");
+                
+                // Si Meta no envía los IDs en el callback directamente, 
+                // ya tenemos la lógica de window.message escuchando los eventos del popup
+                console.log("Autorización exitosa. Esperando IDs del evento de Meta...");
+            } else {
+                toast.error("No se completó la vinculación.");
+            }
+        }, {
+            config_id: META_CONFIG_ID,
+            response_type: 'code',
+            override_default_response_type: true
+        });
     };
 
     const handleCreateBranch = async (e: React.FormEvent) => {

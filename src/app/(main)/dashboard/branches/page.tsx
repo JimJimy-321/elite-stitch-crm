@@ -151,19 +151,16 @@ export default function BranchesPage() {
                     
                     if (phone_number_id || waba_id) {
                         toast.success("¡IDs de Meta capturados por mensaje!");
-                        
-                        setWaForm(prev => {
-                            const newForm = {
-                                ...prev,
-                                phoneNumberId: phone_number_id || prev.phoneNumberId,
-                                wabaId: waba_id || prev.wabaId
-                            };
-                            return newForm;
-                        });
-                        
-                        // Si ya tenemos token, intentamos avanzar
-                        if (waForm.accessToken) {
-                            setIsProcessingMeta(false);
+                        setWaForm(prev => ({
+                            ...prev,
+                            phoneNumberId: phone_number_id || prev.phoneNumberId,
+                            wabaId: waba_id || prev.wabaId
+                        }));
+                    } else {
+                        // Diagnóstico crudo si recibimos mensaje pero sin IDs claros
+                        console.log("Mensaje de Meta sin IDs claros:", payload);
+                        if (payload.event === 'FINISH') {
+                            toast.warning("Asistente terminado pero Meta no envió los IDs. Inténtalo manualmente abajo.");
                         }
                     }
                 }
@@ -173,7 +170,7 @@ export default function BranchesPage() {
         };
 
         window.addEventListener('message', handleMessage);
-        console.log("🚀 SastrePro V2.5 - Sincronización Meta Activa");
+        console.log("🚀 SastrePro V2.6 - Diagnóstico Meta Activo");
         return () => window.removeEventListener('message', handleMessage);
     }, []);
 
@@ -538,9 +535,24 @@ export default function BranchesPage() {
                                                 {isProcessingMeta ? (
                                                     <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> VINCULANDO...</>
                                                 ) : isSdkLoaded ? (
-                                                    <><ExternalLink size={16} /> !!! ABRIR ASISTENTE (SYNC V2.5 - FINAL) !!!</>
+                                                    <><ExternalLink size={16} /> !!! ABRIR ASISTENTE (SYNC V2.6 - DIAGNOSTIC) !!!</>
                                                 ) : "Cargando..."}
                                             </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Campos de ID manuales como respaldo (Fail-safe) */}
+                                    <div className="pt-4 border-t border-slate-200 space-y-4">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Configuración de IDs (Detección Manual/Auto)</p>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <p className="text-[9px] font-black mb-1">ID TELÉFONO</p>
+                                                <input type="text" value={waForm.phoneNumberId} onChange={e => setWaForm({...waForm, phoneNumberId: e.target.value})} className="w-full text-xs border rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="Ej: 52123..." />
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-black mb-1">ID WABA</p>
+                                                <input type="text" value={waForm.wabaId} onChange={e => setWaForm({...waForm, wabaId: e.target.value})} className="w-full text-xs border rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="Ej: 1280..." />
+                                            </div>
                                         </div>
                                     </div>
 

@@ -228,6 +228,38 @@ export default function BranchesPage() {
     // (La persistencia se maneja en el useEffect al inicio del componente)
 
 
+    const handleLookupMetaIDs = async () => {
+        if (!waForm.wabaId || !waForm.accessToken) {
+            toast.error("Necesitamos el WABA ID y Access Token para buscar tus IDs.");
+            return;
+        }
+
+        setIsNativeLoading(true);
+        try {
+            const phones = await whatsappService.getPhoneNumbers(waForm.wabaId, waForm.accessToken);
+            if (phones && phones.length > 0) {
+                // Intentar encontrar el número que el usuario escribió
+                const targetClean = waForm.phoneNumber.replace(/\D/g, '');
+                const foundPhone = phones.find(p => 
+                    p.display_phone_number.replace(/\D/g, '').includes(targetClean)
+                ) || phones[0];
+
+                setWaForm(prev => ({
+                    ...prev,
+                    phoneNumberId: foundPhone.id
+                }));
+                setNativePhoneId(foundPhone.id);
+                toast.success(`¡ID Encontrado! Se cargó el ID para el número ${foundPhone.display_phone_number}`);
+            } else {
+                toast.warning("No se encontraron números en esta cuenta de Meta.");
+            }
+        } catch (err: any) {
+            toast.error(`Error al buscar IDs: ${err.message}`);
+        } finally {
+            setIsNativeLoading(false);
+        }
+    };
+
     /**
      * Paso 1: Registrar número en Meta y disparar SMS
      */
@@ -658,8 +690,18 @@ export default function BranchesPage() {
                                         </div>
                                     )}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Phone Number ID <span className="text-red-500">*</span></label>
+                                        <div className="space-y-1.5 flex-1 pt-1">
+                                            <div className="flex items-center justify-between gap-2 mb-1.5">
+                                                <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Phone Number ID <span className="text-red-500">*</span></label>
+                                                <button 
+                                                    onClick={handleLookupMetaIDs}
+                                                    disabled={isNativeLoading}
+                                                    className="text-[9px] font-black text-orange-600 uppercase tracking-tighter hover:underline flex items-center gap-1"
+                                                >
+                                                    {isNativeLoading ? <Loader2 size={10} className="animate-spin" /> : <Star size={10} />}
+                                                    Recuperar ID
+                                                </button>
+                                            </div>
                                             <input 
                                                 type="text" 
                                                 className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none focus:border-orange-500 transition-all shadow-sm"

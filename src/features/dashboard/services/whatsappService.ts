@@ -98,5 +98,22 @@ export const whatsappService = {
             console.error("Error al verificar código:", err);
             throw err;
         }
+    },
+
+    /**
+     * Utilidad para listar números y encontrar IDs
+     */
+    async getPhoneNumbers(wabaId: string, accessToken: string) {
+        try {
+            const response = await fetch(`https://graph.facebook.com/${GRAPH_API_VERSION}/${wabaId}/phone_numbers`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            const data = await response.json();
+            if (data.error) throw new Error(data.error.message);
+            return data.data as MetaPhoneResponse[];
+        } catch (err: any) {
+            console.error("Error al listar números de Meta:", err);
+            throw err;
+        }
     }
 };

@@ -33,7 +33,6 @@ export default function BranchesPage() {
     });
     const [isWaSubmitting, setIsWaSubmitting] = useState(false);
     
-    const [capturedMetaIDs, setCapturedMetaIDs] = useState<{phone_number_id: string, waba_id: string} | null>(null);
     const [isSdkLoaded, setIsSdkLoaded] = useState(false);
 
     // Estados para Registro Nativo (Sin popup)
@@ -42,12 +41,13 @@ export default function BranchesPage() {
     const [otpCode, setOtpCode] = useState('');
     const [isNativeLoading, setIsNativeLoading] = useState(false);
     
-    // Configuración de Meta (Deberían venir de env vars en el futuro)
+    // Configuración de Meta
     const META_APP_ID = '3780486202082501';
     const META_CONFIG_ID = '1598768074758028';
 
     // Persistencia de estado de registro nativo
     useEffect(() => {
+        if (typeof window === 'undefined') return;
         const savedStep = sessionStorage.getItem('wa_native_step');
         const savedPhoneId = sessionStorage.getItem('wa_native_phone_id');
         const savedForm = sessionStorage.getItem('wa_form_data');
@@ -58,6 +58,7 @@ export default function BranchesPage() {
     }, []);
 
     useEffect(() => {
+        if (typeof window === 'undefined') return;
         sessionStorage.setItem('wa_native_step', nativeStep.toString());
         sessionStorage.setItem('wa_native_phone_id', nativePhoneId);
         sessionStorage.setItem('wa_form_data', JSON.stringify(waForm));
@@ -74,7 +75,6 @@ export default function BranchesPage() {
 
     // Manejar la inicialización y retorno del SDK de Meta
     useEffect(() => {
-        // 1. Configurar fbAsyncInit (Método oficial más robusto)
         (window as any).fbAsyncInit = function() {
             try {
                 (window as any).FB.init({
@@ -84,23 +84,21 @@ export default function BranchesPage() {
                     version: 'v21.0'
                 });
                 setIsSdkLoaded(true);
-                console.log("SDK de Meta inicializado vía fbAsyncInit (v21.0)");
+                console.log("SDK de Meta inicializado (v21.0)");
             } catch (err) {
                 console.error("Error en FB.init:", err);
             }
         };
 
-        // Si el SDK ya está cargado por alguna razón, inicializarlo manualmente
         if ((window as any).FB && !isSdkLoaded) {
             (window as any).fbAsyncInit();
         }
 
-        // 2. Detectar 'code' en la URL (Redirección tradicional)
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
 
         if (code && typeof window !== 'undefined' && window.opener && window.opener !== window) {
-            console.log("Popup detectado con parámetros. Escaneando IDs...");
+            console.log("Popup detectado con code. Escaneando IDs...");
             const phone_id = urlParams.get('phone_number_id');
             const waba_id = urlParams.get('waba_id');
 
@@ -123,31 +121,32 @@ export default function BranchesPage() {
                     <div style="color:#10b981;font-size:48px;margin-bottom:20px;">✓</div>
                     <h2 style="margin:0;font-weight:900;">Conexión con Meta Exitosa</h2>
                     <p style="color:#64748b;margin-top:10px;">Capturando credenciales...</p>
-                    ${(phone_id || waba_id) ? `<p style="font-size:12px;color:#10b981;margin-top:10px;">IDs capturados correctamente</p>` : ''}
                 </div>
             `;
-            setTimeout(() => window.close(), 2500); // 1 segundo extra para asegurar el postMessage
+            setTimeout(() => window.close(), 2500);
             return;
         }
-    }, []);
+    }, [isSdkLoaded]);
 
-    // 2. Manejar mensajes del Popup (Captura de IDs)
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
-            if (!event.origin.includes("sastrepro.com") && 
-                !event.origin.includes("facebook.com") && 
+            if (!event.origin.includes("facebook.com") && 
+                !event.origin.includes("sastrepro.com") && 
                 event.origin !== window.location.origin) return;
             
             try {
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-                console.log("Mensaje recibido de Meta/Popup:", data);
+                console.log("Mensaje recibido del Popup:", data);
                 
-                if (data.type === 'WA_EMBEDDED_SIGNUP_EVENT') {
+                if (data.type === 'WA_EMBEDDED_SIGNUP_EVENT' || (data.event === 'FINISH' && data.data)) {
+                    toast.info("Capturando datos de vinculación...");
+                    
                     const payload = data.data || data;
                     const { phone_number_id, waba_id } = payload;
                     
                     if (phone_number_id || waba_id) {
-                        toast.success("¡IDs de Meta capturados!");
+                        toast.success("¡Meta ha enviado los IDs correctamente!");
+                        
                         setWaForm(prev => ({
                             ...prev,
                             phoneNumberId: phone_number_id || prev.phoneNumberId,
@@ -155,7 +154,9 @@ export default function BranchesPage() {
                         }));
                     }
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.warn("Error procesando mensaje del popup:", e);
+            }
         };
 
         window.addEventListener('message', handleMessage);
@@ -165,188 +166,36 @@ export default function BranchesPage() {
     const handleLaunchCoexistence = () => {
         const fb = (window as any).FB;
         if (!fb) {
-            toast.error("El SDK de Meta (FB) no está definido en el objeto window.");
+            toast.error("El SDK de Meta aun no carga. Reintenta en 1 segundo.");
             return;
         }
 
-        toast.info("Conectando con Meta... Por favor, permite las ventanas emergentes.");
-        console.log("Iniciando FB.login con Config ID:", META_CONFIG_ID);
+        toast.info("Conectando con Meta... Completa los pasos en la ventana.");
         
         try {
             fb.login((response: any) => {
-                console.log("Respuesta bruta de FB.login:", response);
-                
                 if (response.authResponse) {
-                    const { accessToken } = response.authResponse;
-                    toast.success("¡Acceso autorizado! Escaneando cuentas...");
-                    
-                    // 1. Obtener cuentas de WhatsApp Business
-                    fb.api('/me/whatsapp_business_accounts', (accountsResponse: any) => {
-                        console.log("Respuesta de /me/whatsapp_business_accounts:", accountsResponse);
-                        
-                        if (accountsResponse.data && accountsResponse.data.length > 0) {
-                            const firstWaba = accountsResponse.data[0];
-                            console.log("Usando WABA:", firstWaba.id);
-                            
-                            // 2. Obtener números de esa cuenta
-                            fb.api(`/${firstWaba.id}/phone_numbers`, (phonesResponse: any) => {
-                                console.log("Respuesta de /phone_numbers:", phonesResponse);
-                                
-                                if (phonesResponse.data && phonesResponse.data.length > 0) {
-                                    const targetClean = waForm.phoneNumber.replace(/\D/g, '');
-                                    const foundPhone = phonesResponse.data.find((p: any) => 
-                                        p.display_phone_number.replace(/\D/g, '').includes(targetClean)
-                                    ) || phonesResponse.data[0];
-
-                                    setWaForm(prev => ({
-                                        ...prev,
-                                        phoneNumberId: foundPhone.id,
-                                        wabaId: firstWaba.id,
-                                        accessToken: accessToken
-                                    }));
-
-                                    toast.success(`¡Vinculado! ID Telefono: ${foundPhone.id}`);
-                                } else {
-                                    toast.error("La cuenta no tiene números configurados.");
-                                }
-                            });
-                        } else {
-                            toast.error("No se encontró ninguna WABA vinculada.");
-                        }
-                    });
-                } else if (response.status === 'not_authorized') {
-                    toast.error("No autorizaste la aplicación en Meta.");
+                    const { accessToken, code } = response.authResponse;
+                    if (accessToken || code) {
+                        setWaForm(prev => ({
+                            ...prev,
+                            accessToken: accessToken || code || prev.accessToken
+                        }));
+                    }
+                    toast.success("¡Pasos en Meta finalizados!");
                 } else {
-                    toast.error("La ventana de Meta se cerró o se canceló.");
+                    toast.error("No se completó la vinculación.");
                 }
             }, {
                 config_id: META_CONFIG_ID,
                 response_type: 'code',
                 override_default_response_type: true,
-                scope: 'whatsapp_business_management,whatsapp_business_messaging' // Scope explcito para fb.api
+                scope: 'whatsapp_business_management,whatsapp_business_messaging'
             });
         } catch (err: any) {
-            console.error("Error crítico en FB.login:", err);
             toast.error("Error al abrir Meta: " + err.message);
         }
     };
-
-    // --- FLUJO DE REGISTRO NATIVO (SMS API) ---
-
-    // (La persistencia se maneja en el useEffect al inicio del componente)
-
-
-    const handleLookupMetaIDs = async () => {
-        if (!waForm.wabaId || !waForm.accessToken) {
-            toast.error("Necesitamos el WABA ID y Access Token para buscar tus IDs.");
-            return;
-        }
-
-        setIsNativeLoading(true);
-        try {
-            const phones = await whatsappService.getPhoneNumbers(waForm.wabaId, waForm.accessToken);
-            if (phones && phones.length > 0) {
-                // Intentar encontrar el número que el usuario escribió
-                const targetClean = waForm.phoneNumber.replace(/\D/g, '');
-                const foundPhone = phones.find(p => 
-                    p.display_phone_number.replace(/\D/g, '').includes(targetClean)
-                ) || phones[0];
-
-                setWaForm(prev => ({
-                    ...prev,
-                    phoneNumberId: foundPhone.id
-                }));
-                setNativePhoneId(foundPhone.id);
-                toast.success(`¡ID Encontrado! Se cargó el ID para el número ${foundPhone.display_phone_number}`);
-            } else {
-                toast.warning("No se encontraron números en esta cuenta de Meta.");
-            }
-        } catch (err: any) {
-            toast.error(`Error al buscar IDs: ${err.message}`);
-        } finally {
-            setIsNativeLoading(false);
-        }
-    };
-
-    /**
-     * Paso 1: Registrar número en Meta y disparar SMS vía Backend
-     */
-    const handleNativeRegisterInit = async () => {
-        if (!waForm.phoneNumber || !selectedBranch) {
-            toast.error("El número de teléfono es obligatorio.");
-            return;
-        }
-
-        setIsNativeLoading(true);
-        try {
-            const res = await fetch('/api/whatsapp/native/request-sms', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    branchId: selectedBranch.id,
-                    phoneNumber: waForm.phoneNumber
-                })
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.error || "Error al solicitar SMS");
-            }
-
-            setNativePhoneId(data.phoneId);
-            setNativeStep(1);
-            toast.success("🚀 SMS solicitado. Revisa tu celular.");
-        } catch (err: any) {
-            toast.error(`Error: ${err.message}`);
-        } finally {
-            setIsNativeLoading(false);
-        }
-    };
-
-    /**
-     * Paso 2: Verificar código y finalizar vía Backend
-     */
-    const handleNativeVerifyCode = async () => {
-        const phoneId = (nativePhoneId || "").trim();
-        
-        if (!otpCode || otpCode.length < 6) {
-            toast.error("Introduce el código de 6 dígitos.");
-            return;
-        }
-
-        setIsNativeLoading(true);
-        try {
-            const res = await fetch('/api/whatsapp/native/verify-sms', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    branchId: selectedBranch.id,
-                    phoneId: phoneId,
-                    otpCode: otpCode
-                })
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.error || "Error al verificar código");
-            }
-            
-            setNativeStep(2);
-            toast.success("✅ ¡Número verificado y vinculado con éxito!");
-            
-            // Limpiar persistencia tras éxito
-            sessionStorage.removeItem('nativePhoneId');
-            sessionStorage.removeItem('nativeStep');
-            
-        } catch (err: any) {
-            toast.error(`Código inválido: ${err.message}`);
-        } finally {
-            setIsNativeLoading(false);
-        }
-    };
-
 
     const handleCreateBranch = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -358,7 +207,7 @@ export default function BranchesPage() {
             setNewBranchData({ name: '', address: '' });
         } catch (error) {
             console.error("Error creating branch:", error);
-            alert("Error al crear sucursal.");
+            toast.error("Error al crear sucursal.");
         } finally {
             setIsSubmitting(false);
         }
@@ -374,27 +223,25 @@ export default function BranchesPage() {
             setSelectedBranch(null);
         } catch (error) {
             console.error("Error updating branch:", error);
-            alert("Error al actualizar sucursal.");
+            toast.error("Error al actualizar sucursal.");
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const handleDeleteBranch = async (branch: any) => {
-        if (!confirm(`¿Estás SEGURO de eliminar la sede "${branch.name}"?\nEsta acción no se puede deshacer y fallará si hay tickets registrados.`)) return;
-        
+        if (!confirm(`¿Estás SEGURO de eliminar la sede "${branch.name}"?\nEsta acción no se puede deshacer.`)) return;
         try {
             await deleteBranch(branch.id);
-            alert("Sede eliminada correctamente.");
+            toast.success("Sede eliminada correctamente.");
         } catch (error: any) {
-            console.error("Error deleting branch:", error);
-            alert(error.message || "Error al eliminar la sede.");
+            toast.error(error.message || "Error al eliminar la sede.");
         }
     };
 
     const handleRegisterWhatsApp = async () => {
         if (!selectedBranch || !waForm.phoneNumberId || !waForm.accessToken) {
-            alert("Por favor completa los campos obligatorios (Phone ID y Access Token)");
+            toast.error("Faltan campos obligatorios");
             return;
         }
 
@@ -410,20 +257,61 @@ export default function BranchesPage() {
             });
 
             const result = await response.json();
-
             if (result.success) {
-                alert("✓ WhatsApp configurado y vinculado con Meta correctamente.");
+                toast.success("Configuración guardada correctamente.");
                 setSettingsModalOpen(false);
-                // Actualizar lista local de sucursales
                 window.location.reload(); 
             } else {
-                alert(`Error: ${result.error}\n${result.details?.error?.message || ''}`);
+                toast.error(`Error: ${result.error}`);
             }
         } catch (error) {
-            console.error("WA Register Error:", error);
-            alert("Ocurrió un error inesperado al configurar WhatsApp.");
+            toast.error("Error inesperado al configurar WhatsApp.");
         } finally {
             setIsWaSubmitting(false);
+        }
+    };
+
+    const handleNativeRegisterInit = async () => {
+        if (!waForm.phoneNumber || !selectedBranch) {
+            toast.error("El número es obligatorio.");
+            return;
+        }
+        setIsNativeLoading(true);
+        try {
+            const res = await fetch('/api/whatsapp/native/request-sms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ branchId: selectedBranch.id, phoneNumber: waForm.phoneNumber })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            setNativePhoneId(data.phoneId);
+            setNativeStep(1);
+            toast.success("Enviado. Revisa tu SMS.");
+        } catch (err: any) {
+            toast.error(`Error: ${err.message}`);
+        } finally {
+            setIsNativeLoading(false);
+        }
+    };
+
+    const handleNativeVerifyCode = async () => {
+        if (!otpCode || otpCode.length < 6) return;
+        setIsNativeLoading(true);
+        try {
+            const res = await fetch('/api/whatsapp/native/verify-sms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ branchId: selectedBranch.id, phoneId: nativePhoneId, otpCode })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            setNativeStep(2);
+            toast.success("¡Vinculado con éxito!");
+        } catch (err: any) {
+            toast.error(`Error: ${err.message}`);
+        } finally {
+            setIsNativeLoading(false);
         }
     };
 
@@ -433,7 +321,6 @@ export default function BranchesPage() {
                 src="https://connect.facebook.net/en_US/sdk.js" 
                 strategy="afterInteractive"
                 onLoad={() => {
-                    console.log("SDK Script cargado físicamente");
                     if ((window as any).FB) (window as any).fbAsyncInit();
                 }}
             />
@@ -445,7 +332,7 @@ export default function BranchesPage() {
                         </div>
                         Tus Sucursales
                     </h1>
-                    <p className="text-muted-foreground text-sm font-medium">Control centralizado de todas tus sedes operativas en tiempo real.</p>
+                    <p className="text-muted-foreground text-sm font-medium">Control centralizado en tiempo real.</p>
                 </div>
                 <button 
                     onClick={() => setCreateModalOpen(true)}
@@ -459,7 +346,6 @@ export default function BranchesPage() {
                 {loading ? (
                     <div className="col-span-full py-20 flex flex-col items-center justify-center animate-pulse">
                         <div className="w-16 h-16 bg-slate-100 rounded-full mb-4"></div>
-                        <div className="h-4 w-48 bg-slate-100 rounded"></div>
                     </div>
                 ) : branches.length > 0 ? (
                     branches.map(branch => (
@@ -467,16 +353,14 @@ export default function BranchesPage() {
                             <div className="p-8 space-y-8">
                                 <div className="flex justify-between items-start">
                                     <div className="flex items-center gap-5">
-                                        <div className="w-16 h-16 bg-orange-50 rounded-[1.5rem] flex items-center justify-center border border-orange-200 group-hover:border-orange-300 transition-all shadow-inner">
+                                        <div className="w-16 h-16 bg-orange-50 rounded-[1.5rem] flex items-center justify-center border border-orange-200 shadow-inner">
                                             <Store className="text-slate-400 group-hover:text-orange-500 transition-colors" size={28} />
                                         </div>
                                         <div>
                                             <h3 className="text-xl font-black text-foreground group-hover:text-orange-600 transition-colors tracking-tight">{branch.name}</h3>
                                             <div className={cn(
                                                 "flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.2em] mt-2 px-2.5 py-1 rounded-full border w-fit shadow-sm",
-                                                branch.metadata?.online !== false
-                                                    ? "text-emerald-600 bg-emerald-50 border-emerald-100"
-                                                    : "text-red-500 bg-red-50 border-red-100"
+                                                branch.metadata?.online !== false ? "text-emerald-600 bg-emerald-50 border-emerald-100" : "text-red-500 bg-red-50 border-red-100"
                                             )}>
                                                 <div className={cn("w-1.5 h-1.5 rounded-full", branch.metadata?.online !== false ? "bg-emerald-500 animate-pulse" : "bg-red-500")} />
                                                 {branch.metadata?.online !== false ? 'Online' : 'Offline'}
@@ -486,407 +370,134 @@ export default function BranchesPage() {
                                     <div className="relative">
                                         <button 
                                             onClick={() => setActiveDropdown(activeDropdown === branch.id ? null : branch.id)}
-                                            className="p-3 bg-slate-50 hover:bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-orange-500 transition-all active:scale-95 shadow-sm group/btn"
+                                            className="p-3 bg-slate-50 hover:bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-orange-500 transition-all active:scale-95 shadow-sm"
                                         >
-                                            <MoreVertical size={20} className="group-hover/btn:rotate-90 transition-transform" />
+                                            <MoreVertical size={20} />
                                         </button>
-
                                         {activeDropdown === branch.id && (
                                             <>
-                                                <div 
-                                                    className="fixed inset-0 z-40" 
-                                                    onClick={() => setActiveDropdown(null)}
-                                                />
+                                                <div className="fixed inset-0 z-40" onClick={() => setActiveDropdown(null)} />
                                                 <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 p-2 animate-in zoom-in-95 duration-200 origin-top-right">
-                                                    <div className="px-3 py-2 text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1 border-b border-slate-50">Acciones de Sede</div>
-                                                    <button 
-                                                        onClick={() => {
-                                                            setSelectedBranch(branch);
-                                                            setEditBranchData({ name: branch.name, address: branch.address || '' });
-                                                            setEditModalOpen(true);
-                                                            setActiveDropdown(null);
-                                                        }}
-                                                        className="w-full flex items-center gap-3 px-4 py-3 text-xs font-black text-slate-700 hover:bg-slate-50 rounded-xl transition-colors text-left group/item"
-                                                    >
-                                                        <Edit2 size={16} className="text-blue-500 group-hover/item:scale-110 transition-transform" />
-                                                        Editar Información
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => {
-                                                            setSelectedBranch(branch);
-                                                            setWaForm({
-                                                                phoneNumberId: branch.wa_phone_number_id || '',
-                                                                wabaId: branch.wa_waba_id || '',
-                                                                accessToken: branch.wa_access_token || '',
-                                                                phoneNumber: branch.wa_phone_number || ''
-                                                            });
-                                                            setSettingsModalOpen(true);
-                                                            setActiveDropdown(null);
-                                                        }}
-                                                        className="w-full flex items-center gap-3 px-4 py-3 text-xs font-black text-slate-700 hover:bg-slate-50 rounded-xl transition-colors text-left group/item"
-                                                    >
-                                                        <Settings size={16} className="text-slate-500 group-hover/item:rotate-45 transition-transform" />
-                                                        Ajustes y Parámetros
-                                                    </button>
+                                                    <button onClick={() => { setSelectedBranch(branch); setEditBranchData({ name: branch.name, address: branch.address || '' }); setEditModalOpen(true); setActiveDropdown(null); }} className="w-full flex items-center gap-3 px-4 py-3 text-xs font-black text-slate-700 hover:bg-slate-50 rounded-xl transition-colors text-left"><Edit2 size={16} className="text-blue-500" /> Editar Info</button>
+                                                    <button onClick={() => { setSelectedBranch(branch); setWaForm({ phoneNumberId: branch.wa_phone_number_id || '', wabaId: branch.wa_waba_id || '', accessToken: branch.wa_access_token || '', phoneNumber: branch.wa_phone_number || '' }); setSettingsModalOpen(true); setActiveDropdown(null); }} className="w-full flex items-center gap-3 px-4 py-3 text-xs font-black text-slate-700 hover:bg-slate-50 rounded-xl transition-colors text-left"><Settings size={16} className="text-slate-500" /> Ajustes</button>
                                                     <div className="my-2 border-t border-slate-100" />
-                                                    <button 
-                                                        onClick={() => {
-                                                            handleDeleteBranch(branch);
-                                                            setActiveDropdown(null);
-                                                        }}
-                                                        className="w-full flex items-center gap-3 px-4 py-3 text-xs font-black text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-left group/item"
-                                                    >
-                                                        <Trash2 size={16} className="group-hover/item:scale-110 transition-transform" />
-                                                        Eliminar Sede
-                                                    </button>
+                                                    <button onClick={() => { handleDeleteBranch(branch); setActiveDropdown(null); }} className="w-full flex items-center gap-3 px-4 py-3 text-xs font-black text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-left"><Trash2 size={16} /> Eliminar</button>
                                                 </div>
                                             </>
                                         )}
                                     </div>
                                 </div>
-
                                 <div className="space-y-4 px-1">
-                                    <div className="flex items-center gap-3 text-xs font-bold text-slate-600 group-hover:text-slate-900 transition-colors">
-                                        <MapPin size={16} className="text-orange-500" />
-                                        <span>{branch.address || 'Ubicación no registrada'}</span>
-                                    </div>
-                                     <div className="flex items-center gap-2 p-3 bg-white/50 rounded-xl border border-slate-200/50 shadow-sm">
-                                        <User size={16} className="text-orange-500" />
-                                        <div>
-                                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-tighter leading-none mb-1">Encargado Responsable</p>
-                                            <p className="text-sm font-black text-slate-950 tracking-tight leading-none">
-                                                {profiles.find(p => p.assigned_branch_id === branch.id)?.full_name || branch.metadata?.manager || (
-                                                    <span className="text-rose-600 italic font-black">SIN ENCARGADO ASIGNADO</span>
-                                                )}
-                                            </p>
-                                        </div>
-                                    </div>
+                                    <div className="flex items-center gap-3 text-xs font-bold text-slate-600"><MapPin size={16} className="text-orange-500" /><span>{branch.address || 'Ubicación no registrada'}</span></div>
+                                    <div className="flex items-center gap-2 p-3 bg-white/50 rounded-xl border border-slate-200/50 shadow-sm"><User size={16} className="text-orange-500" /><div><p className="text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1">Encargado Responsable</p><p className="text-sm font-black text-slate-950">{profiles.find(p => p.assigned_branch_id === branch.id)?.full_name || branch.metadata?.manager || "SIN ASIGNAR"}</p></div></div>
                                 </div>
-
-                                <div className="pt-8 border-t border-slate-100 grid grid-cols-2 gap-8 relative">
-                                    <div className="space-y-2">
-                                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest flex items-center gap-2">
-                                            <Activity size={12} className="text-orange-500" />
-                                            Actividad
-                                        </p>
-                                        <p className="text-3xl font-black text-slate-900 tracking-tighter">Normal</p>
-                                    </div>
-                                    <div className="space-y-2 text-right">
-                                        <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest flex items-center gap-2 justify-end">
-                                            Sucursal ID
-                                            <Star size={12} className="text-orange-500/50" />
-                                        </p>
-                                        <p className="text-3xl font-black text-orange-600 tracking-tighter uppercase">{branch.id.substring(0, 3)}</p>
-                                    </div>
-                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-10 bg-slate-100 hidden md:block" />
+                                <div className="pt-8 border-t border-slate-100 grid grid-cols-2 gap-8 relative text-center">
+                                    <div><p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Actividad</p><p className="text-3xl font-black text-slate-900 tracking-tighter">Normal</p></div>
+                                    <div><p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">ID</p><p className="text-3xl font-black text-orange-600 tracking-tighter uppercase">{branch.id.substring(0, 3)}</p></div>
                                 </div>
-
                                 <div className="flex gap-3">
-                                    <button 
-                                        onClick={() => router.push(`/dashboard?branchId=${branch.id}`)}
-                                        className="flex-1 bg-orange-500 text-white px-4 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-2xl shadow-orange-500/20 hover:bg-orange-600 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 group"
-                                    >
-                                        Monitor Detallado
-                                        <Activity size={18} className="group-hover:rotate-12 transition-transform" />
-                                    </button>
-                                    <button 
-                                        onClick={() => alert("Funcionalidad Móvil en construcción")}
-                                        className="bg-orange-100 hover:bg-orange-200 border border-orange-200 px-5 py-4 rounded-2xl text-orange-700 hover:text-orange-600 transition-all shadow-sm"
-                                    >
-                                        <Smartphone size={20} />
-                                    </button>
+                                    <button onClick={() => router.push(`/dashboard?branchId=${branch.id}`)} className="flex-1 bg-orange-500 text-white px-4 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-2xl shadow-orange-500/20 hover:bg-orange-600 flex items-center justify-center gap-3">Monitor Detallado <Activity size={18} /></button>
+                                    <button onClick={() => toast.info("Funcionalidad Móvil en construcción")} className="bg-orange-100 px-5 py-4 rounded-2xl text-orange-700 transition-all shadow-sm"><Smartphone size={20} /></button>
                                 </div>
                             </div>
                         </div>
                     ))
                 ) : (
                     <div className="col-span-full border-4 border-dashed border-slate-200 rounded-[2rem] flex flex-col items-center justify-center p-20 bg-slate-50/50">
-                        <Store className="text-slate-300 mb-6" size={60} />
-                        <h3 className="text-2xl font-black text-foreground tracking-tight">No hay sucursales registradas</h3>
-                        <p className="text-sm font-medium text-muted-foreground mt-2">Comienza añadiendo tu primera sede operativa.</p>
+                        <Store className="text-slate-300 mb-6" size={60} /><h3 className="text-2xl font-black tracking-tight">No hay sucursales</h3>
                     </div>
                 )}
-
-                {/* Add Card */}
-                <div 
-                    onClick={() => setCreateModalOpen(true)}
-                    className="border-4 border-dashed border-slate-200 rounded-[2rem] flex flex-col items-center justify-center p-12 group hover:border-orange-500/30 hover:bg-orange-500/5 transition-all cursor-pointer bg-slate-50/50">
-                    <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-xl border border-slate-100">
-                        <Plus className="text-slate-400 group-hover:text-orange-500" size={40} />
-                    </div>
-                    <h3 className="text-xl font-black text-foreground group-hover:text-orange-600 transition-colors tracking-tight">Añadir Sucursal</h3>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-2">Expande tu imperio SastrePro</p>
+                <div onClick={() => setCreateModalOpen(true)} className="border-4 border-dashed border-slate-200 rounded-[2rem] flex flex-col items-center justify-center p-12 group hover:border-orange-500/30 hover:bg-orange-500/5 transition-all cursor-pointer bg-slate-50/50">
+                    <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mb-6 shadow-xl"><Plus className="text-slate-400 group-hover:text-orange-500" size={40} /></div>
+                    <h3 className="text-xl font-black group-hover:text-orange-600 transition-colors tracking-tight">Añadir Sucursal</h3>
                 </div>
             </div>
 
-            {/* Edit Branch Modal */}
+            {/* Modals simplificados para legibilidad */}
             {isEditModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-2xl p-4 animate-in fade-in duration-300">
-                    <div className="bg-white border-[3px] border-slate-300 rounded-[2.5rem] shadow-[0_0_120px_rgba(0,0,0,0.5)] w-full max-w-md overflow-hidden animate-in zoom-in-95 curve-bounce duration-500">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-100">
-                            <h2 className="text-xl font-black">Editar Sucursal</h2>
-                            <button 
-                                onClick={() => setEditModalOpen(false)}
-                                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-                            >
-                                <X size={20} className="text-slate-400" />
-                            </button>
-                        </div>
-                        <form onSubmit={handleUpdateBranch} className="p-6 space-y-5">
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Nombre de la Sucursal <span className="text-red-500">*</span></label>
-                                <input 
-                                    type="text" 
-                                    required
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all outline-none"
-                                    placeholder="Ej. Sede Norte"
-                                    value={editBranchData.name}
-                                    onChange={e => setEditBranchData({...editBranchData, name: e.target.value})}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Dirección</label>
-                                <input 
-                                    type="text" 
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all outline-none"
-                                    placeholder="Dirección completa"
-                                    value={editBranchData.address}
-                                    onChange={e => setEditBranchData({...editBranchData, address: e.target.value})}
-                                />
-                            </div>
-                            <button 
-                                type="submit" 
-                                disabled={isSubmitting}
-                                className="w-full bg-orange-500 text-white font-bold py-4 rounded-xl hover:bg-orange-600 transition-all active:scale-[0.98] mt-4 flex items-center justify-center gap-2"
-                            >
-                                {isSubmitting ? (
-                                    <><Loader2 className="animate-spin" size={20} /> Guardando...</>
-                                ) : (
-                                    "Guardar Cambios"
-                                )}
-                            </button>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-2xl p-4">
+                    <div className="bg-white border-[3px] border-slate-300 rounded-[2.5rem] w-full max-w-md overflow-hidden p-6 animate-in zoom-in-95">
+                        <h2 className="text-xl font-black mb-6">Editar Sucursal</h2>
+                        <form onSubmit={handleUpdateBranch} className="space-y-4">
+                            <input type="text" required value={editBranchData.name} onChange={e => setEditBranchData({...editBranchData, name: e.target.value})} className="w-full bg-slate-50 border rounded-xl px-4 py-3 outline-none" placeholder="Nombre" />
+                            <input type="text" value={editBranchData.address} onChange={e => setEditBranchData({...editBranchData, address: e.target.value})} className="w-full bg-slate-50 border rounded-xl px-4 py-3 outline-none" placeholder="Dirección" />
+                            <button type="submit" disabled={isSubmitting} className="w-full bg-orange-500 text-white font-bold py-4 rounded-xl active:scale-95">{isSubmitting ? "Guardando..." : "Guardar"}</button>
+                            <button type="button" onClick={() => setEditModalOpen(false)} className="w-full text-xs font-black text-slate-400 uppercase">Cancelar</button>
                         </form>
                     </div>
                 </div>
             )}
 
-            {/* Settings Modal (Placeholder content with actual logic for basic settings) */}
             {isSettingsModalOpen && selectedBranch && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-2xl p-4 animate-in fade-in duration-300">
-                    <div className="bg-white border-[3px] border-slate-300 rounded-[2.5rem] shadow-[0_0_120px_rgba(0,0,0,0.5)] w-full max-w-lg overflow-hidden animate-in zoom-in-95 curve-bounce duration-500">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
-                            <div>
-                                <h2 className="text-xl font-black">Ajustes: {selectedBranch.name}</h2>
-                                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Configuración técnica y operativa de la sede</p>
-                            </div>
-                            <button 
-                                onClick={() => setSettingsModalOpen(false)}
-                                className="p-2 hover:bg-slate-200 rounded-full transition-colors"
-                            >
-                                <X size={20} className="text-slate-400" />
-                            </button>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-2xl p-4">
+                    <div className="bg-white border-[3px] border-slate-300 rounded-[2.5rem] w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95">
+                        <div className="p-6 border-b flex justify-between items-center bg-slate-50">
+                            <h2 className="text-xl font-black tracking-tight">{selectedBranch.name}</h2>
+                            <button onClick={() => setSettingsModalOpen(false)} className="p-2 bg-white rounded-full"><X size={20} /></button>
                         </div>
-                        <div className="p-8 space-y-8 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                        <div className="p-8 space-y-8 overflow-y-auto">
                             <div className="space-y-4">
-                                <h3 className="text-xs font-black uppercase tracking-widest text-orange-600 flex items-center gap-2">
-                                    <Smartphone size={16} />
-                                    Conectividad WhatsApp (Sede)
-                                </h3>
-                                <div className="glass-card p-6 border-orange-100 bg-orange-50/30 space-y-5">
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Número de Teléfono Visible</label>
-                                        <input 
-                                            type="text" 
-                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none focus:border-orange-500 transition-all shadow-sm"
-                                            placeholder="+52 1 234 567 8901"
-                                            value={waForm.phoneNumber}
-                                            onChange={e => setWaForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                                        />
-                                    </div>
-
-                                    <div className="pt-6 border-t border-slate-100 space-y-4">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <div className="p-1.5 bg-orange-500/10 rounded-lg">
-                                                <Activity className="text-orange-600" size={14} />
-                                            </div>
-                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-orange-950">Registro Nativo por API (Nuevo)</h4>
-                                        </div>
-
-                                        <div className="bg-orange-500/5 border border-orange-500/10 rounded-2xl p-6 space-y-6">
+                                <h3 className="text-xs font-black uppercase text-orange-600 flex items-center gap-2"><Smartphone size={16} /> WhatsApp</h3>
+                                <div className="bg-orange-50/50 border border-orange-100 rounded-2xl p-6 space-y-6">
+                                    <input type="text" value={waForm.phoneNumber} onChange={e => setWaForm({...waForm, phoneNumber: e.target.value})} className="w-full border rounded-xl px-4 py-2 font-bold outline-none" placeholder="Número (+52...)" />
+                                    
+                                    <div className="pt-4 border-t border-slate-200">
+                                        <div className="bg-white border border-orange-200 rounded-2xl p-6 space-y-4">
                                             {nativeStep === 0 && (
-                                                <div className="space-y-4 animate-in slide-in-from-bottom-2 duration-300">
-                                                    <p className="text-[10px] text-orange-900/60 font-medium leading-relaxed">
-                                                        Este método registra el número directamente en tu WABA de Meta sin usar el asistente externo. Recomendado para una configuración rápida.
-                                                    </p>
-                                                    <button 
-                                                        onClick={handleNativeRegisterInit}
-                                                        disabled={isNativeLoading || !waForm.phoneNumber}
-                                                        className="w-full bg-orange-500 text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-orange-500/20 hover:bg-orange-600 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
-                                                    >
-                                                        {isNativeLoading ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}
-                                                        Registrar y Solicitar SMS
-                                                    </button>
-
-                                                    <button 
-                                                        onClick={() => setNativeStep(1)}
-                                                        className="w-full text-[9px] font-black text-orange-600 uppercase tracking-widest hover:underline"
-                                                    >
-                                                        Ya tengo un código SMS
-                                                    </button>
-                                                </div>
+                                                <button onClick={handleNativeRegisterInit} disabled={isNativeLoading} className="w-full bg-orange-500 text-white py-4 rounded-xl text-[11px] font-black uppercase shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">{isNativeLoading ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />} Registro Directo SMS</button>
                                             )}
-
                                             {nativeStep === 1 && (
-                                                <div className="space-y-4 animate-in zoom-in-95 duration-300">
-                                                    <div className="flex flex-col items-center text-center gap-2 pb-2">
-                                                        <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center mb-1">
-                                                            <Activity className="text-orange-600 animate-bounce" size={24} />
-                                                        </div>
-                                                        <p className="text-xs font-black text-slate-900">Código de Verificación</p>
-                                                        <p className="text-[10px] text-slate-500 font-medium px-4">Introduce los 6 dígitos que Meta envió a <strong>{waForm.phoneNumber}</strong></p>
-                                                    </div>
-                                                    
-                                                    <input 
-                                                        type="text"
-                                                        value={otpCode}
-                                                        onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').substring(0, 6))}
-                                                        className="w-full bg-white border-2 border-orange-200 rounded-2xl px-6 py-4 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-orange-500 transition-all"
-                                                        placeholder="000000"
-                                                    />
-
-                                                    <div className="space-y-2">
-                                                        <button 
-                                                            onClick={handleNativeVerifyCode}
-                                                            disabled={isNativeLoading || otpCode.length < 6}
-                                                            className="w-full bg-slate-900 text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-3 shadow-2xl active:scale-95 disabled:opacity-50"
-                                                        >
-                                                            {isNativeLoading ? <Loader2 className="animate-spin" size={16} /> : <Activity size={16} />}
-                                                            Verificar y Activar
-                                                        </button>
-                                                        
-                                                        <button 
-                                                            onClick={resetNativeRegistration}
-                                                            className="w-full text-[9px] font-bold text-slate-400 uppercase tracking-widest hover:text-rose-500 transition-colors"
-                                                        >
-                                                            Cancelar y reiniciar registro
-                                                        </button>
-                                                    </div>
+                                                <div className="space-y-4 text-center">
+                                                    <p className="text-[10px] font-black uppercase">Código SMS</p>
+                                                    <input type="text" value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))} className="w-full text-center text-2xl font-black tracking-widest outline-none border-b-2 border-orange-500" placeholder="000000" />
+                                                    <button onClick={handleNativeVerifyCode} disabled={isNativeLoading} className="w-full bg-slate-900 text-white py-4 rounded-xl text-[11px] font-black uppercase active:scale-95">Verificar</button>
+                                                    <button onClick={resetNativeRegistration} className="text-[10px] font-black text-rose-500 uppercase">Reiniciar</button>
                                                 </div>
                                             )}
-
-                                            {nativeStep === 2 && (
-                                                <div className="bg-emerald-50 content-center border border-emerald-100 rounded-2xl p-6 text-center space-y-2 animate-in fade-in zoom-in duration-500">
-                                                    <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-2">
-                                                        <Star className="text-emerald-600" size={24} />
-                                                    </div>
-                                                    <p className="text-xs font-black text-emerald-900 uppercase">¡Activación Exitosa!</p>
-                                                    <p className="text-[10px] text-emerald-700 font-medium">La sucursal está lista para operar.</p>
-                                                </div>
-                                            )}
+                                            {nativeStep === 2 && <div className="text-center font-black text-emerald-600 uppercase">¡Vinculado con éxito!</div>}
                                         </div>
                                     </div>
 
-                                    <div className="pt-4 border-t border-slate-100 space-y-4">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <div className="p-1.5 bg-blue-50 rounded-lg">
-                                                <Star className="text-blue-600 animate-pulse" size={14} />
+                                    <div className="pt-4 border-t border-slate-200 text-center">
+                                        <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-6 space-y-4">
+                                            <p className="text-[10px] font-black text-blue-800 uppercase">Método Meta Assistant</p>
+                                            <div className="flex gap-2 justify-center">
+                                                <div className="text-[10px] font-bold bg-white px-2 py-1 rounded border">App: {META_APP_ID}</div>
+                                                <div className="text-[10px] font-bold bg-white px-2 py-1 rounded border">Cfg: {META_CONFIG_ID}</div>
                                             </div>
-                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-800">Método Alternativo: Coexistencia</h4>
-                                        </div>
-                                        <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 space-y-3">
-                                            <p className="text-[10px] text-blue-900 font-medium leading-relaxed">
-                                                Si el registro directo falla o prefieres usar el asistente de Meta, usa este método.
-                                            </p>
-                                            
-                                            <div className="space-y-1">
-                                                <label className="text-[9px] font-black text-blue-700 uppercase">App ID / Config ID (Meta)</label>
-                                                <div className="flex gap-2">
-                                                    <div className="bg-white/50 border border-blue-200 rounded-lg px-3 py-1.5 text-xs font-bold flex-1 opacity-70">
-                                                        App: {META_APP_ID}
-                                                    </div>
-                                                    <div className="bg-white/50 border border-blue-200 rounded-lg px-3 py-1.5 text-xs font-bold flex-1 opacity-70">
-                                                        Cfg: {META_CONFIG_ID}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <button 
-                                                type="button"
-                                                onClick={handleLaunchCoexistence}
-                                                disabled={!isSdkLoaded}
-                                                className={cn(
-                                                    "w-full py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2",
-                                                    isSdkLoaded 
-                                                        ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/20" 
-                                                        : "bg-slate-100 text-slate-400 cursor-not-allowed"
-                                                )}
-                                            >
-                                                {isSdkLoaded ? (
-                                                    <>
-                                                        <ExternalLink size={14} />
-                                                        Abrir Asistente de Meta
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Loader2 className="animate-spin" size={14} />
-                                                        Cargando conexión con Meta...
-                                                    </>
-                                                )}
-                                            </button>
+                                            <button onClick={handleLaunchCoexistence} disabled={!isSdkLoaded} className="w-full py-4 rounded-xl text-[11px] font-black uppercase bg-blue-600 text-white shadow-lg active:scale-95 flex items-center justify-center gap-2">{isSdkLoaded ? <><ExternalLink size={16} /> Abrir Asistente</> : "Cargando..."}</button>
                                         </div>
                                     </div>
 
-                                    <button 
-                                        onClick={handleRegisterWhatsApp}
-                                        disabled={isWaSubmitting}
-                                        className="w-full bg-slate-900 text-white py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-orange-600 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                                    >
-                                        {isWaSubmitting ? <Loader2 className="animate-spin" size={16} /> : <Edit2 size={16} />}
-                                        Guardar Configuración Local
-                                    </button>
+                                    <button onClick={handleRegisterWhatsApp} disabled={isWaSubmitting} className="w-full bg-slate-900 text-white py-4 rounded-xl text-xs font-black uppercase hover:bg-emerald-600 transition-all flex items-center justify-center gap-3">{isWaSubmitting ? <Loader2 className="animate-spin" size={16} /> : <Activity size={16} />} Guardar Ajustes</button>
                                 </div>
                             </div>
 
                             <div className="space-y-4">
-                                <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                                    <Activity size={14} />
-                                    Estado Operativo
-                                </h3>
+                                <h3 className="text-xs font-black uppercase text-slate-400">Estado</h3>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <button 
-                                        onClick={() => updateBranch(selectedBranch.id, { metadata: { ...selectedBranch.metadata, online: true } }).then(() => setSettingsModalOpen(false))}
-                                        className={cn(
-                                            "p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2",
-                                            selectedBranch.metadata?.online !== false ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200"
-                                        )}
-                                    >
-                                        <div className={cn("w-3 h-3 rounded-full", selectedBranch.metadata?.online !== false ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-slate-300")} />
-                                        <span className="text-[10px] font-black uppercase tracking-widest">En Línea</span>
-                                    </button>
-                                    <button 
-                                        onClick={() => updateBranch(selectedBranch.id, { metadata: { ...selectedBranch.metadata, online: false } }).then(() => setSettingsModalOpen(false))}
-                                        className={cn(
-                                            "p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2",
-                                            selectedBranch.metadata?.online === false ? "border-rose-500 bg-rose-50 text-rose-700" : "border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200"
-                                        )}
-                                    >
-                                        <div className={cn("w-3 h-3 rounded-full", selectedBranch.metadata?.online === false ? "bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]" : "bg-slate-300")} />
-                                        <span className="text-[10px] font-black uppercase tracking-widest">Mantenimiento</span>
-                                    </button>
+                                    <button onClick={() => updateBranch(selectedBranch.id, { metadata: { ...selectedBranch.metadata, online: true } }).then(() => setSettingsModalOpen(false))} className={cn("p-4 rounded-2xl border-2 font-black text-[10px] uppercase", selectedBranch.metadata?.online !== false ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "bg-slate-50 text-slate-400")}>Online</button>
+                                    <button onClick={() => updateBranch(selectedBranch.id, { metadata: { ...selectedBranch.metadata, online: false } }).then(() => setSettingsModalOpen(false))} className={cn("p-4 rounded-2xl border-2 font-black text-[10px] uppercase", selectedBranch.metadata?.online === false ? "border-rose-500 bg-rose-50 text-rose-700" : "bg-slate-50 text-slate-400")}>Offline</button>
                                 </div>
                             </div>
-
-                            <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl flex items-start gap-3">
-                                <Activity size={18} className="text-orange-500 mt-0.5" />
-                                <p className="text-[10px] font-medium text-orange-800 leading-relaxed uppercase tracking-wider">
-                                    El aislamiento de mensajes por sucursal asegura que cada sede gestione sus propios tickets y clientes de WhatsApp de forma independiente.
-                                </p>
-                            </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {isCreateModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-2xl p-4">
+                    <div className="bg-white border-[3px] border-slate-300 rounded-[2.5rem] w-full max-w-md overflow-hidden p-8 animate-in zoom-in-95">
+                        <h2 className="text-xl font-black mb-6">Nueva Sucursal</h2>
+                        <form onSubmit={handleCreateBranch} className="space-y-4">
+                            <input type="text" required value={newBranchData.name} onChange={e => setNewBranchData({...newBranchData, name: e.target.value})} className="w-full bg-slate-50 border rounded-xl px-4 py-4 font-bold outline-none" placeholder="Nombre de la sede" />
+                            <input type="text" value={newBranchData.address} onChange={e => setNewBranchData({...newBranchData, address: e.target.value})} className="w-full bg-slate-50 border rounded-xl px-4 py-4 font-bold outline-none" placeholder="Dirección" />
+                            <button type="submit" disabled={isSubmitting} className="w-full bg-orange-500 text-white font-black py-4 rounded-xl text-xs uppercase shadow-xl hover:bg-orange-600 transition-all">{isSubmitting ? "Creando..." : "Crear Sede"}</button>
+                            <button type="button" onClick={() => setCreateModalOpen(false)} className="w-full text-[10px] font-black text-slate-400 uppercase tracking-widest">Cancelar</button>
+                        </form>
                     </div>
                 </div>
             )}
         </div>
     );
 }
-

@@ -47,7 +47,7 @@ export default function BranchesPage() {
                     appId: META_APP_ID,
                     cookie: true,
                     xfbml: true,
-                    version: 'v21.0'
+                    version: 'v20.0'
                 });
                 setIsSdkLoaded(true);
                 console.log("SDK de Meta inicializado vía fbAsyncInit");
@@ -151,11 +151,12 @@ export default function BranchesPage() {
         const redirectUri = window.location.origin + '/dashboard/branches';
         const scope = 'whatsapp_business_management,whatsapp_business_messaging';
         
-        // BYPASS SDK: Uso del endpoint específico para WhatsApp Business (v21.0)
+        // BYPASS SDK: Uso del endpoint específico para WhatsApp Business (v20.0)
         // Este endpoint es el oficial para Embedded Signup v2.0 y procesa config_id correctamente
-        const oauthUrl = `https://www.facebook.com/v21.0/dialog/whatsapp_business` +
+        const oauthUrl = `https://www.facebook.com/v20.0/dialog/whatsapp_business` +
             `?app_id=${META_APP_ID}` +
             `&config_id=${META_CONFIG_ID}` +
+            `&response_type=code` +
             `&display=popup` +
             `&extras=${encodeURIComponent(JSON.stringify(extrasObj))}` +
             `&redirect_uri=${encodeURIComponent(redirectUri)}` +

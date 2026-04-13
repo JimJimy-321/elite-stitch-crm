@@ -139,17 +139,22 @@ export const dashboardService = {
     async deleteClient(id: string) {
         const { data: activeTickets, error: checkError } = await supabase
             .from('tickets')
-            .select('id, ticket_number, status')
+            .select('id, ticket_number, status, balance_due')
             .eq('client_id', id)
-            .neq('status', 'delivered');
+            .or('status.neq.delivered,balance_due.gt.0');
 
         if (checkError) throw checkError;
 
         if (activeTickets && activeTickets.length > 0) {
-            throw new Error(
-                `No se puede eliminar el cliente porque tiene ${activeTickets.length} ${activeTickets.length === 1 ? 'orden activa' : 'órdenes activas'
-                }. Debe entregarlas o reasignarlas primero.`
-            );
+            const hasDebt = activeTickets.some((t: any) => t.balance_due > 0);
+            const hasActive = activeTickets.some((t: any) => t.status !== 'delivered');
+            
+            let message = `No se puede eliminar el cliente porque tiene ${activeTickets.length} registro(s) pendiente(s).`;
+            if (hasDebt && hasActive) message = "El cliente tiene órdenes activas y deudas pendientes.";
+            else if (hasDebt) message = "El cliente tiene deudas pendientes en órdenes terminadas.";
+            else if (hasActive) message = "El cliente tiene órdenes en proceso o listas para entrega.";
+
+            throw new Error(message);
         }
 
         const { error } = await supabase

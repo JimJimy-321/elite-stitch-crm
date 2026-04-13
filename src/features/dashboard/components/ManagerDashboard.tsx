@@ -31,6 +31,9 @@ import { AdvancedNotaForm } from './AdvancedNotaForm';
 import { Modal } from '@/shared/components/ui/Modal';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import { useRouter } from 'next/navigation';
+import { Settings, Info, Sliders, Save, X } from 'lucide-react';
+import { dashboardService } from '../services/dashboardService';
+import { toast } from 'sonner';
 
 interface Props {
     user?: any;
@@ -42,6 +45,12 @@ export function ManagerDashboard({ user: initialUser }: Props) {
     const debouncedSearch = useDebounce(searchTerm, 500);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isNewNotaModalOpen, setIsNewNotaModalOpen] = useState(false);
+    
+    // Config Modals
+    const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
     const [selectedNota, setSelectedNota] = useState<any>(null);
     const { stats, loading: statsLoading, refetch: refetchStats } = useDashboardStats(initialUser?.assigned_branch_id);
     const { financials, loading: finLoading, refetch: refetchFin } = useDailyFinancials(initialUser?.assigned_branch_id);
@@ -153,12 +162,28 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                             onChange={(e) => setSearchTerm(e.target.value.toUpperCase())}
                         />
                     </div>
-                    <button
-                        onClick={() => setIsNewNotaModalOpen(true)}
-                        className="bg-orange-500 text-white p-4 rounded-2xl shadow-xl shadow-orange-500/30 hover:scale-110 active:scale-95 transition-all"
-                    >
-                        <Plus size={24} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setIsInfoModalOpen(true)}
+                            className="bg-white text-slate-400 p-4 rounded-2xl shadow-xl shadow-slate-200/20 hover:text-orange-500 hover:bg-orange-50 transition-all border border-slate-100"
+                            title="Información de Sucursal"
+                        >
+                            <Info size={24} />
+                        </button>
+                        <button
+                            onClick={() => setIsSettingsModalOpen(true)}
+                            className="bg-white text-slate-400 p-4 rounded-2xl shadow-xl shadow-slate-200/20 hover:text-orange-500 hover:bg-orange-50 transition-all border border-slate-100"
+                            title="Ajustes de Sucursal"
+                        >
+                            <Settings size={24} />
+                        </button>
+                        <button
+                            onClick={() => setIsNewNotaModalOpen(true)}
+                            className="bg-orange-500 text-white p-4 rounded-2xl shadow-xl shadow-orange-500/30 hover:scale-110 active:scale-95 transition-all ml-2"
+                        >
+                            <Plus size={24} />
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -315,6 +340,145 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                         await refetchQueue();
                     }}
                 />
+            </Modal>
+
+            {/* Modal: Información de Sucursal */}
+            <Modal
+                isOpen={isInfoModalOpen}
+                onClose={() => setIsInfoModalOpen(false)}
+                title="Configuración de Sede"
+                className="max-w-2xl"
+            >
+                <div className="p-8 space-y-8">
+                    <div className="space-y-6">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Nombre de la Sucursal</label>
+                            <input 
+                                type="text"
+                                defaultValue={monitoredBranch?.name || branches.find(b => b.id === currentUser?.assigned_branch_id)?.name}
+                                className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-bold text-slate-900 focus:border-orange-500 outline-none transition-all uppercase"
+                                id="branch_name"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Dirección Física</label>
+                            <textarea 
+                                defaultValue={monitoredBranch?.address || branches.find(b => b.id === currentUser?.assigned_branch_id)?.address}
+                                className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-bold text-slate-900 focus:border-orange-500 outline-none transition-all uppercase resize-none h-32"
+                                id="branch_address"
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Teléfono de Contacto</label>
+                                <input 
+                                    type="text"
+                                    defaultValue={monitoredBranch?.phone || branches.find(b => b.id === currentUser?.assigned_branch_id)?.phone}
+                                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-bold text-slate-900 focus:border-orange-500 outline-none transition-all"
+                                    id="branch_phone"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">WhatsApp Business ID</label>
+                                <input 
+                                    type="text"
+                                    disabled
+                                    value={monitoredBranch?.phone_number_id || branches.find(b => b.id === currentUser?.assigned_branch_id)?.phone_number_id || 'SIN VINCULAR'}
+                                    className="w-full bg-slate-100 border-2 border-slate-200 rounded-2xl p-4 font-bold text-slate-400 outline-none cursor-not-allowed"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                        <button 
+                            onClick={() => setIsInfoModalOpen(false)}
+                            className="flex-1 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-400 hover:bg-slate-50 transition-all border-2 border-transparent"
+                        >
+                            Cancelar
+                        </button>
+                        <button 
+                            disabled={isSaving}
+                            onClick={async () => {
+                                setIsSaving(true);
+                                try {
+                                    const name = (document.getElementById('branch_name') as HTMLInputElement).value;
+                                    const address = (document.getElementById('branch_address') as HTMLTextAreaElement).value;
+                                    const phone = (document.getElementById('branch_phone') as HTMLInputElement).value;
+                                    
+                                    await dashboardService.updateBranch(currentUser?.assigned_branch_id!, {
+                                        name, address, phone
+                                    });
+                                    
+                                    toast.success('SUCURSAL ACTUALIZADA CON ÉXITO');
+                                    setIsInfoModalOpen(false);
+                                    window.location.reload(); // Refresh to update all references
+                                } catch (e) {
+                                    toast.error('ERROR AL ACTUALIZAR SUCURSAL');
+                                } finally {
+                                    setIsSaving(false);
+                                }
+                            }}
+                            className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20 flex items-center justify-center gap-2"
+                        >
+                            {isSaving ? 'Guardando...' : <><Save size={16} /> Guardar Cambios</>}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Modal: Ajustes Operativos */}
+            <Modal
+                isOpen={isSettingsModalOpen}
+                onClose={() => setIsSettingsModalOpen(false)}
+                title="Ajustes de Operación"
+                className="max-w-2xl"
+            >
+                <div className="p-8 space-y-10">
+                    <div className="space-y-8">
+                        <div className="flex items-center justify-between p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+                            <div className="space-y-1">
+                                <h4 className="font-black text-slate-900 text-sm uppercase tracking-tight">Notificaciones Automáticas</h4>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase">Enviar WhatsApp al terminar una prenda</p>
+                            </div>
+                            <div className="w-14 h-8 bg-orange-500 rounded-full relative p-1 cursor-pointer">
+                                <div className="absolute right-1 top-1 w-6 h-6 bg-white rounded-full shadow-md" />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+                            <div className="space-y-1">
+                                <h4 className="font-black text-slate-900 text-sm uppercase tracking-tight">Modo Express Forzado</h4>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase">Marcar todas las notas nuevas como urgente</p>
+                            </div>
+                            <div className="w-14 h-8 bg-slate-200 rounded-full relative p-1 cursor-not-allowed">
+                                <div className="absolute left-1 top-1 w-6 h-6 bg-white rounded-full shadow-md" />
+                            </div>
+                        </div>
+
+                        <div className="p-6 bg-orange-50 rounded-[2rem] border border-orange-100/50">
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="p-3 bg-orange-500 text-white rounded-xl">
+                                    <Sliders size={20} />
+                                </div>
+                                <h4 className="font-black text-orange-900 text-sm uppercase tracking-tight">Parámetros de Tiempo</h4>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[10px] font-black text-orange-700 uppercase">Días promedio entrega</span>
+                                    <span className="font-black text-orange-900">3 DÍAS</span>
+                                </div>
+                                <div className="w-full h-2 bg-orange-200 rounded-full overflow-hidden">
+                                    <div className="w-[60%] h-full bg-orange-500" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="text-center p-6 border-2 border-dashed border-slate-100 rounded-[2rem]">
+                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Más ajustes próximamente</p>
+                    </div>
+                </div>
             </Modal>
         </div>
     );

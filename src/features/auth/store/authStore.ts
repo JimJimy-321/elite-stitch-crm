@@ -31,7 +31,16 @@ export const useAuthStore = create<AuthState>()(
         }),
         {
             name: 'auth-storage',
-            storage: createJSONStorage(() => sessionStorage),
+            storage: createJSONStorage(() => localStorage), // Cambiado a localStorage para sincronización multi-pestaña
         }
     )
 );
+
+// Sincronización proactiva entre pestañas
+if (typeof window !== 'undefined') {
+    window.addEventListener('storage', (event) => {
+        if (event.key === 'auth-storage') {
+            useAuthStore.persist.rehydrate();
+        }
+    });
+}

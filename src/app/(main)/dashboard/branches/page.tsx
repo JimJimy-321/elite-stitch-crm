@@ -137,14 +137,8 @@ export default function BranchesPage() {
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
     }, [isSdkLoaded]);
-
     const handleLaunchCoexistence = () => {
-        if (!(window as any).FB) {
-            toast.error("El SDK de Meta no se ha cargado. Por favor, recarga la página.");
-            return;
-        }
-
-        console.log("Iniciando flujo de Coexistencia vía SDK (FB.login)...");
+        console.log("Iniciando flujo de Coexistencia (Direct URL Connection)...");
         
         const extrasObj = { 
             feature: 'whatsapp_embedded_signup',
@@ -155,25 +149,18 @@ export default function BranchesPage() {
             } 
         };
 
-        (window as any).FB.login((response: any) => {
-            if (response.authResponse) {
-                console.log("Respuesta de Meta (SDK):", response);
-                const code = response.authResponse.code;
-                
-                if (code) {
-                    toast.success("¡Vinculación autorizada! Ahora puedes registrar los IDs.");
-                    console.log("Authorization Code recibido:", code);
-                }
-            } else {
-                console.log("El usuario canceló el flujo o no se autorizó.");
-                toast.error("No se completó la vinculación con Meta.");
-            }
-        }, {
-            config_id: META_CONFIG_ID,
-            response_type: 'code',
-            override_default_response_type: true,
-            extras: extrasObj
-        });
+        const redirectUri = window.location.origin + '/dashboard/branches';
+        
+        // URL LIMPIA: Sin scope (se hereda del config_id) y sin display=popup
+        const oauthUrl = `https://www.facebook.com/v20.0/dialog/whatsapp_business` +
+            `?app_id=${META_APP_ID}` +
+            `&config_id=${META_CONFIG_ID}` +
+            `&response_type=code` +
+            `&extras=${encodeURIComponent(JSON.stringify(extrasObj))}` +
+            `&redirect_uri=${encodeURIComponent(redirectUri)}`;
+        
+        console.log("URL de conexión (Limpia):", oauthUrl);
+        window.open(oauthUrl, 'MetaSignup', 'width=600,height=700');
     };
 
     const handleCreateBranch = async (e: React.FormEvent) => {

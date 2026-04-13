@@ -261,23 +261,32 @@ export default function BranchesPage() {
     };
 
     /**
-     * Paso 1: Registrar número en Meta y disparar SMS
+     * Paso 1: Registrar número en Meta y disparar SMS vía Backend
      */
     const handleNativeRegisterInit = async () => {
-        if (!waForm.wabaId || !waForm.accessToken || !waForm.phoneNumber) {
-            toast.error("Faltan datos obligatorios para el registro nativo.");
+        if (!waForm.phoneNumber || !selectedBranch) {
+            toast.error("El número de teléfono es obligatorio.");
             return;
         }
 
         setIsNativeLoading(true);
         try {
-            // 1. Añadir número al WABA
-            const phoneId = await whatsappService.addPhoneToWaba(waForm.wabaId, waForm.accessToken, waForm.phoneNumber);
-            setNativePhoneId(phoneId);
-            
-            // 2. Solicitar SMS
-            await whatsappService.requestVerificationCode(phoneId, waForm.accessToken);
-            
+            const res = await fetch('/api/whatsapp/native/request-sms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    branchId: selectedBranch.id,
+                    phoneNumber: waForm.phoneNumber
+                })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || "Error al solicitar SMS");
+            }
+
+            setNativePhoneId(data.phoneId);
             setNativeStep(1);
             toast.success("🚀 SMS solicitado. Revisa tu celular.");
         } catch (err: any) {
@@ -288,18 +297,11 @@ export default function BranchesPage() {
     };
 
     /**
-     * Paso 2: Verificar código y finalizar
+     * Paso 2: Verificar código y finalizar vía Backend
      */
     const handleNativeVerifyCode = async () => {
-        const phoneId = (nativePhoneId || waForm.phoneNumberId || "").trim();
+        const phoneId = (nativePhoneId || "").trim();
         
-        console.log("Intentando verificar código SMS...", { phoneId, otpCode });
-
-        if (!phoneId || phoneId === "") {
-            toast.error("No se encontró el ID del teléfono. Por favor, asegúrate de que el campo 'Phone Number ID' tenga el valor correcto (ej: 104...)");
-            return;
-        }
-
         if (!otpCode || otpCode.length < 6) {
             toast.error("Introduce el código de 6 dígitos.");
             return;
@@ -307,9 +309,22 @@ export default function BranchesPage() {
 
         setIsNativeLoading(true);
         try {
-            await whatsappService.verifyCode(phoneId, waForm.accessToken, otpCode);
+            const res = await fetch('/api/whatsapp/native/verify-sms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    branchId: selectedBranch.id,
+                    phoneId: phoneId,
+                    otpCode: otpCode
+                })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || "Error al verificar código");
+            }
             
-            setWaForm(prev => ({ ...prev, phoneNumberId: phoneId }));
             setNativeStep(2);
             toast.success("✅ ¡Número verificado y vinculado con éxito!");
             
@@ -317,8 +332,6 @@ export default function BranchesPage() {
             sessionStorage.removeItem('nativePhoneId');
             sessionStorage.removeItem('nativeStep');
             
-            // Auto-guardar configuración
-            handleRegisterWhatsApp();
         } catch (err: any) {
             toast.error(`Código inválido: ${err.message}`);
         } finally {
@@ -672,65 +685,6 @@ export default function BranchesPage() {
                                     Conectividad WhatsApp (Sede)
                                 </h3>
                                 <div className="glass-card p-6 border-orange-100 bg-orange-50/30 space-y-5">
-                                    {capturedMetaIDs && (
-                                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 flex items-center gap-3 animate-in zoom-in-95">
-                                            <div className="bg-emerald-500 p-1.5 rounded-lg">
-                                                <Star className="text-white" size={14} />
-                                            </div>
-                                            <div className="flex-1">
-                                                <p className="text-[10px] font-black text-emerald-700 uppercase">IDs capturados con éxito</p>
-                                                <p className="text-[9px] text-emerald-600 font-medium">Meta ha devuelto tus credenciales automáticamente.</p>
-                                            </div>
-                                            <button 
-                                                onClick={() => setCapturedMetaIDs(null)}
-                                                className="text-[9px] font-bold text-emerald-700 underline"
-                                            >
-                                                Limpiar
-                                            </button>
-                                        </div>
-                                    )}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-1.5 flex-1 pt-1">
-                                            <div className="flex items-center justify-between gap-2 mb-1.5">
-                                                <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Phone Number ID <span className="text-red-500">*</span></label>
-                                                <button 
-                                                    onClick={handleLookupMetaIDs}
-                                                    disabled={isNativeLoading}
-                                                    className="text-[9px] font-black text-orange-600 uppercase tracking-tighter hover:underline flex items-center gap-1"
-                                                >
-                                                    {isNativeLoading ? <Loader2 size={10} className="animate-spin" /> : <Star size={10} />}
-                                                    Recuperar ID
-                                                </button>
-                                            </div>
-                                            <input 
-                                                type="text" 
-                                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none focus:border-orange-500 transition-all shadow-sm"
-                                                placeholder="Ej. 104829384729"
-                                                value={waForm.phoneNumberId}
-                                                onChange={e => setWaForm(prev => ({ ...prev, phoneNumberId: e.target.value }))}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">WABA ID</label>
-                                            <input 
-                                                type="text" 
-                                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none focus:border-orange-500 transition-all shadow-sm"
-                                                placeholder="WhatsApp Business Account ID"
-                                                value={waForm.wabaId}
-                                                onChange={e => setWaForm(prev => ({ ...prev, wabaId: e.target.value }))}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Access Token (Permanent) <span className="text-red-500">*</span></label>
-                                        <input 
-                                            type="password" 
-                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none focus:border-orange-500 transition-all shadow-sm"
-                                            placeholder={waForm.accessToken ? '••••••••••••••••' : 'EAAB...'}
-                                            value={waForm.accessToken}
-                                            onChange={e => setWaForm(prev => ({ ...prev, accessToken: e.target.value }))}
-                                        />
-                                    </div>
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Número de Teléfono Visible</label>
                                         <input 
@@ -758,7 +712,7 @@ export default function BranchesPage() {
                                                     </p>
                                                     <button 
                                                         onClick={handleNativeRegisterInit}
-                                                        disabled={isNativeLoading || !waForm.accessToken || !waForm.wabaId || !waForm.phoneNumber}
+                                                        disabled={isNativeLoading || !waForm.phoneNumber}
                                                         className="w-full bg-orange-500 text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-orange-500/20 hover:bg-orange-600 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
                                                     >
                                                         {isNativeLoading ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}

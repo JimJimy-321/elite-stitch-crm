@@ -160,6 +160,7 @@ export default function BranchesPage() {
         };
 
         window.addEventListener('message', handleMessage);
+        console.log("🚀 SastrePro V2.2 - Sincronización Meta Activa");
         return () => window.removeEventListener('message', handleMessage);
     }, []);
 
@@ -465,7 +466,7 @@ export default function BranchesPage() {
                                                 <div className="text-[10px] font-bold bg-white px-2 py-1 rounded border">App: {META_APP_ID}</div>
                                                 <div className="text-[10px] font-bold bg-white px-2 py-1 rounded border">Cfg: {META_CONFIG_ID}</div>
                                             </div>
-                                            <button onClick={handleLaunchCoexistence} disabled={!isSdkLoaded} className="w-full py-4 rounded-xl text-[11px] font-black uppercase bg-blue-600 text-white shadow-lg active:scale-95 flex items-center justify-center gap-2">{isSdkLoaded ? <><ExternalLink size={16} /> Abrir Asistente</> : "Cargando..."}</button>
+                                            <button onClick={handleLaunchCoexistence} disabled={!isSdkLoaded} className="w-full py-4 rounded-xl text-[11px] font-black uppercase bg-red-600 text-white shadow-lg active:scale-95 flex items-center justify-center gap-2 animate-pulse">{isSdkLoaded ? <><ExternalLink size={16} /> !!! ABRIR ASISTENTE (SYNC V2.2) !!!</> : "Cargando..."}</button>
                                         </div>
                                     </div>
 

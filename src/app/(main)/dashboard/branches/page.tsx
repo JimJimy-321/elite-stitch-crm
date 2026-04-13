@@ -146,13 +146,21 @@ export default function BranchesPage() {
                     const { phone_number_id, waba_id } = payload;
                     
                     if (phone_number_id || waba_id) {
-                        toast.success("¡Meta ha enviado los IDs correctamente!");
+                        toast.success("¡IDs de Meta capturados por mensaje!");
                         
-                        setWaForm(prev => ({
-                            ...prev,
-                            phoneNumberId: phone_number_id || prev.phoneNumberId,
-                            wabaId: waba_id || prev.wabaId
-                        }));
+                        setWaForm(prev => {
+                            const newForm = {
+                                ...prev,
+                                phoneNumberId: phone_number_id || prev.phoneNumberId,
+                                wabaId: waba_id || prev.wabaId
+                            };
+                            return newForm;
+                        });
+                        
+                        // Si ya tenemos token, intentamos avanzar
+                        if (waForm.accessToken) {
+                            setIsProcessingMeta(false);
+                        }
                     }
                 }
             } catch (e) {
@@ -184,7 +192,7 @@ export default function BranchesPage() {
                             accessToken: accessToken || code || prev.accessToken
                         }));
                     }
-                    toast.success("¡Pasos en Meta finalizados!");
+                    toast.success("¡Permisos de Meta obtenidos!");
                     // Fallback: Si no hemos recibido los IDs por mensaje, los buscamos de forma activa
                     if (accessToken || code) {
                         fetchMetaDetails(accessToken || code);
@@ -194,9 +202,9 @@ export default function BranchesPage() {
                 }
             }, {
                 config_id: META_CONFIG_ID,
-                response_type: 'code',
+                response_type: 'token,code',
                 override_default_response_type: true,
-                scope: 'whatsapp_business_management,whatsapp_business_messaging'
+                scope: 'whatsapp_business_management,whatsapp_business_messaging,business_management'
             });
         } catch (err: any) {
             toast.error("Error al abrir Meta: " + err.message);

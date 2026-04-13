@@ -163,64 +163,72 @@ export default function BranchesPage() {
     }, []);
 
     const handleLaunchCoexistence = () => {
-        if (!(window as any).FB) {
-            toast.error("El SDK de Meta aún se está cargando...");
+        const fb = (window as any).FB;
+        if (!fb) {
+            toast.error("El SDK de Meta (FB) no está definido en el objeto window.");
             return;
         }
 
-        console.log("Iniciando flujo de Meta con captura automática de IDs...");
+        toast.info("Conectando con Meta... Por favor, permite las ventanas emergentes.");
+        console.log("Iniciando FB.login con Config ID:", META_CONFIG_ID);
         
-        (window as any).FB.login(async (response: any) => {
-            console.log("Respuesta completa de Meta SDK:", response);
-            
-            if (response.authResponse) {
-                const { accessToken } = response.authResponse;
-                toast.success("¡Vinculación autorizada! Capturando IDs...");
+        try {
+            fb.login((response: any) => {
+                console.log("Respuesta bruta de FB.login:", response);
                 
-                const fb = (window as any).FB;
-                
-                // 1. Obtener cuentas de WhatsApp Business
-                fb.api('/me/whatsapp_business_accounts', (accountsResponse: any) => {
-                    if (accountsResponse.data && accountsResponse.data.length > 0) {
-                        const firstWaba = accountsResponse.data[0];
+                if (response.authResponse) {
+                    const { accessToken } = response.authResponse;
+                    toast.success("¡Acceso autorizado! Escaneando cuentas...");
+                    
+                    // 1. Obtener cuentas de WhatsApp Business
+                    fb.api('/me/whatsapp_business_accounts', (accountsResponse: any) => {
+                        console.log("Respuesta de /me/whatsapp_business_accounts:", accountsResponse);
                         
-                        // 2. Obtener números de esa cuenta
-                        fb.api(`/${firstWaba.id}/phone_numbers`, (phonesResponse: any) => {
-                            if (phonesResponse.data && phonesResponse.data.length > 0) {
-                                // Intentar encontrar el número que el usuario escribió
-                                const targetClean = waForm.phoneNumber.replace(/\D/g, '');
-                                const foundPhone = phonesResponse.data.find((p: any) => 
-                                    p.display_phone_number.replace(/\D/g, '').includes(targetClean)
-                                ) || phonesResponse.data[0];
+                        if (accountsResponse.data && accountsResponse.data.length > 0) {
+                            const firstWaba = accountsResponse.data[0];
+                            console.log("Usando WABA:", firstWaba.id);
+                            
+                            // 2. Obtener números de esa cuenta
+                            fb.api(`/${firstWaba.id}/phone_numbers`, (phonesResponse: any) => {
+                                console.log("Respuesta de /phone_numbers:", phonesResponse);
+                                
+                                if (phonesResponse.data && phonesResponse.data.length > 0) {
+                                    const targetClean = waForm.phoneNumber.replace(/\D/g, '');
+                                    const foundPhone = phonesResponse.data.find((p: any) => 
+                                        p.display_phone_number.replace(/\D/g, '').includes(targetClean)
+                                    ) || phonesResponse.data[0];
 
-                                setWaForm(prev => ({
-                                    ...prev,
-                                    phoneNumberId: foundPhone.id,
-                                    wabaId: firstWaba.id,
-                                    accessToken: accessToken
-                                }));
+                                    setWaForm(prev => ({
+                                        ...prev,
+                                        phoneNumberId: foundPhone.id,
+                                        wabaId: firstWaba.id,
+                                        accessToken: accessToken
+                                    }));
 
-                                if (foundPhone.display_phone_number.replace(/\D/g, '').includes(targetClean)) {
-                                    toast.success("¡Número vinculado y datos capturados!");
+                                    toast.success(`¡Vinculado! ID Telefono: ${foundPhone.id}`);
                                 } else {
-                                    toast.warning(`Se vinculó la cuenta, pero el número ${waForm.phoneNumber} no está en Meta. Se cargó el número disponible: ${foundPhone.display_phone_number}`);
+                                    toast.error("La cuenta no tiene números configurados.");
                                 }
-                            } else {
-                                toast.error("La cuenta de Meta no tiene números de teléfono registrados.");
-                            }
-                        });
-                    } else {
-                        toast.error("No se encontró una cuenta de WhatsApp Business vinculada.");
-                    }
-                });
-            } else {
-                toast.error("No se completó la vinculación.");
-            }
-        }, {
-            config_id: META_CONFIG_ID,
-            response_type: 'code',
-            override_default_response_type: true
-        });
+                            });
+                        } else {
+                            toast.error("No se encontró ninguna WABA vinculada.");
+                        }
+                    });
+                } else if (response.status === 'not_authorized') {
+                    toast.error("No autorizaste la aplicación en Meta.");
+                } else {
+                    toast.error("La ventana de Meta se cerró o se canceló.");
+                }
+            }, {
+                config_id: META_CONFIG_ID,
+                response_type: 'code',
+                override_default_response_type: true,
+                scope: 'whatsapp_business_management,whatsapp_business_messaging' // Scope explcito para fb.api
+            });
+        } catch (err: any) {
+            console.error("Error crítico en FB.login:", err);
+            toast.error("Error al abrir Meta: " + err.message);
+        }
     };
 
     // --- FLUJO DE REGISTRO NATIVO (SMS API) ---

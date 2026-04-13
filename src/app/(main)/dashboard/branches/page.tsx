@@ -173,7 +173,7 @@ export default function BranchesPage() {
         };
 
         window.addEventListener('message', handleMessage);
-        console.log("🚀 SastrePro V2.2 - Sincronización Meta Activa");
+        console.log("🚀 SastrePro V2.5 - Sincronización Meta Activa");
         return () => window.removeEventListener('message', handleMessage);
     }, []);
 
@@ -242,10 +242,16 @@ export default function BranchesPage() {
                             accessToken: token
                         }));
                         
-                        toast.success("Credenciales vinculadas automáticamente.");
+                        toast.success("Credenciales vinculadas. Guardando...");
                         setIsProcessingMeta(false);
+                        
+                        // Auto-disparar guardado si tenemos lo básico
+                        setTimeout(() => {
+                            const btn = document.getElementById('save-wa-btn');
+                            if (btn) btn.click();
+                        }, 1000);
                     } else {
-                        toast.error("No se encontraron números de teléfono en la cuenta.");
+                        toast.error("No se encontraron números de WhatsApp activos en esta cuenta de Meta.");
                         setIsProcessingMeta(false);
                     }
                 });
@@ -532,7 +538,7 @@ export default function BranchesPage() {
                                                 {isProcessingMeta ? (
                                                     <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> VINCULANDO...</>
                                                 ) : isSdkLoaded ? (
-                                                    <><ExternalLink size={16} /> !!! ABRIR ASISTENTE (SYNC V2.2) !!!</>
+                                                    <><ExternalLink size={16} /> !!! ABRIR ASISTENTE (SYNC V2.5 - FINAL) !!!</>
                                                 ) : "Cargando..."}
                                             </button>
                                         </div>

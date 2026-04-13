@@ -8,8 +8,8 @@ import { useBranches, useStaffProfiles } from '@/features/dashboard/hooks/useDas
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { dashboardService } from '@/features/dashboard/services/dashboardService';
-
 import { toast } from 'sonner';
+import { whatsappService } from '@/features/dashboard/services/whatsappService';
 
 export default function BranchesPage() {
     const router = useRouter();
@@ -32,6 +32,12 @@ export default function BranchesPage() {
         phoneNumber: '' 
     });
     const [isWaSubmitting, setIsWaSubmitting] = useState(false);
+    
+    // Estados para Registro Nativo (Sin popup)
+    const [nativeStep, setNativeStep] = useState<0 | 1 | 2>(0);
+    const [nativePhoneId, setNativePhoneId] = useState('');
+    const [otpCode, setOtpCode] = useState('');
+    const [isNativeLoading, setIsNativeLoading] = useState(false);
     
     // Configuración de Meta (Deberían venir de env vars en el futuro)
     const META_APP_ID = '3780486202082501';
@@ -190,6 +196,62 @@ export default function BranchesPage() {
             override_default_response_type: true
         });
     };
+
+    // --- FLUJO DE REGISTRO NATIVO (SMS API) ---
+
+    /**
+     * Paso 1: Registrar número en Meta y disparar SMS
+     */
+    const handleNativeRegisterInit = async () => {
+        if (!waForm.wabaId || !waForm.accessToken || !waForm.phoneNumber) {
+            toast.error("Faltan datos obligatorios para el registro nativo.");
+            return;
+        }
+
+        setIsNativeLoading(true);
+        try {
+            // 1. Añadir número al WABA
+            const phoneId = await whatsappService.addPhoneToWaba(waForm.wabaId, waForm.accessToken, waForm.phoneNumber);
+            setNativePhoneId(phoneId);
+            
+            // 2. Solicitar SMS
+            await whatsappService.requestVerificationCode(phoneId, waForm.accessToken);
+            
+            setNativeStep(1);
+            toast.success("🚀 SMS solicitado. Revisa tu celular.");
+        } catch (err: any) {
+            toast.error(`Error: ${err.message}`);
+        } finally {
+            setIsNativeLoading(false);
+        }
+    };
+
+    /**
+     * Paso 2: Verificar código y finalizar
+     */
+    const handleNativeVerifyCode = async () => {
+        if (!otpCode || otpCode.length < 6) {
+            toast.error("Introduce el código de 6 dígitos.");
+            return;
+        }
+
+        setIsNativeLoading(true);
+        try {
+            await whatsappService.verifyCode(nativePhoneId, waForm.accessToken, otpCode);
+            
+            setWaForm(prev => ({ ...prev, phoneNumberId: nativePhoneId }));
+            setNativeStep(2);
+            toast.success("✅ ¡Número verificado y vinculado con éxito!");
+            
+            // Auto-guardar configuración
+            handleRegisterWhatsApp();
+        } catch (err: any) {
+            toast.error(`Código inválido: ${err.message}`);
+        } finally {
+            setIsNativeLoading(false);
+        }
+    };
+
 
     const handleCreateBranch = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -596,16 +658,82 @@ export default function BranchesPage() {
                                         />
                                     </div>
 
+                                    <div className="pt-6 border-t border-slate-100 space-y-4">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <div className="p-1.5 bg-orange-500/10 rounded-lg">
+                                                <Activity className="text-orange-600" size={14} />
+                                            </div>
+                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-orange-950">Registro Nativo por API (Nuevo)</h4>
+                                        </div>
+
+                                        <div className="bg-orange-500/5 border border-orange-500/10 rounded-2xl p-6 space-y-6">
+                                            {nativeStep === 0 && (
+                                                <div className="space-y-4 animate-in slide-in-from-bottom-2 duration-300">
+                                                    <p className="text-[10px] text-orange-900/60 font-medium leading-relaxed">
+                                                        Este método registra el número directamente en tu WABA de Meta sin usar el asistente externo. Recomendado para una configuración rápida.
+                                                    </p>
+                                                    <button 
+                                                        onClick={handleNativeRegisterInit}
+                                                        disabled={isNativeLoading || !waForm.accessToken || !waForm.wabaId || !waForm.phoneNumber}
+                                                        className="w-full bg-orange-500 text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-orange-500/20 hover:bg-orange-600 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
+                                                    >
+                                                        {isNativeLoading ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}
+                                                        Registrar y Solicitar SMS
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {nativeStep === 1 && (
+                                                <div className="space-y-4 animate-in zoom-in-95 duration-300">
+                                                    <div className="flex flex-col items-center text-center gap-2 pb-2">
+                                                        <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center mb-1">
+                                                            <Activity className="text-orange-600 animate-bounce" size={24} />
+                                                        </div>
+                                                        <p className="text-xs font-black text-slate-900">Código de Verificación</p>
+                                                        <p className="text-[10px] text-slate-500 font-medium px-4">Introduce los 6 dígitos que Meta envió a <strong>{waForm.phoneNumber}</strong></p>
+                                                    </div>
+                                                    
+                                                    <input 
+                                                        type="text"
+                                                        value={otpCode}
+                                                        onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').substring(0, 6))}
+                                                        className="w-full bg-white border-2 border-orange-200 rounded-2xl px-6 py-4 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-orange-500 transition-all"
+                                                        placeholder="000000"
+                                                    />
+
+                                                    <button 
+                                                        onClick={handleNativeVerifyCode}
+                                                        disabled={isNativeLoading || otpCode.length < 6}
+                                                        className="w-full bg-slate-900 text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-3 shadow-2xl active:scale-95 disabled:opacity-50"
+                                                    >
+                                                        {isNativeLoading ? <Loader2 className="animate-spin" size={16} /> : <Activity size={16} />}
+                                                        Verificar y Activar
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {nativeStep === 2 && (
+                                                <div className="bg-emerald-50 content-center border border-emerald-100 rounded-2xl p-6 text-center space-y-2 animate-in fade-in zoom-in duration-500">
+                                                    <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-2">
+                                                        <Star className="text-emerald-600" size={24} />
+                                                    </div>
+                                                    <p className="text-xs font-black text-emerald-900 uppercase">¡Activación Exitosa!</p>
+                                                    <p className="text-[10px] text-emerald-700 font-medium">La sucursal está lista para operar.</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
                                     <div className="pt-4 border-t border-slate-100 space-y-4">
                                         <div className="flex items-center gap-2 mb-2">
                                             <div className="p-1.5 bg-blue-50 rounded-lg">
                                                 <Star className="text-blue-600 animate-pulse" size={14} />
                                             </div>
-                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-800">Activación de Coexistencia (Recomendado)</h4>
+                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-800">Método Alternativo: Coexistencia</h4>
                                         </div>
                                         <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 space-y-3">
                                             <p className="text-[10px] text-blue-900 font-medium leading-relaxed">
-                                                Este asistente configurará el <strong>Modo Híbrido</strong>. Tu WhatsApp Business seguirá funcionando en tu aplicación móvil mientras sincronizamos los datos con SastrePro.
+                                                Si el registro directo falla o prefieres usar el asistente de Meta, usa este método.
                                             </p>
                                             
                                             <div className="space-y-1">
@@ -634,7 +762,7 @@ export default function BranchesPage() {
                                                 {isSdkLoaded ? (
                                                     <>
                                                         <ExternalLink size={14} />
-                                                        Vincular con App Móvil (Modo Híbrido)
+                                                        Abrir Asistente de Meta
                                                     </>
                                                 ) : (
                                                     <>
@@ -651,8 +779,8 @@ export default function BranchesPage() {
                                         disabled={isWaSubmitting}
                                         className="w-full bg-slate-900 text-white py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-orange-600 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                                     >
-                                        {isWaSubmitting ? <Loader2 className="animate-spin" size={16} /> : <Smartphone size={16} />}
-                                        Vincular con Meta API
+                                        {isWaSubmitting ? <Loader2 className="animate-spin" size={16} /> : <Edit2 size={16} />}
+                                        Guardar Configuración Local
                                     </button>
                                 </div>
                             </div>

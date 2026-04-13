@@ -131,26 +131,29 @@ export default function BranchesPage() {
     }, []);
 
     const handleLaunchCoexistence = () => {
-        if (!(window as any).FB) {
-            toast.error("El SDK de Meta aún se está cargando...");
-            return;
-        }
-
-        console.log("Iniciando flujo de Meta basado en documentación oficial...");
+        console.log("Iniciando flujo de vinculación DEFINITIVO (Manual OAuth Flow)...");
         
-        (window as any).FB.login((response: any) => {
-            if (response.authResponse) {
-                console.log("Respuesta de Meta (Autorizado):", response);
-                toast.success("¡Vinculación autorizada! Verifica los IDs en el formulario.");
-            } else {
-                console.log("El usuario no completó el flujo.");
-                toast.error("No se completó la vinculación.");
-            }
-        }, {
-            config_id: META_CONFIG_ID,
-            response_type: 'code',
-            override_default_response_type: true
-        });
+        // Parámetros críticos para el Modo Híbrido y Registro v2
+        const extrasObj = { 
+            feature: 'whatsapp_embedded_signup',
+            version: 2,
+            setup: { 
+                mobile_number_coexistence: true
+            } 
+        };
+
+        const redirectUri = 'https://sastrepro.com/dashboard/branches';
+        
+        // URL Manual Verificada (Resuelve el error "config_id obligatorio" del SDK)
+        const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth` +
+            `?client_id=${META_APP_ID}` +
+            `&config_id=${META_CONFIG_ID}` +
+            `&response_type=code` +
+            `&extras=${encodeURIComponent(JSON.stringify(extrasObj))}` +
+            `&redirect_uri=${encodeURIComponent(redirectUri)}`;
+        
+        console.log("Abriendo ventana de Meta (Manual Flow):", oauthUrl);
+        window.open(oauthUrl, 'MetaSignup', 'width=600,height=700');
     };
 
     const handleCreateBranch = async (e: React.FormEvent) => {

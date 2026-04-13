@@ -151,15 +151,15 @@ export default function BranchesPage() {
 
         const redirectUri = window.location.origin + '/dashboard/branches';
         
-        // URL LIMPIA: Sin scope (se hereda del config_id) y sin display=popup
-        const oauthUrl = `https://www.facebook.com/v20.0/dialog/whatsapp_business` +
-            `?app_id=${META_APP_ID}` +
+        // CORRECCIÓN DE ENDPOINT: Usar dialog/oauth (v21.0) con client_id para evitar 404
+        const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth` +
+            `?client_id=${META_APP_ID}` +
             `&config_id=${META_CONFIG_ID}` +
             `&response_type=code` +
             `&extras=${encodeURIComponent(JSON.stringify(extrasObj))}` +
             `&redirect_uri=${encodeURIComponent(redirectUri)}`;
         
-        console.log("URL de conexión (Limpia):", oauthUrl);
+        console.log("URL de conexión (OAuth Endpoint):", oauthUrl);
         window.open(oauthUrl, 'MetaSignup', 'width=600,height=700');
     };
 

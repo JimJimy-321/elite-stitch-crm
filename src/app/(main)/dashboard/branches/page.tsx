@@ -707,14 +707,12 @@ export default function BranchesPage() {
                                                         Registrar y Solicitar SMS
                                                     </button>
 
-                                                    {nativePhoneId && (
-                                                        <button 
-                                                            onClick={() => setNativeStep(1)}
-                                                            className="w-full text-[9px] font-black text-orange-600 uppercase tracking-widest hover:underline"
-                                                        >
-                                                            Ya tengo un código SMS
-                                                        </button>
-                                                    )}
+                                                    <button 
+                                                        onClick={() => setNativeStep(1)}
+                                                        className="w-full text-[9px] font-black text-orange-600 uppercase tracking-widest hover:underline"
+                                                    >
+                                                        Ya tengo un código SMS
+                                                    </button>
                                                 </div>
                                             )}
 

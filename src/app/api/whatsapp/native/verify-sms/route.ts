@@ -13,10 +13,28 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { branchId, phoneId, otpCode } = await req.json();
+        const { branchId, phoneId: reqPhoneId, otpCode } = await req.json();
 
-        if (!branchId || !phoneId || !otpCode) {
-            return NextResponse.json({ success: false, error: 'Missing branchId, phoneId, or otpCode' }, { status: 400 });
+        if (!branchId || !otpCode) {
+            return NextResponse.json({ success: false, error: 'Faltan los datos de branchId o otpCode.' }, { status: 400 });
+        }
+
+        let phoneId = reqPhoneId;
+
+        // Recuperación mágica si el Frontend perdió el estado
+        if (!phoneId) {
+            const { data: branch } = await supabase
+                .from('branches')
+                .select('wa_phone_number_id')
+                .eq('id', branchId)
+                .single();
+            
+            if (branch && branch.wa_phone_number_id) {
+                phoneId = branch.wa_phone_number_id;
+                console.log(`[WA_VERIFY_SMS] phoneId recuperado de la base de datos: ${phoneId}`);
+            } else {
+                return NextResponse.json({ success: false, error: 'No se pudo recuperar el Phone ID de la BD. Dale atrás y pídelo de nuevo.' }, { status: 400 });
+            }
         }
 
         const accessToken = process.env.META_ACCESS_TOKEN;

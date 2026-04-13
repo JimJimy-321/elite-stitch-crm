@@ -225,6 +225,28 @@ export default function BranchesPage() {
 
     // --- FLUJO DE REGISTRO NATIVO (SMS API) ---
 
+    // Persistence for registration state
+    useEffect(() => {
+        const savedPhoneId = sessionStorage.getItem('nativePhoneId');
+        const savedStep = sessionStorage.getItem('nativeStep');
+        if (savedPhoneId) setNativePhoneId(savedPhoneId);
+        if (savedStep) setNativeStep(parseInt(savedStep));
+    }, []);
+
+    useEffect(() => {
+        if (nativePhoneId) sessionStorage.setItem('nativePhoneId', nativePhoneId);
+        if (nativeStep !== 0) sessionStorage.setItem('nativeStep', nativeStep.toString());
+    }, [nativePhoneId, nativeStep]);
+
+    const resetNativeRegistration = () => {
+        setNativeStep(0);
+        setNativePhoneId("");
+        setOtpCode("");
+        sessionStorage.removeItem('nativePhoneId');
+        sessionStorage.removeItem('nativeStep');
+        toast.info("Registro reiniciado.");
+    };
+
     /**
      * Paso 1: Registrar número en Meta y disparar SMS
      */
@@ -256,6 +278,13 @@ export default function BranchesPage() {
      * Paso 2: Verificar código y finalizar
      */
     const handleNativeVerifyCode = async () => {
+        const phoneId = nativePhoneId || waForm.phoneNumberId;
+        
+        if (!phoneId) {
+            toast.error("No se encontró el ID del teléfono. Por favor, ingrésalo manualmente en 'Phone Number ID'.");
+            return;
+        }
+
         if (!otpCode || otpCode.length < 6) {
             toast.error("Introduce el código de 6 dígitos.");
             return;
@@ -263,11 +292,15 @@ export default function BranchesPage() {
 
         setIsNativeLoading(true);
         try {
-            await whatsappService.verifyCode(nativePhoneId, waForm.accessToken, otpCode);
+            await whatsappService.verifyCode(phoneId, waForm.accessToken, otpCode);
             
-            setWaForm(prev => ({ ...prev, phoneNumberId: nativePhoneId }));
+            setWaForm(prev => ({ ...prev, phoneNumberId: phoneId }));
             setNativeStep(2);
             toast.success("✅ ¡Número verificado y vinculado con éxito!");
+            
+            // Limpiar persistencia tras éxito
+            sessionStorage.removeItem('nativePhoneId');
+            sessionStorage.removeItem('nativeStep');
             
             // Auto-guardar configuración
             handleRegisterWhatsApp();

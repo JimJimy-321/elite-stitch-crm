@@ -34,6 +34,7 @@ export default function BranchesPage() {
     const [isWaSubmitting, setIsWaSubmitting] = useState(false);
     
     const [isSdkLoaded, setIsSdkLoaded] = useState(false);
+    const [isProcessingMeta, setIsProcessingMeta] = useState(false);
 
     // Estados para Registro Nativo (Sin popup)
     const [nativeStep, setNativeStep] = useState<0 | 1 | 2>(0);
@@ -184,6 +185,10 @@ export default function BranchesPage() {
                         }));
                     }
                     toast.success("¡Pasos en Meta finalizados!");
+                    // Fallback: Si no hemos recibido los IDs por mensaje, los buscamos de forma activa
+                    if (accessToken || code) {
+                        fetchMetaDetails(accessToken || code);
+                    }
                 } else {
                     toast.error("No se completó la vinculación.");
                 }
@@ -196,6 +201,47 @@ export default function BranchesPage() {
         } catch (err: any) {
             toast.error("Error al abrir Meta: " + err.message);
         }
+    };
+
+    const fetchMetaDetails = (token: string) => {
+        setIsProcessingMeta(true);
+        toast.info("Recuperando detalles de tu cuenta de Meta...");
+        
+        const fb = (window as any).FB;
+        fb.api('/me/whatsapp_business_accounts', (response: any) => {
+            console.log("Respuesta WABAs:", response);
+            if (response && response.data && response.data.length > 0) {
+                // Buscamos el que coincida con el nombre visto en la captura o simplemente el primero si es el único
+                const account = response.data[0]; 
+                const wabaId = account.id;
+                
+                toast.success(`Cuenta detectada: ${account.name || 'WhatsApp Business'}`);
+                
+                // Ahora buscamos el Phone ID de esa cuenta
+                fb.api(`/${wabaId}/phone_numbers`, (phoneResponse: any) => {
+                    console.log("Respuesta Phone Numbers:", phoneResponse);
+                    if (phoneResponse && phoneResponse.data && phoneResponse.data.length > 0) {
+                        const phoneId = phoneResponse.data[0].id;
+                        
+                        setWaForm(prev => ({
+                            ...prev,
+                            wabaId,
+                            phoneNumberId: phoneId,
+                            accessToken: token
+                        }));
+                        
+                        toast.success("Credenciales vinculadas automáticamente.");
+                        setIsProcessingMeta(false);
+                    } else {
+                        toast.error("No se encontraron números de teléfono en la cuenta.");
+                        setIsProcessingMeta(false);
+                    }
+                });
+            } else {
+                toast.error("No se encontraron Cuentas de WhatsApp Business vinculadas.");
+                setIsProcessingMeta(false);
+            }
+        });
     };
 
     const handleCreateBranch = async (e: React.FormEvent) => {
@@ -466,7 +512,17 @@ export default function BranchesPage() {
                                                 <div className="text-[10px] font-bold bg-white px-2 py-1 rounded border">App: {META_APP_ID}</div>
                                                 <div className="text-[10px] font-bold bg-white px-2 py-1 rounded border">Cfg: {META_CONFIG_ID}</div>
                                             </div>
-                                            <button onClick={handleLaunchCoexistence} disabled={!isSdkLoaded} className="w-full py-4 rounded-xl text-[11px] font-black uppercase bg-red-600 text-white shadow-lg active:scale-95 flex items-center justify-center gap-2 animate-pulse">{isSdkLoaded ? <><ExternalLink size={16} /> !!! ABRIR ASISTENTE (SYNC V2.2) !!!</> : "Cargando..."}</button>
+                                            <button 
+                                                onClick={handleLaunchCoexistence} 
+                                                disabled={!isSdkLoaded || isProcessingMeta} 
+                                                className={`w-full py-4 rounded-xl text-[11px] font-black uppercase shadow-lg active:scale-95 flex items-center justify-center gap-2 ${isProcessingMeta ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 text-white animate-pulse'}`}
+                                            >
+                                                {isProcessingMeta ? (
+                                                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> VINCULANDO...</>
+                                                ) : isSdkLoaded ? (
+                                                    <><ExternalLink size={16} /> !!! ABRIR ASISTENTE (SYNC V2.2) !!!</>
+                                                ) : "Cargando..."}
+                                            </button>
                                         </div>
                                     </div>
 

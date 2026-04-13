@@ -41,7 +41,8 @@ export async function POST(req: Request) {
             },
             body: JSON.stringify({
                 cc,
-                phone_number: number
+                phone_number: number,
+                verified_name: "SastrePro Sede" // Meta requiere este campo obligatorio
             })
         });
 

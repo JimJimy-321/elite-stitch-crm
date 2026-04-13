@@ -138,17 +138,47 @@ export default function BranchesPage() {
 
         console.log("Iniciando flujo de Meta con captura automática de IDs...");
         
-        (window as any).FB.login((response: any) => {
+        (window as any).FB.login(async (response: any) => {
             console.log("Respuesta completa de Meta SDK:", response);
             
             if (response.authResponse) {
-                // Meta devuelve los IDs en el objeto authResponse o vía eventos
-                const { code } = response.authResponse;
-                toast.success("¡Vinculación autorizada!");
+                const { accessToken } = response.authResponse;
+                toast.success("¡Vinculación autorizada! Capturando IDs...");
                 
-                // Si Meta no envía los IDs en el callback directamente, 
-                // ya tenemos la lógica de window.message escuchando los eventos del popup
-                console.log("Autorización exitosa. Esperando IDs del evento de Meta...");
+                try {
+                    // 1. Obtener cuentas de WhatsApp Business vinculadas
+                    const accountsResponse = await fetch(`https://graph.facebook.com/v21.0/me/whatsapp_business_accounts?access_token=${accessToken}`);
+                    const accountsData = await accountsResponse.json();
+                    
+                    if (accountsData.data && accountsData.data.length > 0) {
+                        const wabaId = accountsData.data[0].id;
+                        
+                        // 2. Obtener números de teléfono de esa cuenta
+                        const phonesResponse = await fetch(`https://graph.facebook.com/v21.0/${wabaId}/phone_numbers?access_token=${accessToken}`);
+                        const phonesData = await phonesResponse.json();
+                        
+                        if (phonesData.data && phonesData.data.length > 0) {
+                            const phoneId = phonesData.data[0].id;
+                            
+                            // 3. Poblar el formulario
+                            setWaForm(prev => ({
+                                ...prev,
+                                phoneNumberId: phoneId,
+                                wabaId: wabaId,
+                                accessToken: accessToken // Token temporal para el registro
+                            }));
+                            
+                            toast.success("¡IDs de Meta capturados correctamente!");
+                        } else {
+                            toast.error("No se encontraron números de teléfono en la cuenta vinculada.");
+                        }
+                    } else {
+                        toast.error("No se encontró una cuenta de WhatsApp Business vinculada.");
+                    }
+                } catch (err) {
+                    console.error("Error consultando Graph API:", err);
+                    toast.error("Error al obtener los IDs de Meta.");
+                }
             } else {
                 toast.error("No se completó la vinculación.");
             }

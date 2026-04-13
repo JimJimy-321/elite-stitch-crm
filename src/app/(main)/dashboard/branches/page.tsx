@@ -33,6 +33,9 @@ export default function BranchesPage() {
     });
     const [isWaSubmitting, setIsWaSubmitting] = useState(false);
     
+    const [capturedMetaIDs, setCapturedMetaIDs] = useState<{phone_number_id: string, waba_id: string} | null>(null);
+    const [isSdkLoaded, setIsSdkLoaded] = useState(false);
+
     // Estados para Registro Nativo (Sin popup)
     const [nativeStep, setNativeStep] = useState<0 | 1 | 2>(0);
     const [nativePhoneId, setNativePhoneId] = useState('');
@@ -43,8 +46,31 @@ export default function BranchesPage() {
     const META_APP_ID = '3780486202082501';
     const META_CONFIG_ID = '1598768074758028';
 
-    const [capturedMetaIDs, setCapturedMetaIDs] = useState<{phone_number_id: string, waba_id: string} | null>(null);
-    const [isSdkLoaded, setIsSdkLoaded] = useState(false);
+    // Persistencia de estado de registro nativo
+    useEffect(() => {
+        const savedStep = sessionStorage.getItem('wa_native_step');
+        const savedPhoneId = sessionStorage.getItem('wa_native_phone_id');
+        const savedForm = sessionStorage.getItem('wa_form_data');
+
+        if (savedStep) setNativeStep(parseInt(savedStep) as any);
+        if (savedPhoneId) setNativePhoneId(savedPhoneId);
+        if (savedForm) setWaForm(JSON.parse(savedForm));
+    }, []);
+
+    useEffect(() => {
+        sessionStorage.setItem('wa_native_step', nativeStep.toString());
+        sessionStorage.setItem('wa_native_phone_id', nativePhoneId);
+        sessionStorage.setItem('wa_form_data', JSON.stringify(waForm));
+    }, [nativeStep, nativePhoneId, waForm]);
+
+    const resetNativeRegistration = () => {
+        setNativeStep(0);
+        setNativePhoneId('');
+        setOtpCode('');
+        sessionStorage.removeItem('wa_native_step');
+        sessionStorage.removeItem('wa_native_phone_id');
+        toast.info("Flujo de registro reiniciado.");
+    };
 
     // Manejar la inicialización y retorno del SDK de Meta
     useEffect(() => {
@@ -680,6 +706,15 @@ export default function BranchesPage() {
                                                         {isNativeLoading ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}
                                                         Registrar y Solicitar SMS
                                                     </button>
+
+                                                    {nativePhoneId && (
+                                                        <button 
+                                                            onClick={() => setNativeStep(1)}
+                                                            className="w-full text-[9px] font-black text-orange-600 uppercase tracking-widest hover:underline"
+                                                        >
+                                                            Ya tengo un código SMS
+                                                        </button>
+                                                    )}
                                                 </div>
                                             )}
 
@@ -701,14 +736,23 @@ export default function BranchesPage() {
                                                         placeholder="000000"
                                                     />
 
-                                                    <button 
-                                                        onClick={handleNativeVerifyCode}
-                                                        disabled={isNativeLoading || otpCode.length < 6}
-                                                        className="w-full bg-slate-900 text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-3 shadow-2xl active:scale-95 disabled:opacity-50"
-                                                    >
-                                                        {isNativeLoading ? <Loader2 className="animate-spin" size={16} /> : <Activity size={16} />}
-                                                        Verificar y Activar
-                                                    </button>
+                                                    <div className="space-y-2">
+                                                        <button 
+                                                            onClick={handleNativeVerifyCode}
+                                                            disabled={isNativeLoading || otpCode.length < 6}
+                                                            className="w-full bg-slate-900 text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-3 shadow-2xl active:scale-95 disabled:opacity-50"
+                                                        >
+                                                            {isNativeLoading ? <Loader2 className="animate-spin" size={16} /> : <Activity size={16} />}
+                                                            Verificar y Activar
+                                                        </button>
+                                                        
+                                                        <button 
+                                                            onClick={resetNativeRegistration}
+                                                            className="w-full text-[9px] font-bold text-slate-400 uppercase tracking-widest hover:text-rose-500 transition-colors"
+                                                        >
+                                                            Cancelar y reiniciar registro
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             )}
 

@@ -35,7 +35,7 @@ export default function BranchesPage() {
     
     // Configuración de Meta (Deberían venir de env vars en el futuro)
     const META_APP_ID = '3780486202082501';
-    const META_CONFIG_ID = '1540306380183062';
+    const META_CONFIG_ID = '1598768074758028';
 
     const [capturedMetaIDs, setCapturedMetaIDs] = useState<{phone_number_id: string, waba_id: string} | null>(null);
     const [isSdkLoaded, setIsSdkLoaded] = useState(false);

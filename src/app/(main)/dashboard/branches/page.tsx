@@ -131,28 +131,18 @@ export default function BranchesPage() {
     }, []);
 
     const handleLaunchCoexistence = () => {
-        console.log("Iniciando flujo de vinculación DEFINITIVO (Manual OAuth Flow)...");
+        console.log("Iniciando flujo de vinculación DIRECTO (Verified Manual Flow)...");
         
-        // Parámetros críticos para el Modo Híbrido y Registro v2
-        const extrasObj = { 
-            feature: 'whatsapp_embedded_signup',
-            version: 2,
-            setup: { 
-                mobile_number_coexistence: true
-            } 
-        };
-
         const redirectUri = 'https://sastrepro.com/dashboard/branches';
         
-        // URL Manual Verificada (Resuelve el error "config_id obligatorio" del SDK)
+        // URL Limpia y Verificada (Resuelve el error "BSP/TP" al eliminar el parámetro extras)
         const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth` +
             `?client_id=${META_APP_ID}` +
             `&config_id=${META_CONFIG_ID}` +
             `&response_type=code` +
-            `&extras=${encodeURIComponent(JSON.stringify(extrasObj))}` +
             `&redirect_uri=${encodeURIComponent(redirectUri)}`;
         
-        console.log("Abriendo ventana de Meta (Manual Flow):", oauthUrl);
+        console.log("Abriendo ventana de Meta (Direct Flow):", oauthUrl);
         window.open(oauthUrl, 'MetaSignup', 'width=600,height=700');
     };
 

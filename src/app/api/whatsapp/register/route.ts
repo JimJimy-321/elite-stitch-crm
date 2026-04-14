@@ -52,7 +52,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ 
             success: true, 
             message: 'WhatsApp configurado correctamente',
-            metaResponse: result.data
+            metaResponse: accessToken ? 'Token validado y registrado' : 'IDs guardados (Sin Token)'
         });
 
     } catch (error: any) {

@@ -13,37 +13,29 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: 'Phone is required' }, { status: 400 });
         }
 
-        // 1. Obtener la sucursal y sus credenciales de WhatsApp
-        const { data: convData, error: convError } = await supabase
-            .from('chat_conversations')
-            .select('branch_id')
-            .eq('id', conversationId)
+        // 1. Obtener el contexto del chat (sucursal, teléfono, credenciales) usando el RPC seguro
+        const { data: context, error: contextError } = await supabase
+            .rpc('get_chat_context', { p_conversation_id: conversationId })
             .single();
 
-        if (convError || !convData?.branch_id) {
-            console.error('[SEND_API] Error obteniendo sucursal de la conversación:', convError);
-            return NextResponse.json({ success: false, error: 'Conversación o sucursal no encontrada' }, { status: 404 });
+        if (contextError || !context) {
+            console.error('[SEND_API] Error obteniendo contexto del chat:', contextError);
+            return NextResponse.json({ 
+                success: false, 
+                error: 'No se pudo obtener el contexto de la conversación. Verifique que la sucursal esté configurada.' 
+            }, { status: 404 });
         }
 
-        const { data: branch, error: branchError } = await supabase
-            .from('branches')
-            .select('wa_phone_number_id, wa_access_token')
-            .eq('id', convData.branch_id)
-            .single();
-
-        if (branchError) {
-            console.error('[SEND_API] Error obteniendo credenciales de sucursal:', branchError);
-        }
-
-        const waConfig = (branch?.wa_phone_number_id && branch?.wa_access_token) 
-            ? { phoneNumberId: branch.wa_phone_number_id, accessToken: branch.wa_access_token }
+        const targetPhone = phone || context.customer_phone;
+        const waConfig = (context.wa_phone_number_id && context.wa_access_token) 
+            ? { phoneNumberId: context.wa_phone_number_id, accessToken: context.wa_access_token }
             : undefined;
 
         let result;
         if (mediaUrl && mediaType) {
-            result = await whatsappService.sendMediaMessage(phone, mediaUrl, mediaType as any, content, waConfig);
+            result = await whatsappService.sendMediaMessage(targetPhone, mediaUrl, mediaType as any, content, waConfig);
         } else {
-            result = await whatsappService.sendTextMessage(phone, content, waConfig);
+            result = await whatsappService.sendTextMessage(targetPhone, content, waConfig);
         }
 
         if (!result.success) {

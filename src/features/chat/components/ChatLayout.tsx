@@ -15,9 +15,9 @@ export function ChatLayout({ sidebar, chatWindow, infoPanel }: ChatLayoutProps) 
             </div>
 
             {/* Ventana Principal - Chat */}
-            <div className="hidden md:flex flex-1 flex-col bg-[#efeae2] relative">
+            <div className="hidden md:flex flex-1 flex-col bg-[#F9FBFF] relative">
                 {/* Background Pattern de WhatsApp sutil */}
-                <div className="absolute inset-0 opacity-[0.06] pointer-events-none"
+                <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
                     style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")' }}>
                 </div>
                 <div className="relative z-10 flex flex-col h-full">

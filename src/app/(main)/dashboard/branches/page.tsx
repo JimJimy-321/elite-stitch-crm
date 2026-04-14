@@ -302,8 +302,8 @@ export default function BranchesPage() {
     };
 
     const handleRegisterWhatsApp = async () => {
-        if (!selectedBranch || !waForm.phoneNumberId || !waForm.accessToken) {
-            toast.error("Faltan campos obligatorios");
+        if (!selectedBranch || !waForm.phoneNumberId) {
+            toast.error("Faltan campos obligatorios (ID Teléfono)");
             return;
         }
 
@@ -321,7 +321,7 @@ export default function BranchesPage() {
             const result = await response.json();
             if (result.success) {
                 toast.success("Configuración guardada correctamente.");
-                setSettingsModalOpen(false);
+                setIsSettingsModalOpen(false);
                 window.location.reload(); 
             } else {
                 toast.error(`Error: ${result.error}`);
@@ -542,19 +542,28 @@ export default function BranchesPage() {
                                     </div>
 
                                     {/* Campos de ID manuales como respaldo (Fail-safe) */}
-                                    <div className="pt-4 border-t border-slate-200 space-y-4">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Configuración de IDs (Detección Manual/Auto)</p>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <p className="text-[9px] font-black mb-1">ID TELÉFONO</p>
-                                                <input type="text" value={waForm.phoneNumberId} onChange={e => setWaForm({...waForm, phoneNumberId: e.target.value})} className="w-full text-xs border rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="Ej: 52123..." />
+                                        <div className="pt-4 border-t border-slate-200 space-y-4">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Configuración de IDs (Detección Manual/Auto)</p>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <p className="text-[9px] font-black mb-1">ID TELÉFONO</p>
+                                                    <input type="text" value={waForm.phoneNumberId} onChange={e => setWaForm({...waForm, phoneNumberId: e.target.value})} className="w-full text-xs border rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="Ej: 52123..." />
+                                                </div>
+                                                <div>
+                                                    <p className="text-[9px] font-black mb-1">ID WABA</p>
+                                                    <input type="text" value={waForm.wabaId} onChange={e => setWaForm({...waForm, wabaId: e.target.value})} className="w-full text-xs border rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="Ej: 1280..." />
+                                                </div>
                                             </div>
                                             <div>
-                                                <p className="text-[9px] font-black mb-1">ID WABA</p>
-                                                <input type="text" value={waForm.wabaId} onChange={e => setWaForm({...waForm, wabaId: e.target.value})} className="w-full text-xs border rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="Ej: 1280..." />
+                                                <p className="text-[9px] font-black mb-1">TOKEN DE ACCESO (OPCIONAL/AUTO)</p>
+                                                <input type="text" value={waForm.accessToken} onChange={e => setWaForm({...waForm, accessToken: e.target.value})} className="w-full text-[10px] border rounded-lg px-3 py-2 outline-none focus:border-orange-500 font-mono" placeholder="EAAB..." />
+                                                {waForm.accessToken ? (
+                                                    <p className="text-[8px] text-emerald-600 font-bold mt-1 uppercase">✓ Token detectado</p>
+                                                ) : (
+                                                    <p className="text-[8px] text-amber-500 font-bold mt-1 uppercase">⚠ Sin token (Funcionalidad limitada)</p>
+                                                )}
                                             </div>
                                         </div>
-                                    </div>
 
                                     <button onClick={handleRegisterWhatsApp} disabled={isWaSubmitting} className="w-full bg-slate-900 text-white py-4 rounded-xl text-xs font-black uppercase hover:bg-emerald-600 transition-all flex items-center justify-center gap-3">{isWaSubmitting ? <Loader2 className="animate-spin" size={16} /> : <Activity size={16} />} Guardar Ajustes</button>
                                 </div>

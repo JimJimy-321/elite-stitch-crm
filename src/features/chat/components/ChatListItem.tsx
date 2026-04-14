@@ -17,9 +17,9 @@ export function ChatListItem({ conversation, isActive, onClick }: Props) {
     return (
         <div
             onClick={onClick}
-            className={`w-full p-4 flex gap-3 cursor-pointer transition-all border-b border-gray-100 dark:border-gray-800 ${isActive
-                ? 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-l-orange-600 shadow-sm z-10'
-                : 'hover:bg-slate-50 dark:hover:bg-slate-800 border-l-4 border-l-transparent'
+            className={`w-full p-4 flex gap-3 cursor-pointer transition-all border-b border-gray-50 ${isActive
+                ? 'bg-orange-50/50 border-l-4 border-l-orange-500 shadow-sm z-10'
+                : 'hover:bg-slate-50 border-l-4 border-l-transparent'
                 }`}
         >
             {/* Avatar */}
@@ -53,7 +53,7 @@ export function ChatListItem({ conversation, isActive, onClick }: Props) {
             <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start mb-0.5">
                     <div className="flex flex-col min-w-0">
-                        <h3 className={`font-black truncate uppercase transition-colors text-sm tracking-tighter ${isActive ? 'text-orange-700' : 'text-slate-900'}`}>
+                        <h3 className={`font-semibold truncate transition-colors text-sm tracking-tight ${isActive ? 'text-orange-900' : 'text-slate-800'}`}>
                             {conversation.client_name}
                         </h3>
                         {conversation.client_phone && (
@@ -68,7 +68,7 @@ export function ChatListItem({ conversation, isActive, onClick }: Props) {
                 </div>
 
                 <div className="flex justify-between items-center gap-2">
-                    <p className={`text-xs ${isActive ? 'text-orange-800/70' : 'text-slate-500'} truncate font-bold`}>
+                    <p className={`text-xs ${isActive ? 'text-orange-900/60' : 'text-slate-400'} truncate font-medium`}>
                         {conversation.last_message_content === 'Imagen recibida' ? '📷 Imagen' :
                             conversation.last_message_content === 'Sticker recibido' ? '🎨 Sticker' :
                                 (conversation.last_message_content && (conversation.last_message_content.includes('http') || /\.(jpg|jpeg|png|gif|pdf|doc|docx|mp4|m4a|mp3)$/i.test(conversation.last_message_content))) ? '📁 Archivo/Multimedia' :

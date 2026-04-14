@@ -14,15 +14,18 @@ export async function POST(request: NextRequest) {
         }
 
         // 1. Obtener el contexto del chat (sucursal, teléfono, credenciales) usando el RPC seguro
+        // Usamos el cliente con escalación de privilegios (Service Role si está disponible)
         const { data: context, error: contextError } = await supabase
             .rpc('get_chat_context', { p_conversation_id: conversationId })
             .single();
 
         if (contextError || !context) {
+            const errorMsg = contextError?.message || 'Conversación o sucursal no encontrada';
             console.error('[SEND_API] Error obteniendo contexto del chat:', contextError);
             return NextResponse.json({ 
                 success: false, 
-                error: 'No se pudo obtener el contexto de la conversación. Verifique que la sucursal esté configurada.' 
+                error: `Fallo de Contexto: ${errorMsg} (ID: ${conversationId?.substring(0, 8)}...)`,
+                details: contextError
             }, { status: 404 });
         }
 
@@ -30,6 +33,8 @@ export async function POST(request: NextRequest) {
         const waConfig = (context.wa_phone_number_id && context.wa_access_token) 
             ? { phoneNumberId: context.wa_phone_number_id, accessToken: context.wa_access_token }
             : undefined;
+
+        console.log(`[SEND_API] Contexto recuperado para sucursal: ${context.branch_id}. PhoneID: ${waConfig?.phoneNumberId ? '✓' : '✗'}`);
 
         let result;
         if (mediaUrl && mediaType) {
@@ -40,7 +45,12 @@ export async function POST(request: NextRequest) {
 
         if (!result.success) {
             console.error('[SEND_API] WhatsApp API Error:', result.error);
-            return NextResponse.json({ success: false, error: 'Error en API de WhatsApp', details: result.error }, { status: 500 });
+            return NextResponse.json({ 
+                success: false, 
+                error: 'Error en API de WhatsApp', 
+                message: result.error?.message || 'Error desconocido',
+                details: result.error 
+            }, { status: 500 });
         }
 
         // 2. Insertar en base de datos usando el cliente de webhook (bypass RLS local)

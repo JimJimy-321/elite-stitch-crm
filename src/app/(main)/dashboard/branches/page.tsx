@@ -23,7 +23,7 @@ const supabase = createClient();
 
 const META_APP_ID = "3780486202082501";
 const META_CONFIG_ID = "1598768074758028";
-const SYNC_VERSION = "V2.7 - ID RECOVERY FIXED";
+const SYNC_VERSION = "V2.8 - BUILD FIX";
 
 export default function BranchesPage() {
     const [branches, setBranches] = useState<any[]>([]);
@@ -154,7 +154,7 @@ export default function BranchesPage() {
             const result = await response.json();
             if (result.success) {
                 toast.success("Configuración guardada correctamente.");
-                setSettingsModalOpen(false);
+                setIsSettingsModalOpen(false);
                 window.location.reload(); 
             } else {
                 toast.error(`Error: ${result.error}`);
@@ -412,7 +412,7 @@ export default function BranchesPage() {
                                                 {isProcessingMeta ? (
                                                     <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> VINCULANDO...</>
                                                 ) : isSdkLoaded ? (
-                                                    <><ExternalLink size={16} /> !!! ABRIR ASISTENTE (SYNC V2.7 - ID RECOVERY FIXED) !!!</>
+                                                    <><ExternalLink size={16} /> !!! ABRIR ASISTENTE (SYNC V2.8 - BUILD FIX) !!!</>
                                                 ) : "Cargando..."}
                                             </button>
                                         </div>

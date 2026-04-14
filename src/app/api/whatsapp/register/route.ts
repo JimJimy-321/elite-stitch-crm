@@ -13,22 +13,24 @@ export async function POST(req: Request) {
 
         const { branchId, phoneNumberId, wabaId, accessToken, phoneNumber } = await req.json();
 
-        if (!branchId || !phoneNumberId || !accessToken) {
-            return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
+        if (!branchId || !phoneNumberId) {
+            return NextResponse.json({ success: false, error: 'Falta ID de Sede o ID de Teléfono' }, { status: 400 });
         }
 
-        // 1. Registrar en Meta
-        const result = await whatsappService.registerPhone({
-            phoneNumberId,
-            accessToken
-        });
+        // 1. Registrar en Meta (Solo si hay token)
+        if (accessToken) {
+            const result = await whatsappService.registerPhone({
+                phoneNumberId,
+                accessToken
+            });
 
-        if (!result.success) {
-            return NextResponse.json({ 
-                success: false, 
-                error: 'Error al registrar en Meta', 
-                details: result.data || result.error 
-            }, { status: 500 });
+            if (!result.success) {
+                return NextResponse.json({ 
+                    success: false, 
+                    error: 'Error al registrar en Meta', 
+                    details: result.data || result.error 
+                }, { status: 500 });
+            }
         }
 
         // 2. Guardar en la base de datos
@@ -50,7 +52,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ 
             success: true, 
             message: 'WhatsApp configurado correctamente',
-            metaResponse: result.data
+            metaResponse: accessToken ? 'Token validado y registrado' : 'IDs guardados (Sin Token)'
         });
 
     } catch (error: any) {

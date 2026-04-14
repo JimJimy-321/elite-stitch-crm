@@ -15,9 +15,19 @@ export async function POST(request: NextRequest) {
 
         // 1. Obtener el contexto del chat (sucursal, teléfono, credenciales) usando el RPC seguro
         // Usamos el cliente con escalación de privilegios (Service Role si está disponible)
-        const { data: context, error: contextError } = await supabase
+        interface WhatsAppContext {
+            branch_id: string;
+            wa_phone_number_id: string;
+            wa_access_token: string;
+            wa_waba_id: string;
+            customer_phone: string;
+        }
+
+        const { data: contextData, error: contextError } = await supabase
             .rpc('get_chat_context', { p_conversation_id: conversationId })
             .single();
+
+        const context = contextData as unknown as WhatsAppContext;
 
         if (contextError || !context) {
             const errorMsg = contextError?.message || 'Conversación o sucursal no encontrada';
@@ -48,13 +58,14 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ 
                 success: false, 
                 error: 'Error en API de WhatsApp', 
-                message: result.error?.message || 'Error desconocido',
+                message: (result.error as any)?.message || 'Error desconocido',
                 details: result.error 
             }, { status: 500 });
         }
 
         // 2. Insertar en base de datos usando el cliente de webhook (bypass RLS local)
-        const waMsgId = result.data.messages?.[0]?.id;
+        const waData = result.data as any;
+        const waMsgId = waData.messages?.[0]?.id;
 
         const { data: message, error: dbError } = await supabase
             .rpc('log_outgoing_message', {

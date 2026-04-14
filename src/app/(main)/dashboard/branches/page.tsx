@@ -16,7 +16,7 @@ import {
     Check,
     AlertCircle
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 
 const supabase = createClient();

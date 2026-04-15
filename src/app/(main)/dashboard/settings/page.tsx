@@ -4,6 +4,7 @@ import React from 'react';
 import { Settings as SettingsIcon, Bell, Lock, Smartphone, Palette, Database, ChevronRight, Sparkles, Scissors } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 export default function SettingsPage() {
     return (
@@ -27,23 +28,29 @@ export default function SettingsPage() {
                         badge="Operativo"
                     />
                 </Link>
-                <SettingsGroup
-                    icon={Palette}
-                    title="Personalización Visual"
-                    description="Ajusta el tema oscuro/claro, colores de marca y logotipos de tus sucursales."
-                    badge="Marketing"
-                />
-                <SettingsGroup
-                    icon={Smartphone}
-                    title="Conectividad WhatsApp"
-                    description="Vincula tu número oficial mediante Gateway para el Agente de IA Ingestor."
-                    badge="Crítico"
-                />
-                <SettingsGroup
-                    icon={Bell}
-                    title="Alertas y Notificaciones"
-                    description="Gestiona las alertas push y SMS para tickets listos y cierres de caja."
-                />
+                <div onClick={() => toast.info('Esta configuración está en desarrollo.')}>
+                    <SettingsGroup
+                        icon={Palette}
+                        title="Personalización Visual"
+                        description="Ajusta el tema oscuro/claro, colores de marca y logotipos de tus sucursales."
+                        badge="Marketing"
+                    />
+                </div>
+                <div onClick={() => toast.info('La conectividad de WhatsApp se gestiona por Sucursal (Sección Sedes).')}>
+                    <SettingsGroup
+                        icon={Smartphone}
+                        title="Conectividad WhatsApp"
+                        description="Vincula tu número oficial mediante Gateway para el Agente de IA Ingestor."
+                        badge="Crítico"
+                    />
+                </div>
+                <div onClick={() => toast.info('Módulo en desarrollo.')}>
+                    <SettingsGroup
+                        icon={Bell}
+                        title="Alertas y Notificaciones"
+                        description="Gestiona las alertas push y SMS para tickets listos y cierres de caja."
+                    />
+                </div>
             </div>
         </div>
     );

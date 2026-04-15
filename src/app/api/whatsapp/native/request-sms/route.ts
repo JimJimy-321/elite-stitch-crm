@@ -48,7 +48,8 @@ export async function POST(req: Request) {
 
         const addPhoneData = await addPhoneResponse.json();
         if (addPhoneData.error) {
-            return NextResponse.json({ success: false, error: addPhoneData.error.message, step: 'add_phone' }, { status: 400 });
+            const userMsg = addPhoneData.error.error_user_msg || addPhoneData.error.message;
+            return NextResponse.json({ success: false, error: userMsg, step: 'add_phone' }, { status: 400 });
         }
 
         const phoneId = addPhoneData.id;
@@ -68,7 +69,8 @@ export async function POST(req: Request) {
 
         const reqSmsData = await reqSmsResponse.json();
         if (reqSmsData.error) {
-            return NextResponse.json({ success: false, error: reqSmsData.error.message, step: 'request_sms' }, { status: 400 });
+            const userMsg = reqSmsData.error.error_user_msg || reqSmsData.error.message;
+            return NextResponse.json({ success: false, error: userMsg, step: 'request_sms' }, { status: 400 });
         }
 
         // 3. Save partially in database

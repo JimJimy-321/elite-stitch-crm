@@ -36,15 +36,27 @@ export async function POST(request: NextRequest) {
                 success: false, 
                 error: `Fallo de Contexto: ${errorMsg} (ID: ${conversationId?.substring(0, 8)}...)`,
                 details: contextError
-            }, { status: 404 });
+        if (!context.wa_phone_number_id) {
+            console.error('[SEND_API] Error: Sucursal sin ID de WhatsApp configurado', { branch_id: context.branch_id });
+            return NextResponse.json({ 
+                success: false, 
+                error: 'Configuración Incompleta', 
+                message: 'La sucursal no tiene configurado un número de WhatsApp. Ve a Configuración para enlazar tu cuenta de Meta.'
+            }, { status: 400 });
         }
 
         const targetPhone = phone || context.customer_phone;
-        const waConfig = (context.wa_phone_number_id && context.wa_access_token) 
-            ? { phoneNumberId: context.wa_phone_number_id, accessToken: context.wa_access_token }
-            : undefined;
+        const systemToken = process.env.WHATSAPP_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN;
+        const token = context.wa_access_token || systemToken;
 
-        console.log(`[SEND_API] Contexto recuperado para sucursal: ${context.branch_id}. PhoneID: ${waConfig?.phoneNumberId ? '✓' : '✗'}`);
+        if (!token) {
+            console.error('[SEND_API] Error: Missing System Access Token');
+            return NextResponse.json({ success: false, error: 'Token de configuración faltante' }, { status: 500 });
+        }
+
+        const waConfig = { phoneNumberId: context.wa_phone_number_id, accessToken: token };
+
+        console.log(`[SEND_API] Contexto recuperado para sucursal: ${context.branch_id}. PhoneID: ${waConfig.phoneNumberId}`);
 
         let result;
         if (mediaUrl && mediaType) {

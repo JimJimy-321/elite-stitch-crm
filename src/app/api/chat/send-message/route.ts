@@ -54,12 +54,12 @@ export async function POST(request: NextRequest) {
         }
 
         if (!result.success) {
-            console.error('[SEND_API] WhatsApp API Error:', result.error);
+            console.error('[SEND_API] WhatsApp API Error Payload:', JSON.stringify(result.data, null, 2));
             return NextResponse.json({ 
                 success: false, 
                 error: 'Error en API de WhatsApp', 
-                message: (result.error as any)?.message || 'Error desconocido',
-                details: result.error 
+                message: (result.data as any)?.error?.message || 'Error desconocido',
+                details: result.data 
             }, { status: 500 });
         }
 

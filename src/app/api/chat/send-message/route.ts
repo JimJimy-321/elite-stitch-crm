@@ -36,6 +36,9 @@ export async function POST(request: NextRequest) {
                 success: false, 
                 error: `Fallo de Contexto: ${errorMsg} (ID: ${conversationId?.substring(0, 8)}...)`,
                 details: contextError
+            }, { status: 404 });
+        }
+
         if (!context.wa_phone_number_id) {
             console.error('[SEND_API] Error: Sucursal sin ID de WhatsApp configurado', { branch_id: context.branch_id });
             return NextResponse.json({ 

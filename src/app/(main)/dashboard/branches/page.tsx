@@ -197,7 +197,7 @@ export default function BranchesPage() {
             const res = await fetch('/api/whatsapp/native/verify-sms', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ branchId: selectedBranch.id, phoneId: nativePhoneId, code: otpCode })
+                body: JSON.stringify({ branchId: selectedBranch.id, phoneId: nativePhoneId, otpCode: otpCode })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);

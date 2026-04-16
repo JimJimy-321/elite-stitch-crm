@@ -54,6 +54,7 @@ export async function POST(req: Request) {
                 'Authorization': `Bearer ${accessToken}`
             },
             body: JSON.stringify({
+                messaging_product: 'whatsapp',
                 code: otpCode
             })
         });

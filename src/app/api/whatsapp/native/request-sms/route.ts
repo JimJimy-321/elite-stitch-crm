@@ -28,33 +28,50 @@ export async function POST(req: Request) {
             }, { status: 500 });
         }
 
-        // 1. Add Phone to WABA
         const cleanPhone = phoneNumber.replace(/\D/g, '');
         const cc = cleanPhone.startsWith('52') ? '52' : '52'; 
         const number = cleanPhone.startsWith('52') ? cleanPhone.substring(2) : cleanPhone;
 
-        const addPhoneResponse = await fetch(`https://graph.facebook.com/${GRAPH_API_VERSION}/${wabaId}/phone_numbers`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${accessToken}`
-            },
-            body: JSON.stringify({
-                cc,
-                phone_number: number,
-                verified_name: "SastrePro Sede" // Meta requiere este campo obligatorio
-            })
-        });
+        let phoneId = null;
 
-        const addPhoneData = await addPhoneResponse.json();
-        if (addPhoneData.error) {
-            const userMsg = addPhoneData.error.error_user_msg || addPhoneData.error.message;
-            return NextResponse.json({ success: false, error: userMsg, step: 'add_phone' }, { status: 400 });
+        // 1. Verificamos si el número ya existe en el WABA
+        const getPhonesResponse = await fetch(`https://graph.facebook.com/${GRAPH_API_VERSION}/${wabaId}/phone_numbers`, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        const phonesData = await getPhonesResponse.json();
+
+        if (phonesData.data) {
+            const existingPhone = phonesData.data.find((p: any) => typeof p.display_phone_number === 'string' && p.display_phone_number.replace(/\D/g, '').endsWith(number));
+            if (existingPhone) {
+                phoneId = existingPhone.id;
+                console.log(`[WA_REQ_SMS] Número encontrado en WABA, reusando ID: ${phoneId}`);
+            }
         }
 
-        const phoneId = addPhoneData.id;
+        // 2. Si no existe, procedemos a añadirlo al WABA
+        if (!phoneId) {
+            const addPhoneResponse = await fetch(`https://graph.facebook.com/${GRAPH_API_VERSION}/${wabaId}/phone_numbers`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`
+                },
+                body: JSON.stringify({
+                    cc,
+                    phone_number: number,
+                    verified_name: "SastrePro Sede" // Meta requiere este campo obligatorio
+                })
+            });
 
-        // 2. Request SMS
+            const addPhoneData = await addPhoneResponse.json();
+            if (addPhoneData.error) {
+                const userMsg = addPhoneData.error.error_user_msg || addPhoneData.error.message;
+                return NextResponse.json({ success: false, error: userMsg, step: 'add_phone' }, { status: 400 });
+            }
+            phoneId = addPhoneData.id;
+        }
+
+        // 3. Request SMS
         const reqSmsResponse = await fetch(`https://graph.facebook.com/${GRAPH_API_VERSION}/${phoneId}/register`, {
             method: 'POST',
             headers: {

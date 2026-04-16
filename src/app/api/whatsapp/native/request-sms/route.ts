@@ -72,16 +72,15 @@ export async function POST(req: Request) {
         }
 
         // 3. Request SMS
-        const reqSmsResponse = await fetch(`https://graph.facebook.com/${GRAPH_API_VERSION}/${phoneId}/register`, {
+        const reqSmsResponse = await fetch(`https://graph.facebook.com/${GRAPH_API_VERSION}/${phoneId}/request_code`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${accessToken}`
             },
             body: JSON.stringify({
-                messaging_product: 'whatsapp',
-                messaging_method: 'SMS',
-                locale: 'es_ES'
+                code_method: 'SMS',
+                language: 'es'
             })
         });
 

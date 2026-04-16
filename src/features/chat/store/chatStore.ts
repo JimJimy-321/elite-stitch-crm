@@ -34,18 +34,33 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     addMessage: (msg) => set((state) => {
         const currentMsgs = state.messages[msg.conversation_id] || [];
         
-        // 1. Verificar si ya existe el mensaje (de-duplicación)
-        const existingIdx = currentMsgs.findIndex(m => m.id === msg.id);
+        // 1. Identificar si existe coincidencia
+        let existingIdx = currentMsgs.findIndex(m => m.id === msg.id);
+        
+        // Si no se encuentra por ID, buscar reconciliación optimista
+        if (existingIdx === -1 && msg.sender_role === 'agent') {
+            existingIdx = currentMsgs.findIndex(m => {
+                const sameContent = m.content === msg.content;
+                const isPlaceholder = m.content?.startsWith('Cargando ');
+                const sameMedia = m.media_type && m.media_type === msg.media_type;
+                
+                return (sameContent || (isPlaceholder && sameMedia)) && 
+                       m.status === 'sending' &&
+                       Math.abs(new Date(m.created_at).getTime() - new Date(msg.created_at).getTime()) < 60000;
+            });
+        }
+
         
         let newMsgs: ChatMessage[];
         if (existingIdx !== -1) {
-            // Si ya existe, actualizamos sus campos (importante para cambios de status: sending -> sent)
+            // Reconciliación o actualización: preservamos el ID del mensaje real si viene del servidor
             newMsgs = [...currentMsgs];
             newMsgs[existingIdx] = { ...newMsgs[existingIdx], ...msg };
         } else {
-            // Si no existe, lo agregamos al final
+            // Nuevo mensaje legítimo
             newMsgs = [...currentMsgs, msg];
         }
+
 
         // 2. Actualizar último mensaje en la conversación
         const updatedConversations = state.conversations.map(c =>

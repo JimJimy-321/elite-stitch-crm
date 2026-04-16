@@ -396,31 +396,11 @@ export default function BranchesPage() {
                                             {nativeStep === 2 && <div className="text-center font-black text-emerald-600 uppercase">¡Vinculado con éxito!</div>}
                                         </div>
                                     </div>
-
-                                    <div className="pt-4 border-t border-slate-200 text-center">
-                                        <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-6 space-y-4">
-                                            <p className="text-[10px] font-black text-blue-800 uppercase">Método Meta Assistant</p>
-                                            <div className="flex gap-2 justify-center">
-                                                <div className="text-[10px] font-bold bg-white px-2 py-1 rounded border">App: {META_APP_ID}</div>
-                                                <div className="text-[10px] font-bold bg-white px-2 py-1 rounded border">Cfg: {META_CONFIG_ID}</div>
-                                            </div>
-                                            <button 
-                                                onClick={handleLaunchCoexistence} 
-                                                disabled={!isSdkLoaded || isProcessingMeta} 
-                                                className={`w-full py-4 rounded-xl text-[11px] font-black uppercase shadow-lg active:scale-95 flex items-center justify-center gap-2 ${isProcessingMeta ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 text-white animate-pulse'}`}
-                                            >
-                                                {isProcessingMeta ? (
-                                                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> VINCULANDO...</>
-                                                ) : isSdkLoaded ? (
-                                                    <><ExternalLink size={16} /> !!! ABRIR ASISTENTE (SYNC V2.8 - BUILD FIX) !!!</>
-                                                ) : "Cargando..."}
-                                            </button>
-                                        </div>
-                                    </div>
-
                                     {/* Campos de ID manuales como respaldo (Fail-safe) */}
-                                        <div className="pt-4 border-t border-slate-200 space-y-4">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Configuración de IDs (Detección Manual/Auto)</p>
+                                        <div className="pt-4 border-t border-slate-200 text-center">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mt-2">Configuración de IDs (Detección Manual/Auto)</p>
+                                        </div>
+                                        <div className="pt-2 space-y-4">
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div>
                                                     <p className="text-[9px] font-black mb-1">ID TELÉFONO</p>

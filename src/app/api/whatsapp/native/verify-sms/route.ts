@@ -80,7 +80,8 @@ export async function POST(req: Request) {
         await supabase
             .from('branches')
             .update({ 
-                wa_phone_number_id: phoneId
+                wa_phone_number_id: phoneId,
+                wa_waba_id: process.env.META_WABA_ID
             })
             .eq('id', branchId);
 

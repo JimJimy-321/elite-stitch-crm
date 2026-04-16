@@ -110,7 +110,8 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ 
             success: true, 
-            phoneId: phoneId, // return it so frontend can hold it in state if needed
+            phoneId: phoneId, 
+            wabaId: wabaId,
             message: 'SMS requested successfully'
         });
 

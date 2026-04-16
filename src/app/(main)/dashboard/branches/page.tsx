@@ -168,10 +168,7 @@ export default function BranchesPage() {
     };
 
     const handleNativeRegisterInit = async () => {
-        if (!waForm.phoneNumber || !selectedBranch) {
-            toast.error("El número es obligatorio.");
-            return;
-        }
+        const phoneWithPlus = waForm.phoneNumber.startsWith('+') ? waForm.phoneNumber : `+${waForm.phoneNumber}`;
         setIsNativeLoading(true);
         try {
             const res = await fetch('/api/whatsapp/native/request-sms', {
@@ -179,13 +176,18 @@ export default function BranchesPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     branchId: selectedBranch.id, 
-                    phoneNumber: waForm.phoneNumber,
+                    phoneNumber: phoneWithPlus,
                     method: codeMethod
                 })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
             setNativePhoneId(data.phoneId);
+            setWaForm(prev => ({ 
+                ...prev, 
+                phoneNumberId: data.phoneId, 
+                wabaId: data.wabaId || prev.wabaId 
+            }));
             setNativeStep(1);
             toast.success(`Código solicitado por ${codeMethod === 'SMS' ? 'SMS' : 'Llamada'}.`);
         } catch (error: any) {
@@ -208,6 +210,10 @@ export default function BranchesPage() {
             if (!res.ok) throw new Error(data.error);
             toast.success("¡WhatsApp vinculado!");
             setNativeStep(2);
+            // Si el backend devolvió el phoneId, asegurarnos que esté en el formulario
+            if (data.data?.phoneId) {
+                setWaForm(prev => ({ ...prev, phoneNumberId: data.data.phoneId }));
+            }
             loadBranches();
         } catch (error: any) {
             toast.error(error.message);

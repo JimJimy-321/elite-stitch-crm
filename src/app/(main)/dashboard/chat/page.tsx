@@ -148,19 +148,21 @@ export default function ChatPage() {
         if (!currentBranchId) return;
 
         const channel = supabase
-            .channel('chat_realtime_v2')
+            .channel(`chat_branch_${currentBranchId}`) // Canal específico por sucursal
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',
                 table: 'chat_messages'
             }, async (payload) => {
                 const newMsg = payload.new as any;
+                console.log("[REALTIME] Nuevo mensaje detectado:", newMsg.sender_role, newMsg.content?.substring(0, 20));
                 
-                // Necesitamos verificar que el mensaje sea de una conversacion de ESTA sucursal.
-                // Como 'chat_messages' no tiene branch_id, dependemos de que el estado de 'conversations' lo tenga.
-                // Si la converacion existe en nuestro estado (que ya está filtrado por sucursal):
+                // Obtenemos el estado actual del store
                 const state = useChatStore.getState();
-                if (state.conversations.some(c => c.id === newMsg.conversation_id)) {
+                const conversations = state.conversations;
+                
+                // Si la conversación existe en nuestro estado actual (ya filtrado por sucursal)
+                if (conversations.some(c => c.id === newMsg.conversation_id)) {
                     addMessage(newMsg);
 
                     const currentActiveId = activeIdRef.current;
@@ -174,11 +176,29 @@ export default function ChatPage() {
                             console.error("Error auto-marking as read", e);
                         }
                     } else if (newMsg.sender_role === 'client') {
+                        // Solo vibrar/notificar si es del cliente
                         toast.info(`Nuevo mensaje de cliente`, {
                             icon: '💬',
-                            position: 'bottom-right'
+                            position: 'bottom-right',
+                            duration: 3000
                         });
                     }
+                } else {
+                    console.log("[REALTIME] Mensaje ignorado: conversación no cargada en el cliente aún o pertenece a otra sucursal.");
+                }
+            })
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'chat_messages'
+            }, (payload) => {
+                const updatedMsg = payload.new as any;
+                const state = useChatStore.getState();
+                
+                // Solo procesar si la conversación ya está en nuestro estado
+                if (state.conversations.some(c => c.id === updatedMsg.conversation_id)) {
+                    console.log("[REALTIME] Cambio de estado en mensaje detectado:", updatedMsg.status);
+                    addMessage(updatedMsg);
                 }
             })
             .on('postgres_changes', {
@@ -188,6 +208,7 @@ export default function ChatPage() {
                 filter: `branch_id=eq.${currentBranchId}`
             }, (payload: any) => {
                 const newConv = payload.new;
+                console.log("[REALTIME] Nueva conversación detectada");
                 const mappedConv = {
                     ...newConv,
                     client_name: newConv.client_name || 'Nuevo Contacto',
@@ -212,7 +233,9 @@ export default function ChatPage() {
                         : c
                 ));
             })
-            .subscribe();
+            .subscribe((status) => {
+                console.log(`[REALTIME] Status de suscripción (${currentBranchId}):`, status);
+            });
 
         return () => {
             supabase.removeChannel(channel);
@@ -246,11 +269,41 @@ export default function ChatPage() {
             return;
         }
 
+        const textToSubmit = inputText;
+        const tempId = crypto.randomUUID();
+        
+        // Optimistic UI: Agregar mensaje inmediatamente
+        const optimisticMsg = {
+            id: tempId,
+            conversation_id: activeConversationId,
+            content: textToSubmit,
+            sender_role: 'agent' as const,
+            status: 'sending' as const,
+            is_read: true,
+            created_at: new Date().toISOString()
+        };
+
+        addMessage(optimisticMsg);
+        setInputText('');
+
         try {
-            await chatService.sendMessage(activeConversationId, inputText, 'agent');
-            setInputText('');
+            const result = await chatService.sendMessage(activeConversationId, textToSubmit, 'agent');
+            
+            // Si el servicio retorna el ID real, actualizamos el mensaje optimista
+            if (result && result.message_id) {
+                addMessage({
+                    ...optimisticMsg,
+                    id: result.message_id,
+                    status: 'sent'
+                });
+            }
         } catch (error) {
             console.error('Error sending message:', error);
+            // Marcar como error para que el usuario sepa que no se envió
+            addMessage({
+                ...optimisticMsg,
+                status: 'failed'
+            });
             toast.error('Error al enviar mensaje');
         }
     };
@@ -265,20 +318,50 @@ export default function ChatPage() {
 
         setIsUploading(true);
         const toastId = toast.loading('Subiendo archivo...');
+        
+        const tempId = crypto.randomUUID();
+        // Optimistic: Mostrar que se está cargando el archivo
+        const optimisticMsg = {
+            id: tempId,
+            conversation_id: activeConversationId,
+            content: `Cargando ${file.name}...`,
+            sender_role: 'agent' as const,
+            status: 'sending' as const,
+            is_read: true,
+            created_at: new Date().toISOString()
+        };
+        addMessage(optimisticMsg);
 
         try {
             const { publicUrl, fileType } = await chatService.uploadFile(file);
-            // ENVIAR UN SOLO MENSAJE CON MEDIA
-            await chatService.sendMessage(activeConversationId, '', 'agent', publicUrl, fileType as any);
+            const result = await chatService.sendMessage(activeConversationId, '', 'agent', publicUrl, fileType as any);
+            
+            // Actualizar el mensaje optimista con el ID real y la URL del archivo
+            if (result && result.message_id) {
+                addMessage({
+                    ...optimisticMsg,
+                    id: result.message_id,
+                    content: '',
+                    media_url: publicUrl,
+                    media_type: fileType,
+                    status: 'sent'
+                });
+            }
             toast.success('Archivo enviado correctamente', { id: toastId });
         } catch (error) {
             console.error('Error uploading file:', error);
+            addMessage({
+                ...optimisticMsg,
+                status: 'failed',
+                content: `Error al subir ${file.name}`
+            });
             toast.error('Error al subir archivo', { id: toastId });
         } finally {
             setIsUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
+
 
 
     const handleClearChat = async () => {

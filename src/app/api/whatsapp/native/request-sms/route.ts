@@ -12,7 +12,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { branchId, phoneNumber } = await req.json();
+        const { branchId, phoneNumber, method = 'SMS' } = await req.json();
 
         if (!branchId || !phoneNumber) {
             return NextResponse.json({ success: false, error: 'Missing branchId or phoneNumber' }, { status: 400 });
@@ -79,15 +79,18 @@ export async function POST(req: Request) {
                 'Authorization': `Bearer ${accessToken}`
             },
             body: JSON.stringify({
-                code_method: 'SMS',
+                messaging_product: 'whatsapp',
+                code_method: method,
                 language: 'es'
             })
         });
 
         const reqSmsData = await reqSmsResponse.json();
         if (reqSmsData.error) {
+            console.error('[WA_REQ_SMS] Meta Error:', reqSmsData.error);
             const userMsg = reqSmsData.error.error_user_msg || reqSmsData.error.message;
-            return NextResponse.json({ success: false, error: userMsg, step: 'request_sms' }, { status: 400 });
+            const fullError = `${userMsg} (Code: ${reqSmsData.error.code}, Subcode: ${reqSmsData.error.error_subcode})`;
+            return NextResponse.json({ success: false, error: fullError, step: 'request_sms' }, { status: 400 });
         }
 
         // 3. Save partially in database

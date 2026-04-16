@@ -125,7 +125,28 @@ export default function ChatPage() {
     const activeIdRef = useRef(activeConversationId);
     useEffect(() => { activeIdRef.current = activeConversationId; }, [activeConversationId]);
 
+    const [currentBranchId, setCurrentBranchId] = useState<string | null>(null);
+
+    // Obtener el branchId del usuario para filtrar el Realtime
     useEffect(() => {
+        const getProfileInfo = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('assigned_branch_id')
+                    .eq('id', user.id)
+                    .single();
+                
+                setCurrentBranchId(profile?.assigned_branch_id);
+            }
+        };
+        getProfileInfo();
+    }, []);
+
+    useEffect(() => {
+        if (!currentBranchId) return;
+
         const channel = supabase
             .channel('chat_realtime_v2')
             .on('postgres_changes', {
@@ -134,46 +155,55 @@ export default function ChatPage() {
                 table: 'chat_messages'
             }, async (payload) => {
                 const newMsg = payload.new as any;
-                addMessage(newMsg);
+                
+                // Necesitamos verificar que el mensaje sea de una conversacion de ESTA sucursal.
+                // Como 'chat_messages' no tiene branch_id, dependemos de que el estado de 'conversations' lo tenga.
+                // Si la converacion existe en nuestro estado (que ya está filtrado por sucursal):
+                const state = useChatStore.getState();
+                if (state.conversations.some(c => c.id === newMsg.conversation_id)) {
+                    addMessage(newMsg);
 
-                // Usar ref para evitar ciclos de dependencia pero tener el ID actual
-                const currentActiveId = activeIdRef.current;
+                    const currentActiveId = activeIdRef.current;
 
-                if (newMsg.conversation_id === currentActiveId && newMsg.sender_role === 'client') {
-                    try {
-                        if (currentActiveId) {
-                            markAsReadInStore(currentActiveId);
-                            // El auto-scroll se dispara por el cambio en 'messages' en el otro effect
+                    if (newMsg.conversation_id === currentActiveId && newMsg.sender_role === 'client') {
+                        try {
+                            if (currentActiveId) {
+                                markAsReadInStore(currentActiveId);
+                            }
+                        } catch (e) {
+                            console.error("Error auto-marking as read", e);
                         }
-                    } catch (e) {
-                        console.error("Error auto-marking as read", e);
+                    } else if (newMsg.sender_role === 'client') {
+                        toast.info(`Nuevo mensaje de cliente`, {
+                            icon: '💬',
+                            position: 'bottom-right'
+                        });
                     }
-                } else if (newMsg.sender_role === 'client') {
-                    toast.info(`Nuevo mensaje de ${newMsg.sender_role === 'client' ? 'cliente' : ''}`, {
-                        icon: '💬',
-                        position: 'bottom-right'
-                    });
                 }
             })
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',
-                table: 'chat_conversations'
+                table: 'chat_conversations',
+                filter: `branch_id=eq.${currentBranchId}`
             }, (payload: any) => {
                 const newConv = payload.new;
-                // Intentar mapear campos virtuales si es posible (aunque sea básico)
                 const mappedConv = {
                     ...newConv,
                     client_name: newConv.client_name || 'Nuevo Contacto',
                     client_phone: newConv.customer_phone || '',
                     client_avatar: ''
                 };
-                setConversations((prev) => [mappedConv, ...prev]);
+                setConversations((prev) => {
+                    if (prev.some(c => c.id === mappedConv.id)) return prev;
+                    return [mappedConv, ...prev];
+                });
             })
             .on('postgres_changes', {
                 event: 'UPDATE',
                 schema: 'public',
-                table: 'chat_conversations'
+                table: 'chat_conversations',
+                filter: `branch_id=eq.${currentBranchId}`
             }, (payload: any) => {
                 const updatedConv = payload.new;
                 setConversations((prev) => prev.map((c) =>
@@ -187,7 +217,7 @@ export default function ChatPage() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [addMessage, setConversations]); // Removido activeConversationId y conversations para evitar re-suscripciones constantes
+    }, [currentBranchId, addMessage, setConversations, markAsReadInStore]);
 
     // Filtrar conversaciones por nombre o teléfono, y excluir el número del servidor
     const filteredConversations = useMemo(() => {

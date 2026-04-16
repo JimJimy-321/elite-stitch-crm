@@ -51,6 +51,7 @@ export default function BranchesPage() {
     const [otpCode, setOtpCode] = useState('');
     const [nativePhoneId, setNativePhoneId] = useState('');
     const [isNativeLoading, setIsNativeLoading] = useState(false);
+    const [codeMethod, setCodeMethod] = useState<'SMS' | 'VOICE'>('SMS');
 
     const [formData, setFormData] = useState({
         name: '',
@@ -176,13 +177,17 @@ export default function BranchesPage() {
             const res = await fetch('/api/whatsapp/native/request-sms', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ branchId: selectedBranch.id, phoneNumber: waForm.phoneNumber })
+                body: JSON.stringify({ 
+                    branchId: selectedBranch.id, 
+                    phoneNumber: waForm.phoneNumber,
+                    method: codeMethod
+                })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
             setNativePhoneId(data.phoneId);
             setNativeStep(1);
-            toast.success("Código enviado por SMS.");
+            toast.success(`Código solicitado por ${codeMethod === 'SMS' ? 'SMS' : 'Llamada'}.`);
         } catch (error: any) {
             toast.error(error.message);
         } finally {
@@ -206,6 +211,33 @@ export default function BranchesPage() {
             loadBranches();
         } catch (error: any) {
             toast.error(error.message);
+        } finally {
+            setIsNativeLoading(false);
+        }
+    };
+
+    const handleDisconnectWhatsApp = async () => {
+        if (!selectedBranch || !confirm("¿Estás seguro de desvincular WhatsApp? Se borrarán los IDs configurados.")) return;
+        setIsNativeLoading(true);
+        try {
+            const { error } = await supabase
+                .from('branches')
+                .update({ 
+                    wa_phone_number_id: null,
+                    wa_phone_number: null,
+                    wa_waba_id: null,
+                    wa_access_token: null
+                })
+                .eq('id', selectedBranch.id);
+
+            if (error) throw error;
+            
+            setWaForm(prev => ({ ...prev, phoneNumberId: '', phoneNumber: '', wabaId: '', accessToken: '' }));
+            setNativeStep(0);
+            toast.success("WhatsApp desvínculado.");
+            loadBranches();
+        } catch (error: any) {
+            toast.error("Error al desvincular: " + error.message);
         } finally {
             setIsNativeLoading(false);
         }
@@ -286,7 +318,6 @@ export default function BranchesPage() {
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-            {/* Header section remains the same */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/50 p-6 rounded-3xl border border-white/50 backdrop-blur-sm">
                 <div>
                     <h1 className="text-4xl font-black tracking-tight text-slate-900 flex items-center gap-3 italic">
@@ -306,7 +337,6 @@ export default function BranchesPage() {
                 </button>
             </div>
 
-            {/* List and Search */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {branches.map((branch) => (
                     <div key={branch.id} className="group bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all">
@@ -327,7 +357,6 @@ export default function BranchesPage() {
                                             accessToken: branch.wa_access_token || '',
                                             phoneNumber: branch.wa_phone_number || ''
                                         });
-                                        // Reset native registration state on open
                                         setNativeStep(branch.wa_phone_number_id ? 2 : 0);
                                         setIsSettingsModalOpen(true);
                                     }}
@@ -360,7 +389,6 @@ export default function BranchesPage() {
                 ))}
             </div>
 
-            {/* Settings Modal (WhatsApp) */}
             {isSettingsModalOpen && selectedBranch && (
                 <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
                     <div className="bg-white rounded-[3rem] w-full max-w-xl max-h-[90vh] overflow-hidden shadow-3xl animate-in zoom-in duration-300 border border-white/20">
@@ -383,44 +411,71 @@ export default function BranchesPage() {
                                     <div className="pt-4 border-t border-slate-200">
                                         <div className="bg-white border border-orange-200 rounded-2xl p-6 space-y-4">
                                             {nativeStep === 0 && (
-                                                <button onClick={handleNativeRegisterInit} disabled={isNativeLoading} className="w-full bg-orange-500 text-white py-4 rounded-xl text-[11px] font-black uppercase shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">{isNativeLoading ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />} Registro Directo SMS</button>
+                                                <div className="space-y-4">
+                                                    <div className="flex bg-slate-100 p-1 rounded-xl">
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => setCodeMethod('SMS')} 
+                                                            className={`flex-1 py-4 text-[9px] font-black uppercase rounded-lg transition-all ${codeMethod === 'SMS' ? 'bg-white shadow-sm text-orange-600' : 'text-slate-400'}`}
+                                                        >
+                                                            Mensaje SMS
+                                                        </button>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => setCodeMethod('VOICE')} 
+                                                            className={`flex-1 py-4 text-[9px] font-black uppercase rounded-lg transition-all ${codeMethod === 'VOICE' ? 'bg-white shadow-sm text-orange-600' : 'text-slate-400'}`}
+                                                        >
+                                                            Llamada Voz
+                                                        </button>
+                                                    </div>
+                                                    <button onClick={handleNativeRegisterInit} disabled={isNativeLoading} className="w-full bg-orange-500 text-white py-4 rounded-xl text-[11px] font-black uppercase shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">{isNativeLoading ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />} Solicitar Código</button>
+                                                </div>
                                             )}
                                             {nativeStep === 1 && (
                                                 <div className="space-y-4 text-center">
-                                                    <p className="text-[10px] font-black uppercase">Código SMS</p>
+                                                    <p className="text-[10px] font-black uppercase">Código Recibido</p>
                                                     <input type="text" value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))} className="w-full text-center text-2xl font-black tracking-widest outline-none border-b-2 border-orange-500" placeholder="000000" />
                                                     <button onClick={handleNativeVerifyCode} disabled={isNativeLoading} className="w-full bg-slate-900 text-white py-4 rounded-xl text-[11px] font-black uppercase active:scale-95">Verificar</button>
                                                     <button onClick={resetNativeRegistration} className="text-[10px] font-black text-rose-500 uppercase">Reiniciar</button>
                                                 </div>
                                             )}
-                                            {nativeStep === 2 && <div className="text-center font-black text-emerald-600 uppercase">¡Vinculado con éxito!</div>}
+                                            {nativeStep === 2 && (
+                                                <div className="space-y-4 text-center">
+                                                    <div className="font-black text-emerald-600 uppercase mb-2">¡Vinculado con éxito!</div>
+                                                    <button 
+                                                        onClick={handleDisconnectWhatsApp}
+                                                        className="w-full text-[9px] font-black text-rose-500 py-3 border border-rose-100 rounded-xl hover:bg-rose-50 transition-all uppercase"
+                                                    >
+                                                        Desvincular para Reconfigurar
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-                                    {/* Campos de ID manuales como respaldo (Fail-safe) */}
-                                        <div className="pt-4 border-t border-slate-200 text-center">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mt-2">Configuración de IDs (Detección Manual/Auto)</p>
-                                        </div>
-                                        <div className="pt-2 space-y-4">
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <p className="text-[9px] font-black mb-1">ID TELÉFONO</p>
-                                                    <input type="text" value={waForm.phoneNumberId} onChange={e => setWaForm({...waForm, phoneNumberId: e.target.value})} className="w-full text-xs border rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="Ej: 52123..." />
-                                                </div>
-                                                <div>
-                                                    <p className="text-[9px] font-black mb-1">ID WABA</p>
-                                                    <input type="text" value={waForm.wabaId} onChange={e => setWaForm({...waForm, wabaId: e.target.value})} className="w-full text-xs border rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="Ej: 1280..." />
-                                                </div>
+                                    <div className="pt-4 border-t border-slate-200 text-center">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mt-2">Configuración de IDs (Detección Manual/Auto)</p>
+                                    </div>
+                                    <div className="pt-2 space-y-4">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <p className="text-[9px] font-black mb-1">ID TELÉFONO</p>
+                                                <input type="text" value={waForm.phoneNumberId} onChange={e => setWaForm({...waForm, phoneNumberId: e.target.value})} className="w-full text-xs border rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="Ej: 52123..." />
                                             </div>
                                             <div>
-                                                <p className="text-[9px] font-black mb-1">TOKEN DE ACCESO (OPCIONAL/AUTO)</p>
-                                                <input type="text" value={waForm.accessToken} onChange={e => setWaForm({...waForm, accessToken: e.target.value})} className="w-full text-[10px] border rounded-lg px-3 py-2 outline-none focus:border-orange-500 font-mono" placeholder="EAAB..." />
-                                                {waForm.accessToken ? (
-                                                    <p className="text-[8px] text-emerald-600 font-bold mt-1 uppercase">✓ Token detectado</p>
-                                                ) : (
-                                                    <p className="text-[8px] text-amber-500 font-bold mt-1 uppercase">⚠ Sin token (Funcionalidad limitada)</p>
-                                                )}
+                                                <p className="text-[9px] font-black mb-1">ID WABA</p>
+                                                <input type="text" value={waForm.wabaId} onChange={e => setWaForm({...waForm, wabaId: e.target.value})} className="w-full text-xs border rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="Ej: 1280..." />
                                             </div>
                                         </div>
+                                        <div>
+                                            <p className="text-[9px] font-black mb-1">TOKEN DE ACCESO (OPCIONAL/AUTO)</p>
+                                            <input type="text" value={waForm.accessToken} onChange={e => setWaForm({...waForm, accessToken: e.target.value})} className="w-full text-[10px] border rounded-lg px-3 py-2 outline-none focus:border-orange-500 font-mono" placeholder="EAAB..." />
+                                            {waForm.accessToken ? (
+                                                <p className="text-[8px] text-emerald-600 font-bold mt-1 uppercase">✓ Token detectado</p>
+                                            ) : (
+                                                <p className="text-[8px] text-amber-500 font-bold mt-1 uppercase">⚠ Sin token (Funcionalidad limitada)</p>
+                                            )}
+                                        </div>
+                                    </div>
 
                                     <button onClick={handleRegisterWhatsApp} disabled={isWaSubmitting} className="w-full bg-slate-900 text-white py-4 rounded-xl text-xs font-black uppercase hover:bg-emerald-600 transition-all flex items-center justify-center gap-3">{isWaSubmitting ? <Loader2 className="animate-spin" size={16} /> : <Activity size={16} />} Guardar Ajustes</button>
                                 </div>
@@ -430,7 +485,6 @@ export default function BranchesPage() {
                 </div>
             )}
 
-            {/* Branch Creation/Edit Modal remains the same */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
                     <div className="bg-white rounded-[3rem] w-full max-w-lg shadow-3xl animate-in zoom-in duration-300 border border-white/20">

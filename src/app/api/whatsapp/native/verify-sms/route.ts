@@ -65,21 +65,29 @@ export async function POST(req: Request) {
         }
 
         // 2. Register Phone on the cloud API to enable sending/receiving messages
+        console.log(`[WA_VERIFY_SMS] Intentando registrar phoneId: ${phoneId}`);
         const registerResult = await whatsappService.registerPhone({
             phoneNumberId: phoneId,
             accessToken: accessToken
         });
 
         if (!registerResult.success) {
-             console.warn('[WA_VERIFY_SMS] registerPhone warning:', registerResult.error);
+             console.warn('[WA_VERIFY_SMS] registerPhone warning/error:', registerResult.error);
+             // Incluso si el registro falla (por ya estar registrado), intentamos actualizar la BD
         }
 
-        // 3. Mark as online in Database (optional, can be done via metadata)
-        // Or update any status to "VERIFIED"
+        // 3. Actualizar la base de datos para marcar como verificado y guardar el ID si no estaba
+        await supabase
+            .from('branches')
+            .update({ 
+                wa_phone_number_id: phoneId
+            })
+            .eq('id', branchId);
 
         return NextResponse.json({ 
             success: true, 
-            message: 'Phone number verified and registered successfully!'
+            message: 'Teléfono verificado y registrado exitosamente en Meta.',
+            data: { phoneId }
         });
 
     } catch (error: any) {

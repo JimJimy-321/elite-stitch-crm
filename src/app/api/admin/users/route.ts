@@ -18,7 +18,8 @@ export async function POST(req: NextRequest) {
             p_role: role,
             p_org_id: organization_id,
             p_branch_id: assigned_branch_id,
-            p_phone: phone
+            p_phone: phone,
+            p_login_pin: body.login_pin
         });
 
         if (rpcError) {
@@ -58,7 +59,8 @@ export async function PATCH(req: NextRequest) {
             p_full_name: full_name,
             p_role: role,
             p_branch_id: assigned_branch_id,
-            p_phone: phone
+            p_phone: phone,
+            p_login_pin: body.login_pin
         });
 
         if (rpcError) {

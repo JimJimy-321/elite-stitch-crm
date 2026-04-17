@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { chatService } from '@/features/chat/services/chatService';
+import { aiAssistantService } from '@/features/chat/services/aiAssistantService';
 import { supabaseWebhookClient as supabase } from '@/lib/supabase/webhook';
 
 // Token de verificación configurado en el Dashboard de Meta
@@ -97,6 +98,14 @@ export async function POST(request: NextRequest) {
 
                 if (rpcError) {
                     console.error('Error in RPC process_incoming_whatsapp:', rpcError);
+                }
+
+                // 🤖 IA RESOLUTIVA (Fase 8)
+                // Solo respondemos si NO es un eco (mensaje del cliente)
+                if (!isEcho && content) {
+                    // Ejecutamos en segundo plano para no bloquear el webhook (Meta requiere respuesta rápida)
+                    aiAssistantService.handleIncoming(from, content, phoneNumberId)
+                        .catch(err => console.error('[AI_HOOK_ERROR]', err));
                 }
 
                 return new NextResponse('EVENT_RECEIVED', { status: 200 });

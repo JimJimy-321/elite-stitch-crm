@@ -16,6 +16,10 @@ interface AdvancedNotaFormProps {
 }
 
 export function AdvancedNotaForm({ onClose, onSuccess, forceBranchId }: AdvancedNotaFormProps) {
+    const dateNamesMap: any = { 
+        mon: 'Lunes', tue: 'Martes', wed: 'Miércoles', thu: 'Jueves', 
+        fri: 'Viernes', sat: 'Sábado', sun: 'Domingo' 
+    };
     const { user } = useAuthStore();
     const [clientSearch, setClientSearch] = useState('');
     const debouncedClientSearch = useDebounce(clientSearch, 500);
@@ -54,12 +58,15 @@ export function AdvancedNotaForm({ onClose, onSuccess, forceBranchId }: Advanced
     const [deliveryDate, setDeliveryDate] = useState<string>(() => {
         const d = new Date();
         d.setDate(d.getDate() + 3);
+        // Si cae en domingo, mover al lunes
+        if (d.getDay() === 0) d.setDate(d.getDate() + 1);
         return d.toISOString().split('T')[0];
     });
     const [notes, setNotes] = useState<string>('');
     const [discountCode, setDiscountCode] = useState<string>('');
     const [appliedDiscount, setAppliedDiscount] = useState<any>(null);
     const [discountError, setDiscountError] = useState<string | null>(null);
+    const [dateError, setDateError] = useState<string | null>(null);
 
     const filteredClients = clients.slice(0, 5);
 
@@ -98,7 +105,8 @@ export function AdvancedNotaForm({ onClose, onSuccess, forceBranchId }: Advanced
         if (!discountCode) return;
 
         try {
-            const disc = await dashboardService.getDiscountByCode(discountCode);
+            const targetBranchId = selectedBranch?.id || user?.assigned_branch_id;
+            const disc = await dashboardService.getDiscountByCode(discountCode, targetBranchId);
             if (disc) {
                 setAppliedDiscount(disc);
             } else {
@@ -176,6 +184,11 @@ export function AdvancedNotaForm({ onClose, onSuccess, forceBranchId }: Advanced
             return;
         }
 
+        if (dateError) {
+            setSubmittingError("Selecciona una fecha en la que la sucursal esté abierta");
+            return;
+        }
+
         if (!selectedClient) {
             setSubmittingError("Selecciona un cliente");
             return;
@@ -190,7 +203,8 @@ export function AdvancedNotaForm({ onClose, onSuccess, forceBranchId }: Advanced
             total_amount: total,
             balance_due: balance,
             discount_id: appliedDiscount?.id,
-            discount_amount: discountAmount
+            discount_amount: discountAmount,
+            is_promo: appliedDiscount?.is_promo
         };
 
         const itemData = items.map(item => ({
@@ -372,12 +386,41 @@ export function AdvancedNotaForm({ onClose, onSuccess, forceBranchId }: Advanced
                             type="date"
                             required
                             min={todayStr}
-                            className="w-full bg-white border-2 border-slate-100 rounded-2xl px-12 h-14 font-black text-slate-800 focus:border-orange-500 outline-none transition-all shadow-sm"
+                            className={cn(
+                                "w-full bg-white border-2 rounded-2xl px-12 h-14 font-black text-slate-800 focus:border-orange-500 outline-none transition-all shadow-sm",
+                                dateError ? "border-red-500 bg-red-50" : "border-slate-100"
+                            )}
                             value={deliveryDate}
-                            onChange={(e) => setDeliveryDate(e.target.value)}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setDeliveryDate(val);
+                                setDateError(null);
+                                
+                                if (val) {
+                                    const dateObj = new Date(val + 'T12:00:00'); // Evitar problemas de zona horaria
+                                    const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+                                    const dayName = dayNames[dateObj.getDay()];
+                                    
+                                    // BLOQUEO EXPLÍCITO DE DOMINGOS
+                                    if (dateObj.getDay() === 0) {
+                                        setDateError("NO SE PUEDE ASIGNAR ENTREGA EN DOMINGO (CERRADO)");
+                                        return;
+                                    }
+
+                                    if (selectedBranch?.business_hours) {
+                                        const isClosed = selectedBranch.business_hours[dayName]?.closed;
+                                        if (isClosed) {
+                                            setDateError(`LA SUCURSAL ESTÁ CERRADA LOS ${dateNamesMap[dayName].toUpperCase()}`);
+                                        }
+                                    }
+                                }
+                            }}
                         />
                         <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={18} />
                     </div>
+                    {dateError && (
+                        <p className="text-[10px] font-black text-red-500 px-2 animate-in fade-in slide-in-from-top-1">{dateError}</p>
+                    )}
                 </div>
             </div>
 

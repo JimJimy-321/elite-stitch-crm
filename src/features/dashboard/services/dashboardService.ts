@@ -171,7 +171,7 @@ export const dashboardService = {
         return true;
     },
 
-    async getBranches(organizationId?: string) {
+    async getBranches(organizationId?: string, includeArchived: boolean = false) {
         let query = supabase
             .from('branches')
             .select('*')
@@ -179,6 +179,10 @@ export const dashboardService = {
 
         if (organizationId) {
             query = query.eq('organization_id', organizationId);
+        }
+
+        if (!includeArchived) {
+            query = query.eq('is_active', true);
         }
 
         const { data, error } = await query;
@@ -219,12 +223,22 @@ export const dashboardService = {
             .limit(1);
 
         if (hasTickets && hasTickets.length > 0) {
-            throw new Error("No se puede eliminar la sede porque tiene órdenes o historial registrado.");
+            throw new Error("No se puede eliminar físicamente la sede porque tiene órdenes o historial registrado. Intente 'Archivar' en su lugar.");
         }
 
         const { error } = await supabase
             .from('branches')
             .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        return true;
+    },
+
+    async archiveBranch(id: string) {
+        const { error } = await supabase
+            .from('branches')
+            .update({ is_active: false })
             .eq('id', id);
 
         if (error) throw error;
@@ -241,6 +255,57 @@ export const dashboardService = {
 
         if (error) throw error;
         return data;
+    },
+
+    /**
+     * Seguridad: Autoriza el dispositivo actual para una sucursal específica
+     */
+    async authorizeCurrentDevice(branchId: string, fingerprint: string, friendlyName: string) {
+        const { data, error } = await supabase.rpc('authorize_current_device', {
+            p_branch_id: branchId,
+            p_fingerprint: fingerprint,
+            p_friendly_name: friendlyName
+        });
+
+        if (error) throw error;
+        return data;
+    },
+
+    /**
+     * Seguridad: Autentica a un trabajador usando su PIN y validando el dispositivo
+     */
+    async authenticateByPin(pin: string, branchId: string, deviceToken: string) {
+        const { data, error } = await supabase.rpc('authenticate_worker_by_pin', {
+            p_branch_id: branchId,
+            p_pin: pin,
+            p_device_token_hash: deviceToken
+        });
+
+        if (error) {
+            console.error('[RPC_ERROR] authenticate_worker_by_pin:', error);
+            return { success: false, error: error.message };
+        }
+        
+        // El RPC retorna un conjunto de filas (o una con RETURNS TABLE)
+        const result = data && data.length > 0 ? data[0] : null;
+
+        if (!result || !result.is_device_valid) {
+            return { success: false, error: 'Dispositivo no autorizado para esta sucursal' };
+        }
+
+        if (!result.user_id) {
+            return { success: false, error: 'PIN incorrecto' };
+        }
+
+        return { 
+            success: true, 
+            profile: {
+                id: result.user_id,
+                full_name: result.full_name,
+                role: result.role,
+                branch_id: result.branch_id
+            }
+        };
     },
 
     async getStats(branchId?: string, filters?: { startDate?: string, endDate?: string }, orgId?: string) {
@@ -418,17 +483,46 @@ export const dashboardService = {
         return data;
     },
 
-    async getDiscountByCode(code: string) {
+    async getDiscountByCode(code: string, branchId?: string) {
+        // 1. Intentar buscar en las nuevas PROMOCIONES de Marketing primero
+        let promoQuery = supabase
+            .from('promotions')
+            .select('*')
+            .eq('discount_code', code.toUpperCase())
+            .eq('is_active', true);
+            
+        if (branchId) {
+            promoQuery = promoQuery.or(`target_branch_id.is.null,target_branch_id.eq.${branchId}`);
+        }
+
+        const { data: promo } = await promoQuery.maybeSingle();
+
+        if (promo) {
+            return {
+                id: promo.id,
+                value: promo.discount_value,
+                discount_type: promo.discount_type,
+                is_promo: true // Flag para saber que viene de la nueva tabla
+            };
+        }
+
+        // 2. Fallback a la tabla antigua de DISCOUNTS
         const { data, error } = await supabase
             .from('discounts')
             .select('*')
             .eq('code', code.toUpperCase())
             .eq('is_active', true)
             .gte('valid_to', new Date().toISOString())
-            .single();
+            .maybeSingle();
 
-        if (error) return null;
-        return data;
+        if (error || !data) return null;
+        
+        return {
+            id: data.id,
+            value: data.value,
+            discount_type: data.discount_type,
+            is_promo: false
+        };
     },
 
     async createAdvancedNota(notaData: any, items: any[], payment: any) {
@@ -442,7 +536,8 @@ export const dashboardService = {
                 notes: notaData.notes,
                 total_amount: notaData.total_amount,
                 balance_due: notaData.balance_due,
-                discount_id: notaData.discount_id,
+                discount_id: notaData.is_promo ? null : notaData.discount_id,
+                promotion_id: notaData.is_promo ? notaData.discount_id : null,
                 discount_amount: notaData.discount_amount,
                 status: 'received'
             })

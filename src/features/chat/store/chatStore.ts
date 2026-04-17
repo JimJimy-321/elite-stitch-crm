@@ -87,11 +87,24 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }),
 
 
-    markAsRead: (id) => set((state) => ({
-        conversations: state.conversations.map(c =>
-            c.id === id ? { ...c, unread_count: 0 } : c
-        )
-    })),
+    markAsRead: async (id) => {
+        // optimista: cerramos contador localmente
+        set((state) => ({
+            conversations: state.conversations.map(c =>
+                c.id === id ? { ...c, unread_count: 0 } : c
+            )
+        }));
+
+        try {
+            await fetch('/api/chat/mark-read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ conversationId: id })
+            });
+        } catch (error) {
+            console.error('[CHAT_STORE] Error marking as read:', error);
+        }
+    },
 
     updateConversationStatus: (id, status) => set((state) => ({
         conversations: state.conversations.map(c =>

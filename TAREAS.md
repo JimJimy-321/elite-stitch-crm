@@ -33,19 +33,23 @@
 - [x] **Artifact Final:** Resumen de la transformación completa.
 
 ---
-## 🛠️ Fase 6: Mantenimiento Post-Producción (EN PROCESO)
+## 🛠️ Fase 6: Mantenimiento & WhatsApp Modern (COMPLETADO ✅)
 - [x] **Fix: Reactividad de KPIs:** Las cifras de control (Recibidos, En Proceso, etc.) ahora se actualizan inmediatamente al crear o editar notas.
 - [x] **Fix: Discrepancia Financiera ($17k vs Real):** Cambio de cálculo a `getDailyFinancials` para mostrar estrictamente "Ingresos Hoy" (Pagos recibidos del día).
 - [x] **Fix: Cola de Trabajo (1 vs 3):** Corrección de paginación en `getActiveWorkQueue` para mostrar la totalidad de tickets activos.
-- [x] **UI Polish:**
-    - [x] Bordes de énfasis naranja (`border-orange-500`) en KPIs críticos.
-    - [x] Renombrado de menú "Notas" a "Historial" para claridad operativa.
-    - [x] Verificación de Build (`npm run build`) exitosa.
+- [x] **WhatsApp Native Registration:** Registro de números desde el dashboard con SMS/Voz (100% Funcional).
+- [x] **WhatsApp Hybrid Mode:** Soporte para ecos y sincronización total con el celular físico.
+- [x] **Read Receipts (Visto):** Control de ticks azules configurable por sucursal.
+- [x] **Verificación de Build:** `npm run build` exitosa.
 
-## 🔜 Fase 7: Validación & Estabilización (PENDIENTE)
-- [ ] **Monitoreo Financiero:** Validar alineación de "Ingresos Hoy" con corte de caja físico real (Día 1 de uso).
-- [ ] **Pruebas de Integridad:** Verificar que `deleteClient` impida borrar clientes con deuda/tickets activos (Protección implementada, falta testeo de campo).
-- [ ] **Despliegue a Producción:** Verificar variables de entorno en Vercel y desplegar.
+## 🔜 Fase 7: Validación & Estabilización (COMPLETADO ✅)
+- [x] **Monitoreo Financiero:** Validar alineación de "Ingresos Hoy" con corte de caja físico real (Día 1 de uso).
+- [x] **Pruebas de Integridad:** Verificar que `deleteClient` impida borrar clientes con deuda/tickets activos (Confirmado nivel DB con RESTRICT).
+- [x] **Despliegue a Producción:** Verificar variables de entorno en Vercel y desplegar.
+
+## 🤖 Fase 8: Inteligencia Resolutiva (EN PROCESO)
+- [/] **AI Ticket Status:** Primer agente capaz de consultar estatus de pedidos de forma autónoma.
+- [ ] **Media Pro:** Envío de PDFs y múltiples imágenes por chat.
 
 ---
 *Este archivo se actualiza dinámicamente según el progreso.*

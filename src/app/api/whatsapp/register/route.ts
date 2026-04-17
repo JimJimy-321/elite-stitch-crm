@@ -11,7 +11,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { branchId, phoneNumberId, wabaId, accessToken, phoneNumber } = await req.json();
+        const { branchId, phoneNumberId, wabaId, accessToken, phoneNumber, metadata } = await req.json();
 
         if (!branchId || !phoneNumberId) {
             return NextResponse.json({ success: false, error: 'Falta ID de Sede o ID de Teléfono' }, { status: 400 });
@@ -33,14 +33,27 @@ export async function POST(req: Request) {
             }
         }
 
-        // 2. Guardar en la base de datos
+        // 2. Obtener metadata actual para fusionar
+        const { data: currentBranch } = await supabase
+            .from('branches')
+            .select('metadata')
+            .eq('id', branchId)
+            .single();
+
+        const updatedMetadata = {
+            ...(currentBranch?.metadata || {}),
+            ...(metadata || {})
+        };
+
+        // 3. Guardar en la base de datos
         const { error: dbError } = await supabase
             .from('branches')
             .update({
                 wa_phone_number_id: phoneNumberId,
                 wa_waba_id: wabaId,
                 wa_access_token: accessToken,
-                wa_phone_number: phoneNumber
+                wa_phone_number: phoneNumber,
+                metadata: updatedMetadata
             })
             .eq('id', branchId);
 

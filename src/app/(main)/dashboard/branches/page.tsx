@@ -14,10 +14,18 @@ import {
     Smartphone, 
     ExternalLink,
     Check,
-    AlertCircle
+    AlertCircle,
+    ShieldCheck,
+    Monitor,
+    Fingerprint,
+    Info,
+    Calendar,
+    Save
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import { cn } from '@/shared/lib/utils';
+import { getDeviceFingerprint, saveDeviceToken, getDeviceFriendlyName } from '@/features/auth/utils/device-auth';
 
 const supabase = createClient();
 
@@ -34,13 +42,15 @@ export default function BranchesPage() {
     const [selectedBranch, setSelectedBranch] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isArchiving, setIsArchiving] = useState(false);
 
     // WhatsApp Form State
     const [waForm, setWaForm] = useState({
         phoneNumberId: '',
         wabaId: '',
         accessToken: '',
-        phoneNumber: ''
+        phoneNumber: '',
+        sendReadReceipts: true
     });
     const [isWaSubmitting, setIsWaSubmitting] = useState(false);
     const [isSdkLoaded, setIsSdkLoaded] = useState(false);
@@ -53,6 +63,9 @@ export default function BranchesPage() {
     const [isNativeLoading, setIsNativeLoading] = useState(false);
     const [codeMethod, setCodeMethod] = useState<'SMS' | 'VOICE'>('SMS');
 
+    const [activeTab, setActiveTab] = useState<'whatsapp' | 'device' | 'hours'>('whatsapp');
+    const [isAuthorizingDevice, setIsAuthorizingDevice] = useState(false);
+    const [isSavingHours, setIsSavingHours] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
         address: ''
@@ -124,20 +137,38 @@ export default function BranchesPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("¿Deseas eliminar esta sede? Se validará que no tenga órdenes activas.")) return;
+        if (!confirm("Ã‚Â¿Deseas ELIMINAR FÃƒÂSICAMENTE esta sede? Solo es posible si no tiene NINGÃƒÅ¡N historial. Para sedes con historial, use 'Archivar'.")) return;
         setIsDeleting(true);
         try {
             await dashboardService.deleteBranch(id);
-            toast.success("Sede eliminada.");
+            toast.success("Sede eliminada fÃƒÂ­sicamente.");
             loadBranches();
+            setIsSettingsModalOpen(false);
         } catch (error: any) {
             toast.error(error.message || "Error al eliminar la sede.");
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const handleArchive = async (id: string) => {
+        if (!confirm("Ã‚Â¿Deseas ARCHIVAR esta sede? DejarÃƒÂ¡ de ser operativa pero se conservarÃƒÂ¡ todo su historial y reportes. Esta acciÃƒÂ³n es REVERSIBLE desde la base de datos.")) return;
+        setIsArchiving(true);
+        try {
+            await dashboardService.archiveBranch(id);
+            toast.success("Sede archivada correctamente.");
+            loadBranches();
+            setIsSettingsModalOpen(false);
+        } catch (error: any) {
+            toast.error(error.message || "Error al archivar la sede.");
+        } finally {
+            setIsArchiving(false);
         }
     };
 
     const handleRegisterWhatsApp = async () => {
         if (!selectedBranch || !waForm.phoneNumberId) {
-            toast.error("Faltan campos obligatorios (ID Teléfono)");
+            toast.error("Faltan campos obligatorios (ID TelÃƒÂ©fono)");
             return;
         }
 
@@ -148,13 +179,16 @@ export default function BranchesPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     branchId: selectedBranch.id,
-                    ...waForm
+                    ...waForm,
+                    metadata: {
+                        send_read_receipts: waForm.sendReadReceipts
+                    }
                 })
             });
 
             const result = await response.json();
             if (result.success) {
-                toast.success("Configuración guardada correctamente.");
+                toast.success("ConfiguraciÃƒÂ³n guardada correctamente.");
                 setIsSettingsModalOpen(false);
                 window.location.reload(); 
             } else {
@@ -189,7 +223,7 @@ export default function BranchesPage() {
                 wabaId: data.wabaId || prev.wabaId 
             }));
             setNativeStep(1);
-            toast.success(`Código solicitado por ${codeMethod === 'SMS' ? 'SMS' : 'Llamada'}.`);
+            toast.success(`CÃƒÂ³digo solicitado por ${codeMethod === 'SMS' ? 'SMS' : 'Llamada'}.`);
         } catch (error: any) {
             toast.error(error.message);
         } finally {
@@ -208,9 +242,9 @@ export default function BranchesPage() {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
-            toast.success("¡WhatsApp vinculado!");
+            toast.success("Ã‚Â¡WhatsApp vinculado!");
             setNativeStep(2);
-            // Si el backend devolvió el phoneId, asegurarnos que esté en el formulario
+            // Si el backend devolviÃƒÂ³ el phoneId, asegurarnos que estÃƒÂ© en el formulario
             if (data.data?.phoneId) {
                 setWaForm(prev => ({ ...prev, phoneNumberId: data.data.phoneId }));
             }
@@ -223,7 +257,7 @@ export default function BranchesPage() {
     };
 
     const handleDisconnectWhatsApp = async () => {
-        if (!selectedBranch || !confirm("¿Estás seguro de desvincular WhatsApp? Se borrarán los IDs configurados.")) return;
+        if (!selectedBranch || !confirm("Ã‚Â¿EstÃƒÂ¡s seguro de desvincular WhatsApp? Se borrarÃƒÂ¡n los IDs configurados.")) return;
         setIsNativeLoading(true);
         try {
             const { error } = await supabase
@@ -238,9 +272,9 @@ export default function BranchesPage() {
 
             if (error) throw error;
             
-            setWaForm(prev => ({ ...prev, phoneNumberId: '', phoneNumber: '', wabaId: '', accessToken: '' }));
+            setWaForm(prev => ({ ...prev, phoneNumberId: '', phoneNumber: '', wabaId: '', accessToken: '', sendReadReceipts: true }));
             setNativeStep(0);
-            toast.success("WhatsApp desvínculado.");
+            toast.success("WhatsApp desvÃƒÂ­nculado.");
             loadBranches();
         } catch (error: any) {
             toast.error("Error al desvincular: " + error.message);
@@ -269,11 +303,11 @@ export default function BranchesPage() {
                     setWaForm(prev => ({ ...prev, accessToken: token }));
                     fetchMetaDetails(token);
                 } else if (code) {
-                    toast.success("Código capturado, guardando...");
+                    toast.success("CÃƒÂ³digo capturado, guardando...");
                     handleRegisterWhatsApp();
                 }
             } else {
-                toast.error("Vinculación cancelada.");
+                toast.error("VinculaciÃƒÂ³n cancelada.");
                 setIsProcessingMeta(false);
             }
         }, {
@@ -305,7 +339,7 @@ export default function BranchesPage() {
                         phoneNumberId: phones.data[0].id,
                         accessToken: token
                     }));
-                    toast.success("IDs recuperados automáticamente.");
+                    toast.success("IDs recuperados automÃƒÂ¡ticamente.");
                     
                     // Auto-save logic
                     setTimeout(() => handleRegisterWhatsApp(), 1500);
@@ -314,6 +348,32 @@ export default function BranchesPage() {
         } catch (error) {
             console.error("Error fetching Meta details:", error);
             setIsProcessingMeta(false);
+        }
+    };
+
+    const handleAuthorizeDevice = async () => {
+        if (!selectedBranch) return;
+        setIsAuthorizingDevice(true);
+        try {
+            const fingerprint = await getDeviceFingerprint();
+            const friendlyName = getDeviceFriendlyName();
+            
+            const result = await dashboardService.authorizeCurrentDevice(
+                selectedBranch.id,
+                fingerprint,
+                friendlyName
+            );
+
+            if (result.success && result.device_token) {
+                saveDeviceToken(result.device_token);
+                toast.success("Ã‚Â¡Dispositivo autorizado para esta sucursal!");
+            } else {
+                toast.error(result.error || "No se pudo autorizar el dispositivo.");
+            }
+        } catch (error: any) {
+            toast.error("Error: " + error.message);
+        } finally {
+            setIsAuthorizingDevice(false);
         }
     };
 
@@ -352,7 +412,7 @@ export default function BranchesPage() {
                             </div>
                             <div className="flex gap-2">
                                 <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${branch.wa_phone_number_id ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
-                                    {branch.wa_phone_number_id ? '• Online' : '• Offline'}
+                                    {branch.wa_phone_number_id ? 'Ã¢â‚¬Â¢ Online' : 'Ã¢â‚¬Â¢ Offline'}
                                 </span>
                                 <button
                                     onClick={() => {
@@ -361,7 +421,8 @@ export default function BranchesPage() {
                                             phoneNumberId: branch.wa_phone_number_id || '',
                                             wabaId: branch.wa_waba_id || '',
                                             accessToken: branch.wa_access_token || '',
-                                            phoneNumber: branch.wa_phone_number || ''
+                                            phoneNumber: branch.wa_phone_number || '',
+                                            sendReadReceipts: branch.metadata?.send_read_receipts !== false
                                         });
                                         setNativeStep(branch.wa_phone_number_id ? 2 : 0);
                                         setIsSettingsModalOpen(true);
@@ -408,11 +469,57 @@ export default function BranchesPage() {
                             </button>
                         </div>
 
-                        <div className="p-8 space-y-8 overflow-y-auto">
-                            <div className="space-y-4">
-                                <h3 className="text-xs font-black uppercase text-orange-600 flex items-center gap-2"><Smartphone size={16} /> WhatsApp</h3>
-                                <div className="bg-orange-50/50 border border-orange-100 rounded-2xl p-6 space-y-6">
-                                    <input type="text" value={waForm.phoneNumber} onChange={e => setWaForm({...waForm, phoneNumber: e.target.value})} className="w-full border rounded-xl px-4 py-2 font-bold outline-none" placeholder="Número (+52...)" />
+                        {/* TABS SELECTOR */}
+                        <div className="flex bg-slate-100 p-1 mx-8 mt-4 rounded-2xl border border-slate-200">
+                            <button 
+                                onClick={() => setActiveTab('whatsapp')}
+                                className={cn(
+                                    "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                    activeTab === 'whatsapp' ? "bg-white text-orange-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                                )}
+                            >
+                                <Smartphone size={16} /> WhatsApp
+                            </button>
+                            <button 
+                                onClick={() => setActiveTab('device')}
+                                className={cn(
+                                    "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                    activeTab === 'device' ? "bg-white text-orange-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                                )}
+                            >
+                                <ShieldCheck size={16} /> Terminal
+                            </button>
+                            <button 
+                                onClick={() => setActiveTab('hours')}
+                                className={cn(
+                                    "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                    activeTab === 'hours' ? "bg-white text-orange-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                                )}
+                            >
+                                <Calendar size={16} /> Horarios
+                            </button>
+                        </div>
+
+                        <div className="p-8 space-y-8 overflow-y-auto max-h-[70vh]">
+                            {activeTab === 'whatsapp' ? (
+                                <>
+                                    <h3 className="text-xs font-black uppercase text-orange-600 flex items-center gap-2"><Smartphone size={16} /> WhatsApp</h3>
+                                    <div className="bg-orange-50/50 border border-orange-100 rounded-2xl p-6 space-y-6">
+                                        <input type="text" value={waForm.phoneNumber} onChange={e => setWaForm({...waForm, phoneNumber: e.target.value})} className="w-full border rounded-xl px-4 py-2 font-bold outline-none" placeholder="NÃƒÂºmero (+52...)" />
+                                    
+                                    <div className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl">
+                                        <div className="space-y-0.5">
+                                            <p className="text-[10px] font-black uppercase text-slate-900 tracking-wider">Confirmaciones de Lectura</p>
+                                            <p className="text-[9px] text-slate-400 font-medium">Activa las palomitas azules al leer mensajes.</p>
+                                        </div>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setWaForm(prev => ({ ...prev, sendReadReceipts: !prev.sendReadReceipts }))}
+                                            className={`w-12 h-6 rounded-full transition-all relative ${waForm.sendReadReceipts ? 'bg-blue-500' : 'bg-slate-200'}`}
+                                        >
+                                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${waForm.sendReadReceipts ? 'right-1' : 'left-1 shadow-sm'}`} />
+                                        </button>
+                                    </div>
                                     
                                     <div className="pt-4 border-t border-slate-200">
                                         <div className="bg-white border border-orange-200 rounded-2xl p-6 space-y-4">
@@ -434,12 +541,12 @@ export default function BranchesPage() {
                                                             Llamada Voz
                                                         </button>
                                                     </div>
-                                                    <button onClick={handleNativeRegisterInit} disabled={isNativeLoading} className="w-full bg-orange-500 text-white py-4 rounded-xl text-[11px] font-black uppercase shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">{isNativeLoading ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />} Solicitar Código</button>
+                                                    <button onClick={handleNativeRegisterInit} disabled={isNativeLoading} className="w-full bg-orange-500 text-white py-4 rounded-xl text-[11px] font-black uppercase shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">{isNativeLoading ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />} Solicitar CÃƒÂ³digo</button>
                                                 </div>
                                             )}
                                             {nativeStep === 1 && (
                                                 <div className="space-y-4 text-center">
-                                                    <p className="text-[10px] font-black uppercase">Código Recibido</p>
+                                                    <p className="text-[10px] font-black uppercase">CÃƒÂ³digo Recibido</p>
                                                     <input type="text" value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))} className="w-full text-center text-2xl font-black tracking-widest outline-none border-b-2 border-orange-500" placeholder="000000" />
                                                     <button onClick={handleNativeVerifyCode} disabled={isNativeLoading} className="w-full bg-slate-900 text-white py-4 rounded-xl text-[11px] font-black uppercase active:scale-95">Verificar</button>
                                                     <button onClick={resetNativeRegistration} className="text-[10px] font-black text-rose-500 uppercase">Reiniciar</button>
@@ -447,7 +554,7 @@ export default function BranchesPage() {
                                             )}
                                             {nativeStep === 2 && (
                                                 <div className="space-y-4 text-center">
-                                                    <div className="font-black text-emerald-600 uppercase mb-2">¡Vinculado con éxito!</div>
+                                                    <div className="font-black text-emerald-600 uppercase mb-2">Ã‚Â¡Vinculado con ÃƒÂ©xito!</div>
                                                     <button 
                                                         onClick={handleDisconnectWhatsApp}
                                                         className="w-full text-[9px] font-black text-rose-500 py-3 border border-rose-100 rounded-xl hover:bg-rose-50 transition-all uppercase"
@@ -459,12 +566,12 @@ export default function BranchesPage() {
                                         </div>
                                     </div>
                                     <div className="pt-4 border-t border-slate-200 text-center">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mt-2">Configuración de IDs (Detección Manual/Auto)</p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mt-2">ConfiguraciÃƒÂ³n de IDs (DetecciÃƒÂ³n Manual/Auto)</p>
                                     </div>
                                     <div className="pt-2 space-y-4">
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>
-                                                <p className="text-[9px] font-black mb-1">ID TELÉFONO</p>
+                                                <p className="text-[9px] font-black mb-1">ID TELÃƒâ€°FONO</p>
                                                 <input type="text" value={waForm.phoneNumberId} onChange={e => setWaForm({...waForm, phoneNumberId: e.target.value})} className="w-full text-xs border rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="Ej: 52123..." />
                                             </div>
                                             <div>
@@ -476,16 +583,191 @@ export default function BranchesPage() {
                                             <p className="text-[9px] font-black mb-1">TOKEN DE ACCESO (OPCIONAL/AUTO)</p>
                                             <input type="text" value={waForm.accessToken} onChange={e => setWaForm({...waForm, accessToken: e.target.value})} className="w-full text-[10px] border rounded-lg px-3 py-2 outline-none focus:border-orange-500 font-mono" placeholder="EAAB..." />
                                             {waForm.accessToken ? (
-                                                <p className="text-[8px] text-emerald-600 font-bold mt-1 uppercase">✓ Token detectado</p>
+                                                <p className="text-[8px] text-emerald-600 font-bold mt-1 uppercase">Ã¢Å“â€œ Token detectado</p>
                                             ) : (
-                                                <p className="text-[8px] text-amber-500 font-bold mt-1 uppercase">⚠ Sin token (Funcionalidad limitada)</p>
+                                                <p className="text-[8px] text-amber-500 font-bold mt-1 uppercase">Ã¢Å¡Â  Sin token (Funcionalidad limitada)</p>
                                             )}
                                         </div>
                                     </div>
 
                                     <button onClick={handleRegisterWhatsApp} disabled={isWaSubmitting} className="w-full bg-slate-900 text-white py-4 rounded-xl text-xs font-black uppercase hover:bg-emerald-600 transition-all flex items-center justify-center gap-3">{isWaSubmitting ? <Loader2 className="animate-spin" size={16} /> : <Activity size={16} />} Guardar Ajustes</button>
+                                     
+                                     <div className="pt-6 mt-6 border-t border-slate-200">
+                                         <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                             <AlertCircle size={14} /> Zona de Peligro
+                                         </p>
+                                         <div className="grid grid-cols-2 gap-3">
+                                             <button 
+                                                 onClick={() => handleArchive(selectedBranch.id)} 
+                                                 disabled={isArchiving || isDeleting}
+                                                 className="flex-1 border border-rose-200 text-rose-500 py-3 rounded-xl text-[10px] font-black uppercase hover:bg-rose-50 transition-all flex items-center justify-center gap-2"
+                                             >
+                                                 {isArchiving ? <Loader2 className="animate-spin" size={14} /> : 'Archivar Sede'}
+                                             </button>
+                                             <button 
+                                                 onClick={() => handleDelete(selectedBranch.id)} 
+                                                 disabled={isArchiving || isDeleting}
+                                                 className="flex-1 bg-rose-50 text-rose-600 py-3 rounded-xl text-[10px] font-black uppercase hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                                             >
+                                                 {isDeleting ? <Loader2 className="animate-spin" size={14} /> : 'Eliminar Local'}
+                                             </button>
+                                         </div>
+                                         <p className="text-[9px] text-slate-400 mt-3 text-center italic">
+                                             Archivar conserva el historial. Eliminar borra TODO permanentemente.
+                                         </p>
+                                     </div>
+                                 </div>
+                             </>
+                         ) : activeTab === 'device' ? (
+                             <div className="space-y-6">
+                                    <div className="bg-slate-900 rounded-[2rem] p-8 text-white relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12">
+                                            <Monitor size={120} />
+                                        </div>
+                                        <div className="relative z-10 space-y-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-orange-500 rounded-xl shadow-lg shadow-orange-500/20">
+                                                    <Fingerprint size={24} />
+                                                </div>
+                                                <h3 className="text-xl font-black italic">AutorizaciÃƒÂ³n de Terminal</h3>
+                                            </div>
+                                            <p className="text-slate-300 text-sm font-medium leading-relaxed">
+                                                Para que el personal pueda ingresar usando su <span className="text-white font-bold underline decoration-orange-500">PIN de 4 dÃƒÂ­gitos</span>, primero debes autorizar esta computadora fÃƒÂ­sicamente.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-4">
+                                        <div className="p-6 border-2 border-dashed border-slate-200 rounded-3xl space-y-4">
+                                            <div className="flex items-start gap-4">
+                                                <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+                                                    <Monitor size={24} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-black uppercase text-slate-900">Esta Computadora</p>
+                                                    <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-tight">Detectada como: {typeof window !== 'undefined' ? getDeviceFriendlyName() : 'Cargando...'}</p>
+                                                </div>
+                                            </div>
+
+                                            <button 
+                                                onClick={handleAuthorizeDevice}
+                                                disabled={isAuthorizingDevice}
+                                                className="w-full bg-orange-500 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-orange-500/20 hover:bg-orange-600 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
+                                            >
+                                                {isAuthorizingDevice ? (
+                                                    <><Loader2 className="animate-spin" size={20} /> Autorizando...</>
+                                                ) : (
+                                                    <>Vincular este Equipo <Check size={18} /></>
+                                                )}
+                                            </button>
+                                        </div>
+
+                                        <div className="bg-amber-50 border border-amber-100 p-6 rounded-3xl flex gap-4">
+                                            <div className="text-amber-500 shrink-0">
+                                                <Info size={24} />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-black uppercase text-amber-900">Seguridad Importante</p>
+                                                <p className="text-[10px] text-amber-700/80 font-medium leading-tight">
+                                                    Al realizar la vinculaciÃƒÂ³n, solo el personal con PIN asignado a <span className="font-bold underline italic text-amber-900">{selectedBranch.name}</span> podrÃƒÂ¡ operar desde este dispositivo.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="space-y-6">
+                                     <div className="bg-orange-500 rounded-[2rem] p-8 text-white relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12">
+                                            <Calendar size={120} />
+                                        </div>
+                                        <div className="relative z-10 space-y-2">
+                                            <h3 className="text-xl font-black italic">Horario Laboral</h3>
+                                            <p className="text-orange-100 text-sm font-medium">Define los dÃƒÂ­as y horas que esta sucursal recibe y entrega prendas.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map((day) => {
+                                            const dayLabels: any = { mon: 'Lunes', tue: 'Martes', wed: 'MiÃƒÂ©rcoles', thu: 'Jueves', fri: 'Viernes', sat: 'SÃƒÂ¡bado', sun: 'Domingo' };
+                                            const hours = selectedBranch?.business_hours?.[day] || { open: '09:00', close: '19:00', closed: day === 'sun' };
+                                            
+                                            return (
+                                                <div key={day} className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 transition-all hover:bg-white hover:shadow-sm">
+                                                    <div className="w-24 shrink-0">
+                                                        <span className="text-[10px] font-black uppercase text-slate-400 leading-none">{dayLabels[day]}</span>
+                                                    </div>
+                                                    
+                                                    <div className="flex-1 flex items-center gap-2">
+                                                        {!hours.closed ? (
+                                                            <div className="flex items-center gap-2 flex-1">
+                                                                <input 
+                                                                    type="time" 
+                                                                    value={hours.open} 
+                                                                    onChange={(e) => {
+                                                                        const newHours = { ...selectedBranch.business_hours, [day]: { ...hours, open: e.target.value } };
+                                                                        setSelectedBranch({ ...selectedBranch, business_hours: newHours });
+                                                                    }}
+                                                                    className="bg-white border rounded-lg px-2 py-1 text-xs font-bold outline-none focus:border-orange-500" 
+                                                                />
+                                                                <span className="text-[10px] font-black text-slate-300">A</span>
+                                                                <input 
+                                                                    type="time" 
+                                                                    value={hours.close} 
+                                                                    onChange={(e) => {
+                                                                        const newHours = { ...selectedBranch.business_hours, [day]: { ...hours, close: e.target.value } };
+                                                                        setSelectedBranch({ ...selectedBranch, business_hours: newHours });
+                                                                    }}
+                                                                    className="bg-white border rounded-lg px-2 py-1 text-xs font-bold outline-none focus:border-orange-500" 
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex-1 text-center py-1 bg-red-50 rounded-lg">
+                                                                <span className="text-[10px] font-black uppercase text-red-500 tracking-widest">CERRADO</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <button 
+                                                        onClick={() => {
+                                                            const newHours = { ...selectedBranch.business_hours, [day]: { ...hours, closed: !hours.closed } };
+                                                            setSelectedBranch({ ...selectedBranch, business_hours: newHours });
+                                                        }}
+                                                        className={cn(
+                                                            "w-12 h-6 rounded-full relative transition-all duration-300",
+                                                            !hours.closed ? "bg-emerald-500" : "bg-slate-200"
+                                                        )}
+                                                    >
+                                                        <div className={cn(
+                                                            "absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300",
+                                                            !hours.closed ? "left-7" : "left-1"
+                                                        )} />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <button 
+                                        onClick={async () => {
+                                            setIsSavingHours(true);
+                                            try {
+                                                await dashboardService.updateBranch(selectedBranch.id, { business_hours: selectedBranch.business_hours });
+                                                toast.success("Horarios actualizados correctamente");
+                                            } catch (err: any) {
+                                                toast.error("Error al guardar: " + err.message);
+                                            } finally {
+                                                setIsSavingHours(false);
+                                            }
+                                        }}
+                                        disabled={isSavingHours}
+                                        className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-orange-600 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                    >
+                                        {isSavingHours ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                                        Guardar Horarios
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -513,13 +795,13 @@ export default function BranchesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Dirección Completa</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">DirecciÃƒÂ³n Completa</label>
                                 <input 
                                     type="text" 
                                     value={formData.address}
                                     onChange={e => setFormData({...formData, address: e.target.value.toUpperCase()})}
                                     className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-orange-500/20 transition-all"
-                                    placeholder="CALLE, NÚMERO, COLONIA..."
+                                    placeholder="CALLE, NÃƒÅ¡MERO, COLONIA..."
                                     required
                                 />
                             </div>
@@ -529,7 +811,7 @@ export default function BranchesPage() {
                                 className="w-full bg-slate-900 text-white py-5 rounded-3xl font-black text-xs uppercase tracking-widest shadow-2xl hover:bg-orange-600 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
                             >
                                 {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
-                                {selectedBranch ? 'Actualizar Información' : 'Crear Sede Operativa'}
+                                {selectedBranch ? 'Actualizar InformaciÃƒÂ³n' : 'Crear Sede Operativa'}
                             </button>
                         </form>
                     </div>

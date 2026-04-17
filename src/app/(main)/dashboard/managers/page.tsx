@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { UserPlus, Shield, Store, Mail, Phone, MoreHorizontal, Search, Plus, UserCog, MoreVertical, Activity, X, Loader2, Edit2, UserMinus, Key } from 'lucide-react';
+import { UserPlus, Shield, Store, Mail, Phone, MoreHorizontal, Search, Plus, UserCog, MoreVertical, Activity, X, Loader2, Edit2, UserMinus, Key, Lock } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { useStaffProfiles, useBranches } from '@/features/dashboard/hooks/useDashboardData';
 import { useAuthStore } from '@/features/auth/store/authStore';
@@ -26,14 +26,16 @@ export default function ManagersPage() {
         phone: '',
         password: '',
         role: 'manager',
-        assigned_branch_id: ''
+        assigned_branch_id: '',
+        login_pin: ''
     });
 
     const [editContact, setEditContact] = useState({
         full_name: '',
         email: '',
         phone: '',
-        role: 'manager'
+        role: 'manager',
+        login_pin: ''
     });
 
     const managers = profiles.filter(p => p.role === 'manager' || p.role === 'seamstress').map(p => ({
@@ -44,7 +46,8 @@ export default function ManagersPage() {
         branch: branches.find(b => b.id === p.assigned_branch_id)?.name || 'Sin Asignar',
         phone: p.phone || 'No phone',
         status: p.assigned_branch_id ? 'Active' : 'Offline',
-        assigned_branch_id: p.assigned_branch_id
+        assigned_branch_id: p.assigned_branch_id,
+        login_pin: p.login_pin
     }));
 
     const filteredManagers = managers.filter(m => 
@@ -59,7 +62,8 @@ export default function ManagersPage() {
             full_name: manager.name,
             email: manager.email === 'No email' ? '' : manager.email,
             phone: manager.phone === 'No phone' ? '' : manager.phone,
-            role: manager.role || 'manager'
+            role: manager.role || 'manager',
+            login_pin: '' // No mostramos el PIN actual por seguridad, el input permite sobreescribir
         });
         setEditModalOpen(true);
     };
@@ -75,7 +79,8 @@ export default function ManagersPage() {
                 assigned_branch_id: selectedBranchId || null,
                 email: editContact.email,
                 phone: editContact.phone,
-                role: editContact.role
+                role: editContact.role,
+                login_pin: editContact.login_pin || undefined // Solo lo enviamos si el usuario lo cambió
             });
 
             // 2. Sync Branch Metadata (Redundant for UI assurance)
@@ -95,7 +100,7 @@ export default function ManagersPage() {
             setEditModalOpen(false);
             setSelectedManager(null);
             setSelectedBranchId('');
-            setEditContact({ full_name: '', email: '', phone: '', role: 'manager' });
+            setEditContact({ full_name: '', email: '', phone: '', role: 'manager', login_pin: '' });
         } catch (error) {
             console.error("Error assigning branch:", error);
             alert("Error al actualizar los datos del encargado.");
@@ -114,7 +119,7 @@ export default function ManagersPage() {
         try {
             await createManager(newManager);
             setCreateModalOpen(false);
-            setNewManager({ full_name: '', email: '', phone: '', password: '', role: 'manager', assigned_branch_id: '' });
+            setNewManager({ full_name: '', email: '', phone: '', password: '', role: 'manager', assigned_branch_id: '', login_pin: '' });
         } catch (error: any) {
             console.error("Error creating manager:", error);
             alert(error.message || "Error al crear el encargado.");
@@ -396,7 +401,7 @@ export default function ManagersPage() {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 ml-1">Teléfono de contacto</label>
+                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Teléfono de contacto</label>
                                     <div className="relative">
                                         <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                         <input
@@ -408,6 +413,22 @@ export default function ManagersPage() {
                                         />
                                     </div>
                                 </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 ml-1">PIN de Acceso Terminal (4-6 dígitos)</label>
+                                <div className="relative">
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                    <input
+                                        type="password"
+                                        maxLength={6}
+                                        className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl pl-12 pr-5 py-4 font-bold text-slate-900 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all outline-none shadow-sm"
+                                        value={editContact.login_pin || ''}
+                                        onChange={e => setEditContact({...editContact, login_pin: e.target.value.replace(/\D/g, '')})}
+                                        placeholder="Solo números"
+                                    />
+                                </div>
+                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tight ml-1">Si dejas este campo vacío, el PIN actual no cambiará.</p>
                             </div>
 
                             <div className="bg-slate-50 p-4 rounded-2xl border-2 border-dashed border-slate-200">
@@ -515,6 +536,20 @@ export default function ManagersPage() {
                                     ))}
                                 </select>
                             </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">PIN Terminal (4-6 dígitos) <span className="text-red-500">*</span></label>
+                                <input
+                                    type="password"
+                                    maxLength={6}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all outline-none"
+                                    value={newManager.login_pin || ''}
+                                    placeholder="Solo números"
+                                    onChange={e => setNewManager({...newManager, login_pin: e.target.value.replace(/\D/g, '')})}
+                                    required
+                                />
+                            </div>
+
                             <button 
                                 type="submit" 
                                 disabled={isSubmitting}

@@ -160,6 +160,41 @@ export const whatsappService = {
     },
 
     /**
+     * Marca un mensaje como leído en WhatsApp
+     */
+    async markMessageAsRead(messageId: string, config?: WhatsAppConfig) {
+        const token = config?.accessToken || DEFAULT_ACCESS_TOKEN;
+        const phoneId = config?.phoneNumberId || DEFAULT_PHONE_NUMBER_ID;
+
+        if (!token || !phoneId) {
+            return { success: false, error: 'Configuración de WhatsApp incompleta' };
+        }
+
+        const url = `https://graph.facebook.com/${WHATSAPP_VERSION}/${phoneId}/messages`;
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    messaging_product: 'whatsapp',
+                    status: 'read',
+                    message_id: messageId,
+                }),
+            });
+
+            const data = await response.json();
+            return { success: response.ok, data };
+        } catch (error) {
+            console.error('Error marking message as read:', error);
+            return { success: false, error };
+        }
+    },
+
+    /**
      * Registra un número de teléfono con la aplicación de Meta
      */
     async registerPhone(config: WhatsAppConfig) {

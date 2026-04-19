@@ -170,17 +170,16 @@ export const chatService = {
         const normalizedPhone = cleanPhone.length === 10 ? `52${cleanPhone}` : cleanPhone;
         const basePhone = cleanPhone.slice(-10);
 
-        // 1. Buscar o Crear Cliente (Filtrado por Sucursal)
+        // 1. Buscar Cliente (Priorizando Sucursal, pero buscando en toda la Organización)
         let { data: clients, error: searchError } = await supabase
             .from('clients')
-            .select('id, full_name, phone, organization_id')
+            .select('id, full_name, phone, organization_id, last_branch_id')
             .eq('organization_id', organizationId)
-            .eq('last_branch_id', branchId)
             .ilike('phone', `%${basePhone}%`)
-            .order('created_at', { ascending: false })
-            .limit(1);
-
-        let client = clients?.[0];
+            .order('last_branch_id', { ascending: false }); // Esto pondrá los que coinciden con branchId arriba si ordenamos inteligentemente...
+            // Pero mejor lo refinamos programáticamente para ser seguros:
+        
+        let client = clients?.find(c => c.last_branch_id === branchId) || clients?.[0];
 
         if (!client) {
             const { data: newClient, error: clientError } = await supabase

@@ -47,11 +47,10 @@ export const aiAssistantService = {
                 return null;
             }
 
-            // 2. Buscar Cliente por teléfono (Usando RPC Seguro para bypass RLS)
-            const cleanPhone = phone.replace(/\D/g, '').slice(-10);
-            
+            // 2. Buscar Cliente por teléfono (Usando el número completo de WhatsApp)
+            // La RPC ahora maneja la normalización internamente
             const { data: clients, error: cErr } = await supabase.rpc('get_client_by_phone_secure', {
-                p_phone: cleanPhone,
+                p_phone: phone,
                 p_org_id: branch.organization_id,
                 p_branch_id: branch.id
             });
@@ -59,21 +58,25 @@ export const aiAssistantService = {
             const client = clients?.[0];
 
             if (cErr || !client) {
-                console.log(`[AI_ASSISTANT] Cliente no encontrado para el teléfono: ${cleanPhone}`, cErr);
+                console.log(`[AI_ASSISTANT] Cliente no encontrado para el teléfono: ${phone}`, cErr);
                 return null; 
             }
 
-            console.log(`[AI_ASSISTANT] Cliente encontrado: ${client.full_name}`);
+            console.log(`[AI_ASSISTANT] Cliente identificado: ${client.full_name} (ID: ${client.id})`);
 
-            // 3. Buscar Tickets Activos o recientes (Usando RPC Seguro para bypass RLS)
+            // 3. Buscar Tickets Activos o recientes
+            // Buscamos en toda la organización para este cliente
             const { data: tickets, error: tErr } = await supabase.rpc('get_client_tickets_secure', {
                 p_client_id: client.id
             });
 
             if (tErr || !tickets || tickets.length === 0) {
-                const noOrdersMsg = `¡Hola ${client.full_name}! 👋 Verifiqué en nuestro sistema y no tienes pedidos activos o recientes con nosotros en este momento. Si crees que hay un error, por favor dinos.`;
+                console.log(`[AI_ASSISTANT] No se encontraron pedidos para el cliente: ${client.id}`);
+                const noOrdersMsg = `¡Hola ${client.full_name}! 👋 Verifiqué en nuestro sistema y no tienes pedidos activos o recientes con nosotros en este momento. Si acabas de dejar algo, es posible que aún lo estemos registrando.`;
                 return await this.sendAndLog(phone, noOrdersMsg, client.id, branch);
             }
+
+            console.log(`[AI_ASSISTANT] Encontrados ${tickets.length} pedidos para el cliente.`);
 
             // 4. Construir Respuesta
             let responseText = `¡Hola ${client.full_name}! 👋 Aquí tienes el estatus de tus pedidos:\n\n`;

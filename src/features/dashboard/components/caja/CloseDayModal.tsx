@@ -45,7 +45,7 @@ export function CloseDayModal({ branchId, calculatedCash, date }: CloseDayModalP
     });
 
     const onSubmit = async (data: CloseDayFormValues) => {
-        if (!confirm('¿Estás seguro de cerrar la caja? Esta acción no se puede deshacer por el encargado.')) return;
+        if (!confirm('\u00BFEst\u00E1s seguro de cerrar la caja? Esta acci\u00F3n no se puede deshacer por el encargado.')) return;
 
         setLoading(true);
         try {
@@ -89,12 +89,12 @@ export function CloseDayModal({ branchId, calculatedCash, date }: CloseDayModalP
             <Modal isOpen={open} onClose={() => setOpen(false)} title="Cierre de Caja Diario">
                 <div className="space-y-4">
                     <p className="text-sm text-muted-foreground">
-                        Ingresa el efectivo real que tienes en mano. Una vez cerrado, no podrás realizar más movimientos hoy.
+                        Ingresa el efectivo real que tienes en mano. Una vez cerrado, no podr\u00e1s realizar m\u00e1s movimientos hoy.
                     </p>
 
                     <div className="bg-slate-50 p-4 rounded-lg border">
                         <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium text-muted-foreground">Teórico (Sistema):</span>
+                            <span className="text-sm font-medium text-muted-foreground">Te\u00F3rico (Sistema):</span>
                             <span className="text-lg font-bold">${calculatedCash.toFixed(2)}</span>
                         </div>
 

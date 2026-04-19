@@ -10,10 +10,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/google": "^1.1.20",
     "@hookform/resolvers": "^5.2.2",
     "@supabase/ssr": "^0.6.0",
     "@supabase/supabase-js": "^2.49.0",
     "@types/uuid": "^10.0.0",
+    "ai": "^6.0.168",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "jspdf": "^4.1.0",

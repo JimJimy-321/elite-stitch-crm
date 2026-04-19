@@ -260,7 +260,7 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase text-slate-500">Método</label>
+                                    <label className="text-[10px] font-black uppercase text-slate-500">M\u00E9todo</label>
                                     <select
                                         className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500 font-bold text-xs text-white [&>option]:bg-slate-900 [&>option]:text-white"
                                         value={paymentMethod}
@@ -286,7 +286,7 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
                         <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mb-1">
                             <ShieldCheck size={20} />
                         </div>
-                        <h3 className="text-sm font-black uppercase tracking-tight">¡Cuenta Saldada!</h3>
+                        <h3 className="text-sm font-black uppercase tracking-tight">\u00A1Cuenta Saldada!</h3>
                         <p className="text-[10px] font-medium opacity-90">No hay saldos pendientes para esta nota.</p>
                     </div>
                 )}
@@ -305,7 +305,7 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
                         <p className="text-[11px] font-bold text-slate-400 leading-tight">
                             {nota.status === 'delivered'
                                 ? 'Esta orden ya fue entregada satisfactoriamente.'
-                                : (allFinished ? 'Todo listo. Procede con la entrega física.' : 'Aún hay prendas en proceso de costura.')
+                                : (allFinished ? 'Todo listo. Procede con la entrega f\u00EDsica.' : 'A\u00FAn hay prendas en proceso de costura.')
                             }
                         </p>
                     </div>

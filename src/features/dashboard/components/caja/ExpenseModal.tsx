@@ -18,7 +18,7 @@ import { registerMovement } from '../../actions/cash-cut-actions';
 const expenseSchema = z.object({
     concept: z.string().min(3, 'El concepto es muy corto'),
     amount: z.coerce.number().min(1, 'El monto debe ser mayor a 0'),
-    category: z.string().min(1, 'Selecciona una categoría'),
+    category: z.string().min(1, 'Selecciona una categor\u00EDa'),
 });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
@@ -99,7 +99,7 @@ export function ExpenseModal({ branchId, userId, disabled }: ExpenseModalProps) 
                         <div>
                             <p className="text-sm font-bold text-rose-700">Salida de Dinero</p>
                             <p className="text-xs text-rose-600 mt-1">
-                                Este movimiento restará del efectivo en caja actual. Úsalo para compras de insumos, pagos de servicios o retiros.
+                                Este movimiento restar\u00e1 del efectivo en caja actual. \u00dasalo para compras de insumos, pagos de servicios o retiros.
                             </p>
                         </div>
                     </div>
@@ -108,7 +108,7 @@ export function ExpenseModal({ branchId, userId, disabled }: ExpenseModalProps) 
                         <div className="space-y-2">
                             <label className="text-xs font-bold uppercase text-slate-400 tracking-wider ml-1">Concepto</label>
                             <Input
-                                placeholder="Ej: Compra de hilos, Pago de luz, Retiro del dueño..."
+                                placeholder="Ej: Compra de hilos, Pago de luz, Retiro del due\u00f1o..."
                                 {...register('concept')}
                                 className="bg-slate-50 border-slate-200 focus:bg-white transition-colors"
                             />
@@ -129,7 +129,7 @@ export function ExpenseModal({ branchId, userId, disabled }: ExpenseModalProps) 
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-xs font-bold uppercase text-slate-400 tracking-wider ml-1">Categoría</label>
+                                <label className="text-xs font-bold uppercase text-slate-400 tracking-wider ml-1">Categor\u00eda</label>
                                 <select
                                     className="flex h-10 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus:bg-white focus:ring-2 focus:ring-slate-900/10 cursor-pointer"
                                     {...register('category')}

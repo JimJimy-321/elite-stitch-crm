@@ -153,7 +153,7 @@ export default function MarketingPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-1">
                     <h1 className="text-4xl font-black italic text-slate-900 tracking-tight flex items-center gap-3">
-                        MARKETING <span className="text-orange-600">& FIDELIZACIÓN</span>
+                        MARKETING <span className="text-orange-600">& FIDELIZACI\u00D3N</span>
                     </h1>
                     <p className="text-slate-500 font-medium tracking-tight">Crea promociones y gestiona tus plantillas de WhatsApp para automatizar tu negocio.</p>
                 </div>
@@ -181,7 +181,7 @@ export default function MarketingPage() {
                             : "text-slate-400 hover:text-slate-600"
                     )}
                 >
-                    <Tag size={18} /> Campañas
+                    <Tag size={18} /> Campa\u00F1as
                 </button>
                 <button 
                     onClick={() => setActiveTab('templates')}
@@ -208,13 +208,13 @@ export default function MarketingPage() {
                         
                         <div className="relative z-10 space-y-8">
                             <div className="space-y-2">
-                                <h2 className="text-2xl font-black italic">Nueva Campaña</h2>
+                                <h2 className="text-2xl font-black italic">Nueva Campa\u00F1a</h2>
                                 <p className="text-slate-400 text-sm font-medium">Lanza una promoción en segundos para tus sucursales.</p>
                             </div>
 
                             <div className="space-y-4">
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase text-slate-500 ml-2">Nombre de la Promo</label>
+                                    <label className="text-[10px] font-black uppercase text-slate-500 ml-2">Nombre de la Promoci\u00F3n</label>
                                     <input 
                                         placeholder="Ej: Regalo por Apertura"
                                         className="w-full bg-slate-800 border-none rounded-2xl px-4 py-4 text-white placeholder:text-slate-600 font-bold focus:ring-2 focus:ring-orange-500 transition-all outline-none"
@@ -281,7 +281,7 @@ export default function MarketingPage() {
                                     className="w-full bg-orange-600 text-white py-5 rounded-3xl font-black uppercase tracking-widest text-xs hover:bg-orange-500 hover:scale-[1.02] transform transition-all active:scale-95 flex items-center justify-center gap-2 mt-4 shadow-lg shadow-orange-900/40"
                                 >
                                     {isCreating ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} />}
-                                    Activar Promoción
+                                    Activar Promoci\u00F3n
                                 </button>
                             </div>
                         </div>
@@ -617,7 +617,7 @@ export default function MarketingPage() {
                                 <h3 className="text-2xl font-black italic uppercase tracking-tight">
                                     {selectedTemplate ? 'Editar Plantilla' : 'Registrar Plantilla'}
                                 </h3>
-                                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mt-1">Configuración Meta Business</p>
+                                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mt-1">Configuraci\u00F3n de IDs (Detecci\u00F3n Manual/Auto)</p>
                             </div>
                             <button onClick={() => setIsTemplateModalOpen(false)} className="p-3 hover:bg-white rounded-2xl transition-all shadow-sm">
                                 <X size={20} />
@@ -638,7 +638,7 @@ export default function MarketingPage() {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Categoría</label>
+                                        <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Categor\u00EDa</label>
                                         <select 
                                             id="tpl-category"
                                             className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-orange-500/20 transition-all appearance-none"
@@ -646,7 +646,7 @@ export default function MarketingPage() {
                                         >
                                             <option value="MARKETING">Marketing</option>
                                             <option value="UTILITY">Utilidad / Servicio</option>
-                                            <option value="AUTHENTICATION">Autenticación</option>
+                                            <option value="AUTHENTICATION">Autenticaci\u00F3n</option>
                                         </select>
                                     </div>
                                     <div className="space-y-1.5">
@@ -700,7 +700,7 @@ export default function MarketingPage() {
                                 }}
                                 className="w-full bg-slate-900 text-white py-5 rounded-3xl font-black uppercase tracking-widest text-xs hover:bg-orange-600 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3"
                             >
-                                <Check size={18} /> Guardar Configuración
+                                <Check size={18} /> Guardar Configuraci\u00F3n
                             </button>
                         </div>
                     </div>

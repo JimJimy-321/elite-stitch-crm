@@ -73,7 +73,7 @@ export function InitialCashModal({ branchId, userId, date }: Props) {
             <Modal isOpen={open} onClose={() => setOpen(false)} title="Establecer Fondo Inicial">
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <div className="bg-blue-50 p-4 rounded-xl text-blue-700 text-sm mb-4">
-                        Ingresa el efectivo con el que inicias operaciones (cambio, monedas, etc). Esto sumará al efectivo en caja.
+                        Ingresa el efectivo con el que inicias operaciones (cambio, monedas, etc). Esto sumar\u00E1 al efectivo en caja.
                     </div>
 
                     <div className="space-y-2">

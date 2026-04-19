@@ -31,7 +31,7 @@ export function CashCutsHistory({ cuts }: CashCutsHistoryProps) {
     const [isPending, startTransition] = useTransition();
 
     const handleAnnul = (cutId: string, branchId: string) => {
-        if (!confirm('¿Estás seguro de que deseas anular este corte? Esta acción revertirá la caja al estado anterior.')) return;
+        if (!confirm('\u00BFEst\u00E1s seguro de que deseas anular este corte? Esta acci\u00F3n revertir\u00E1 la caja al estado anterior.')) return;
 
         startTransition(async () => {
             const res = await annulCashCut(cutId, branchId);
@@ -58,7 +58,7 @@ export function CashCutsHistory({ cuts }: CashCutsHistoryProps) {
                     <tr>
                         <th className="px-6 py-4">Fecha</th>
                         <th className="px-6 py-4 text-right">Efectivo Real</th>
-                        <th className="px-6 py-4 text-right">Teórico</th>
+                        <th className="px-6 py-4 text-right">Te\u00F3rico</th>
                         <th className="px-6 py-4 text-center">Estado</th>
                         <th className="px-6 py-4">Notas</th>
                         <th className="px-6 py-4"></th>

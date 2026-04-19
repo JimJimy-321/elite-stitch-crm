@@ -29,7 +29,7 @@ export function MovementsList({ incomes, expenses }: MovementsListProps) {
                         <tr className="border-b transition-colors hover:bg-slate-50 data-[state=selected]:bg-slate-100">
                             <th className="h-12 px-4 align-middle font-medium text-slate-500 uppercase text-[10px] tracking-widest">Hora</th>
                             <th className="h-12 px-4 align-middle font-medium text-slate-500 uppercase text-[10px] tracking-widest">Concepto</th>
-                            <th className="h-12 px-4 align-middle font-medium text-slate-500 uppercase text-[10px] tracking-widest">Método</th>
+                            <th className="h-12 px-4 align-middle font-medium text-slate-500 uppercase text-[10px] tracking-widest">M\u00E9todo</th>
                             <th className="h-12 px-4 align-middle font-medium text-slate-500 uppercase text-[10px] tracking-widest text-right">Monto</th>
                         </tr>
                     </thead>

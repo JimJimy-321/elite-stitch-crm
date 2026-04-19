@@ -108,7 +108,7 @@ export function CashCutDetailModal({ cut, isOpen, onClose }: CashCutDetailModalP
                 {/* Resumen Principal */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100">
                     <DetailItem label="Sistema" value={cut.calculated_cash} />
-                    <DetailItem label="Físico" value={cut.counted_cash} highlight />
+                    <DetailItem label="F\u00EDsico" value={cut.counted_cash} highlight />
                     <DetailItem label="Diferencia" value={cut.difference} color={cut.difference !== 0 ? 'text-rose-600' : 'text-emerald-600'} />
                     <DetailItem label="Retirado" value={cut.cash_withdrawn} />
                 </div>
@@ -120,7 +120,7 @@ export function CashCutDetailModal({ cut, isOpen, onClose }: CashCutDetailModalP
                         Resultado del Día
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-3">
-                        <Row label="Venta del Día" value={cut.gross_sales || 0} bold />
+                        <Row label="Venta del D\u00EDa" value={cut.gross_sales || 0} bold />
                         <Row label="A Cuenta (Anticipos)" value={cut.anticipos || 0} />
                         <Row label="Ventas Registradas" value={cut.gross_sales || 0} bold color="text-indigo-600" />
                         <Row label="Por Cobrar" value={cut.total_pending || 0} isNegative />
@@ -148,7 +148,7 @@ export function CashCutDetailModal({ cut, isOpen, onClose }: CashCutDetailModalP
                             Flujo de Efectivo
                         </h3>
                         <div className="space-y-2">
-                            <Row label="(+) Efectivo del dia" value={cut.cash_sales} />
+                            <Row label="(+) Efectivo del d\u00EDa" value={cut.cash_sales} />
                             <Row label="(+) Inicio/Anterior" value={cut.initial_cash} />
                             {Number(cut.incomes_cash) > 0 && <Row label="(+) Ingresos Extra" value={cut.incomes_cash} />}
                             <Row label="(-) Gastos Operativos" value={cut.expenses_cash} isNegative />

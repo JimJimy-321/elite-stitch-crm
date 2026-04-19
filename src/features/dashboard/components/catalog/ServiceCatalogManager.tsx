@@ -37,7 +37,7 @@ export function ServiceCatalogManager() {
             setServices(data || []);
         } catch (error: any) {
             console.error("Error cargando catálogo", error);
-            toast.error("No se pudo cargar el catálogo de servicios.");
+            toast.error("No se pudo cargar el cat\u00E1logo de servicios.");
         } finally {
             setLoading(false);
         }
@@ -57,7 +57,7 @@ export function ServiceCatalogManager() {
                 });
 
             if (error) {
-                if (error.code === '23505') throw new Error("Este servicio ya existe en el catálogo.");
+                if (error.code === '23505') throw new Error("Este servicio ya existe en el cat\u00E1logo.");
                 throw error;
             }
 
@@ -73,7 +73,7 @@ export function ServiceCatalogManager() {
     };
 
     const handleDeleteService = async (id: string, name: string) => {
-        if (!confirm(`¿Estás seguro de eliminar "${name}"?\nSi el servicio ya tiene órdenes históricas asociadas, no podrá ser eliminado para mantener la integridad de los datos.`)) return;
+        if (!confirm(`\u00BFEst\u00E1s seguro de eliminar "${name}"?\nSi el servicio ya tiene \u00F3rdenes hist\u00F3ricas asociadas, no podr\u00E1 ser eliminado para mantener la integridad de los datos.`)) return;
 
         try {
             const { error } = await supabase
@@ -83,7 +83,7 @@ export function ServiceCatalogManager() {
 
             if (error) {
                 if (error.code === '23503') {
-                    throw new Error("No se puede eliminar porque existen órdenes históricas con este servicio.");
+                    throw new Error("No se puede eliminar porque existen \u00F3rdenes hist\u00F3ricas con este servicio.");
                 }
                 throw error;
             }
@@ -98,8 +98,8 @@ export function ServiceCatalogManager() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-black text-slate-800 tracking-tight">Catálogo de Servicios</h2>
-                    <p className="text-sm font-bold text-slate-400">Define los tipos de arreglos globales para todas tus sucursales. Los precios se definirán al momento de crear la nota.</p>
+                    <h2 className="text-2xl font-black text-slate-800 tracking-tight">Cat\u00E1logo de Servicios</h2>
+                    <p className="text-sm font-bold text-slate-400">Define los tipos de arreglos globales para todas tus sucursales. Los precios se definir\u00E1n al momento de crear la nota.</p>
                 </div>
                 <button
                     onClick={() => setIsAddModalOpen(true)}
@@ -137,8 +137,8 @@ export function ServiceCatalogManager() {
                 ) : (
                     <div className="text-center py-20 flex flex-col items-center">
                         <AlertCircle className="text-slate-200 mb-4" size={48} />
-                        <p className="text-sm font-black uppercase tracking-widest text-slate-400">No hay servicios en el catálogo</p>
-                        <p className="text-xs font-bold text-slate-300 mt-2">Agrega el primer tipo de arreglo para que esté disponible en las sucursales.</p>
+                        <p className="text-sm font-black uppercase tracking-widest text-slate-400">No hay servicios en el cat\u00E1logo</p>
+                        <p className="text-xs font-bold text-slate-300 mt-2">Agrega el primer tipo de arreglo para que est\u00E9 disponible en las sucursales.</p>
                     </div>
                 )}
             </div>
@@ -159,7 +159,7 @@ export function ServiceCatalogManager() {
                             value={newServiceName}
                             onChange={(e) => setNewServiceName(e.target.value.toUpperCase())}
                         />
-                        <p className="text-xs font-bold text-orange-500 ml-2 mt-2">No incluyas precios, esto se definirá al momento de agendar el arreglo.</p>
+                        <p className="text-xs font-bold text-orange-500 ml-2 mt-2">No incluyas precios, esto se definir\u00E1 al momento de agendar el arreglo.</p>
                     </div>
 
                     <button

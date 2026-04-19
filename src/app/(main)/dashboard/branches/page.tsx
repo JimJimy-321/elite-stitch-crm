@@ -137,11 +137,11 @@ export default function BranchesPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Ã‚Â¿Deseas ELIMINAR FÃƒÂSICAMENTE esta sede? Solo es posible si no tiene NINGÃƒÅ¡N historial. Para sedes con historial, use 'Archivar'.")) return;
+        if (!confirm("¿Deseas ELIMINAR FÍSICAMENTE esta sede? Solo es posible si no tiene NINGÚN historial. Para sedes con historial, use 'Archivar'.")) return;
         setIsDeleting(true);
         try {
             await dashboardService.deleteBranch(id);
-            toast.success("Sede eliminada fÃƒÂ­sicamente.");
+            toast.success("Sede eliminada físicamente.");
             loadBranches();
             setIsSettingsModalOpen(false);
         } catch (error: any) {
@@ -152,7 +152,7 @@ export default function BranchesPage() {
     };
 
     const handleArchive = async (id: string) => {
-        if (!confirm("Ã‚Â¿Deseas ARCHIVAR esta sede? DejarÃƒÂ¡ de ser operativa pero se conservarÃƒÂ¡ todo su historial y reportes. Esta acciÃƒÂ³n es REVERSIBLE desde la base de datos.")) return;
+        if (!confirm("¿Deseas ARCHIVAR esta sede? Dejará de ser operativa pero se conservará todo su historial y reportes. Esta acción es REVERSIBLE desde la base de datos.")) return;
         setIsArchiving(true);
         try {
             await dashboardService.archiveBranch(id);
@@ -168,7 +168,7 @@ export default function BranchesPage() {
 
     const handleRegisterWhatsApp = async () => {
         if (!selectedBranch || !waForm.phoneNumberId) {
-            toast.error("Faltan campos obligatorios (ID TelÃƒÂ©fono)");
+            toast.error("Faltan campos obligatorios (ID Teléfono)");
             return;
         }
 
@@ -188,7 +188,7 @@ export default function BranchesPage() {
 
             const result = await response.json();
             if (result.success) {
-                toast.success("ConfiguraciÃƒÂ³n guardada correctamente.");
+                toast.success("Configuración guardada correctamente.");
                 setIsSettingsModalOpen(false);
                 window.location.reload(); 
             } else {
@@ -223,7 +223,7 @@ export default function BranchesPage() {
                 wabaId: data.wabaId || prev.wabaId 
             }));
             setNativeStep(1);
-            toast.success(`CÃƒÂ³digo solicitado por ${codeMethod === 'SMS' ? 'SMS' : 'Llamada'}.`);
+            toast.success(`Código solicitado por ${codeMethod === 'SMS' ? 'SMS' : 'Llamada'}.`);
         } catch (error: any) {
             toast.error(error.message);
         } finally {
@@ -242,9 +242,9 @@ export default function BranchesPage() {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
-            toast.success("Ã‚Â¡WhatsApp vinculado!");
+            toast.success("¡WhatsApp vinculado!");
             setNativeStep(2);
-            // Si el backend devolviÃƒÂ³ el phoneId, asegurarnos que estÃƒÂ© en el formulario
+            // Si el backend devolvió el phoneId, asegurarnos que esté en el formulario
             if (data.data?.phoneId) {
                 setWaForm(prev => ({ ...prev, phoneNumberId: data.data.phoneId }));
             }
@@ -257,7 +257,7 @@ export default function BranchesPage() {
     };
 
     const handleDisconnectWhatsApp = async () => {
-        if (!selectedBranch || !confirm("Ã‚Â¿EstÃƒÂ¡s seguro de desvincular WhatsApp? Se borrarÃƒÂ¡n los IDs configurados.")) return;
+        if (!selectedBranch || !confirm("¿Estás seguro de desvincular WhatsApp? Se borrarán los IDs configurados.")) return;
         setIsNativeLoading(true);
         try {
             const { error } = await supabase
@@ -274,7 +274,7 @@ export default function BranchesPage() {
             
             setWaForm(prev => ({ ...prev, phoneNumberId: '', phoneNumber: '', wabaId: '', accessToken: '', sendReadReceipts: true }));
             setNativeStep(0);
-            toast.success("WhatsApp desvÃƒÂ­nculado.");
+            toast.success("WhatsApp desvinculado.");
             loadBranches();
         } catch (error: any) {
             toast.error("Error al desvincular: " + error.message);
@@ -303,11 +303,11 @@ export default function BranchesPage() {
                     setWaForm(prev => ({ ...prev, accessToken: token }));
                     fetchMetaDetails(token);
                 } else if (code) {
-                    toast.success("CÃƒÂ³digo capturado, guardando...");
+                    toast.success("Código capturado, guardando...");
                     handleRegisterWhatsApp();
                 }
             } else {
-                toast.error("VinculaciÃƒÂ³n cancelada.");
+                toast.error("Vinculación cancelada.");
                 setIsProcessingMeta(false);
             }
         }, {
@@ -339,7 +339,7 @@ export default function BranchesPage() {
                         phoneNumberId: phones.data[0].id,
                         accessToken: token
                     }));
-                    toast.success("IDs recuperados automÃƒÂ¡ticamente.");
+                    toast.success("IDs recuperados automáticamente.");
                     
                     // Auto-save logic
                     setTimeout(() => handleRegisterWhatsApp(), 1500);
@@ -366,7 +366,7 @@ export default function BranchesPage() {
 
             if (result.success && result.device_token) {
                 saveDeviceToken(result.device_token);
-                toast.success("Ã‚Â¡Dispositivo autorizado para esta sucursal!");
+                toast.success("¡Dispositivo autorizado para esta sucursal!");
             } else {
                 toast.error(result.error || "No se pudo autorizar el dispositivo.");
             }
@@ -412,7 +412,7 @@ export default function BranchesPage() {
                             </div>
                             <div className="flex gap-2">
                                 <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${branch.wa_phone_number_id ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
-                                    {branch.wa_phone_number_id ? 'Ã¢â‚¬Â¢ Online' : 'Ã¢â‚¬Â¢ Offline'}
+                                    {branch.wa_phone_number_id ? '• Online' : '• Offline'}
                                 </span>
                                 <button
                                     onClick={() => {
@@ -505,7 +505,7 @@ export default function BranchesPage() {
                                 <>
                                     <h3 className="text-xs font-black uppercase text-orange-600 flex items-center gap-2"><Smartphone size={16} /> WhatsApp</h3>
                                     <div className="bg-orange-50/50 border border-orange-100 rounded-2xl p-6 space-y-6">
-                                        <input type="text" value={waForm.phoneNumber} onChange={e => setWaForm({...waForm, phoneNumber: e.target.value})} className="w-full border rounded-xl px-4 py-2 font-bold outline-none" placeholder="NÃƒÂºmero (+52...)" />
+                                        <input type="text" value={waForm.phoneNumber} onChange={e => setWaForm({...waForm, phoneNumber: e.target.value})} className="w-full border rounded-xl px-4 py-2 font-bold outline-none" placeholder="Número (+52...)" />
                                     
                                     <div className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl">
                                         <div className="space-y-0.5">
@@ -541,12 +541,12 @@ export default function BranchesPage() {
                                                             Llamada Voz
                                                         </button>
                                                     </div>
-                                                    <button onClick={handleNativeRegisterInit} disabled={isNativeLoading} className="w-full bg-orange-500 text-white py-4 rounded-xl text-[11px] font-black uppercase shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">{isNativeLoading ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />} Solicitar CÃƒÂ³digo</button>
+                                                    <button onClick={handleNativeRegisterInit} disabled={isNativeLoading} className="w-full bg-orange-500 text-white py-4 rounded-xl text-[11px] font-black uppercase shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">{isNativeLoading ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />} Solicitar Código</button>
                                                 </div>
                                             )}
                                             {nativeStep === 1 && (
                                                 <div className="space-y-4 text-center">
-                                                    <p className="text-[10px] font-black uppercase">CÃƒÂ³digo Recibido</p>
+                                                    <p className="text-[10px] font-black uppercase">Código Recibido</p>
                                                     <input type="text" value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))} className="w-full text-center text-2xl font-black tracking-widest outline-none border-b-2 border-orange-500" placeholder="000000" />
                                                     <button onClick={handleNativeVerifyCode} disabled={isNativeLoading} className="w-full bg-slate-900 text-white py-4 rounded-xl text-[11px] font-black uppercase active:scale-95">Verificar</button>
                                                     <button onClick={resetNativeRegistration} className="text-[10px] font-black text-rose-500 uppercase">Reiniciar</button>
@@ -554,7 +554,7 @@ export default function BranchesPage() {
                                             )}
                                             {nativeStep === 2 && (
                                                 <div className="space-y-4 text-center">
-                                                    <div className="font-black text-emerald-600 uppercase mb-2">Ã‚Â¡Vinculado con ÃƒÂ©xito!</div>
+                                                    <div className="font-black text-emerald-600 uppercase mb-2">\u00A1Vinculado con \u00E9xito!</div>
                                                     <button 
                                                         onClick={handleDisconnectWhatsApp}
                                                         className="w-full text-[9px] font-black text-rose-500 py-3 border border-rose-100 rounded-xl hover:bg-rose-50 transition-all uppercase"
@@ -566,12 +566,12 @@ export default function BranchesPage() {
                                         </div>
                                     </div>
                                     <div className="pt-4 border-t border-slate-200 text-center">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mt-2">ConfiguraciÃƒÂ³n de IDs (DetecciÃƒÂ³n Manual/Auto)</p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mt-2">Configuraci\u00F3n de IDs (Detecci\u00F3n Manual/Auto)</p>
                                     </div>
                                     <div className="pt-2 space-y-4">
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>
-                                                <p className="text-[9px] font-black mb-1">ID TELÃƒâ€°FONO</p>
+                                                <p className="text-[9px] font-black mb-1">ID TEL\u00C9FONO</p>
                                                 <input type="text" value={waForm.phoneNumberId} onChange={e => setWaForm({...waForm, phoneNumberId: e.target.value})} className="w-full text-xs border rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="Ej: 52123..." />
                                             </div>
                                             <div>
@@ -583,9 +583,9 @@ export default function BranchesPage() {
                                             <p className="text-[9px] font-black mb-1">TOKEN DE ACCESO (OPCIONAL/AUTO)</p>
                                             <input type="text" value={waForm.accessToken} onChange={e => setWaForm({...waForm, accessToken: e.target.value})} className="w-full text-[10px] border rounded-lg px-3 py-2 outline-none focus:border-orange-500 font-mono" placeholder="EAAB..." />
                                             {waForm.accessToken ? (
-                                                <p className="text-[8px] text-emerald-600 font-bold mt-1 uppercase">Ã¢Å“â€œ Token detectado</p>
+                                                <p className="text-[8px] text-emerald-600 font-bold mt-1 uppercase">✓ Token detectado</p>
                                             ) : (
-                                                <p className="text-[8px] text-amber-500 font-bold mt-1 uppercase">Ã¢Å¡Â  Sin token (Funcionalidad limitada)</p>
+                                                <p className="text-[8px] text-amber-500 font-bold mt-1 uppercase">⚠️ Sin token (Funcionalidad limitada)</p>
                                             )}
                                         </div>
                                     </div>
@@ -629,10 +629,10 @@ export default function BranchesPage() {
                                                 <div className="p-2 bg-orange-500 rounded-xl shadow-lg shadow-orange-500/20">
                                                     <Fingerprint size={24} />
                                                 </div>
-                                                <h3 className="text-xl font-black italic">AutorizaciÃƒÂ³n de Terminal</h3>
+                                                <h3 className="text-xl font-black italic">Autorización de Terminal</h3>
                                             </div>
                                             <p className="text-slate-300 text-sm font-medium leading-relaxed">
-                                                Para que el personal pueda ingresar usando su <span className="text-white font-bold underline decoration-orange-500">PIN de 4 dÃƒÂ­gitos</span>, primero debes autorizar esta computadora fÃƒÂ­sicamente.
+                                                Para que el personal pueda ingresar usando su <span className="text-white font-bold underline decoration-orange-500">PIN de 4 dígitos</span>, primero debes autorizar esta computadora físicamente.
                                             </p>
                                         </div>
                                     </div>
@@ -669,7 +669,7 @@ export default function BranchesPage() {
                                             <div className="space-y-1">
                                                 <p className="text-[10px] font-black uppercase text-amber-900">Seguridad Importante</p>
                                                 <p className="text-[10px] text-amber-700/80 font-medium leading-tight">
-                                                    Al realizar la vinculaciÃƒÂ³n, solo el personal con PIN asignado a <span className="font-bold underline italic text-amber-900">{selectedBranch.name}</span> podrÃƒÂ¡ operar desde este dispositivo.
+                                                    Al realizar la vinculación, solo el personal con PIN asignado a <span className="font-bold underline italic text-amber-900">{selectedBranch.name}</span> podrá operar desde este dispositivo.
                                                 </p>
                                             </div>
                                         </div>
@@ -683,13 +683,13 @@ export default function BranchesPage() {
                                         </div>
                                         <div className="relative z-10 space-y-2">
                                             <h3 className="text-xl font-black italic">Horario Laboral</h3>
-                                            <p className="text-orange-100 text-sm font-medium">Define los dÃƒÂ­as y horas que esta sucursal recibe y entrega prendas.</p>
+                                            <p className="text-orange-100 text-sm font-medium">Define los días y horas que esta sucursal recibe y entrega prendas.</p>
                                         </div>
                                     </div>
 
                                     <div className="space-y-3">
                                         {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map((day) => {
-                                            const dayLabels: any = { mon: 'Lunes', tue: 'Martes', wed: 'MiÃƒÂ©rcoles', thu: 'Jueves', fri: 'Viernes', sat: 'SÃƒÂ¡bado', sun: 'Domingo' };
+                                            const dayLabels: any = { mon: 'Lunes', tue: 'Martes', wed: 'Miércoles', thu: 'Jueves', fri: 'Viernes', sat: 'Sábado', sun: 'Domingo' };
                                             const hours = selectedBranch?.business_hours?.[day] || { open: '09:00', close: '19:00', closed: day === 'sun' };
                                             
                                             return (
@@ -795,13 +795,13 @@ export default function BranchesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">DirecciÃƒÂ³n Completa</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Dirección Completa</label>
                                 <input 
                                     type="text" 
                                     value={formData.address}
                                     onChange={e => setFormData({...formData, address: e.target.value.toUpperCase()})}
                                     className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-orange-500/20 transition-all"
-                                    placeholder="CALLE, NÃƒÅ¡MERO, COLONIA..."
+                                    placeholder="CALLE, NÚMERO, COLONIA..."
                                     required
                                 />
                             </div>
@@ -811,7 +811,7 @@ export default function BranchesPage() {
                                 className="w-full bg-slate-900 text-white py-5 rounded-3xl font-black text-xs uppercase tracking-widest shadow-2xl hover:bg-orange-600 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
                             >
                                 {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
-                                {selectedBranch ? 'Actualizar InformaciÃƒÂ³n' : 'Crear Sede Operativa'}
+                                {selectedBranch ? 'Actualizar Información' : 'Crear Sede Operativa'}
                             </button>
                         </form>
                     </div>

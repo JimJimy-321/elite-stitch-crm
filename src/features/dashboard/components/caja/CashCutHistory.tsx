@@ -25,7 +25,7 @@ export function CashCutsHistory({ cuts }: { cuts: any[] }) {
         // Assuming deletions are only allowed for the latest cut
         const latestCutId = cuts[0]?.id;
         if (cutToDelete !== latestCutId) {
-            toast.error("Solo se puede eliminar el último corte de caja.");
+            toast.error("Solo se puede eliminar el \u00FAltimo corte de caja.");
             return;
         }
 
@@ -135,13 +135,13 @@ export function CashCutsHistory({ cuts }: { cuts: any[] }) {
             <Modal
                 isOpen={!!cutToDelete}
                 onClose={() => setCutToDelete(null)}
-                title="¿Anular Corte de Caja?"
+                title="\u00BFAnular Corte de Caja?"
                 className="max-w-md"
             >
                 <div className="space-y-4">
                     <div className="flex items-center gap-4 bg-rose-50 p-4 rounded-xl border border-rose-100 text-rose-800">
                         <AlertTriangle className="shrink-0" />
-                        <p className="text-sm font-medium">Esta acción revertirá el último corte. Las ventas volverán a estar pendientes.</p>
+                        <p className="text-sm font-medium">Esta acci\u00F3n revertir\u00E1 el \u00FAltimo corte. Las ventas volver\u00E1n a estar pendientes.</p>
                     </div>
 
                     <div className="flex gap-3 justify-end pt-4">
@@ -153,7 +153,7 @@ export function CashCutsHistory({ cuts }: { cuts: any[] }) {
                             className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-lg shadow-rose-200"
                             disabled={isPending}
                         >
-                            {isPending ? 'Anulando...' : 'Sí, Anular Corte'}
+                            {isPending ? 'Anulando...' : 'S\u00ED, Anular Corte'}
                         </Button>
                     </div>
                 </div>

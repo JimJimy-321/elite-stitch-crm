@@ -40,16 +40,16 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
     const menuByRole = {
         super_admin: [
             { icon: ShieldCheck, label: 'Admin Global', href: '/admin' },
-            { icon: UserCog, label: 'Dueños', href: '/admin/owners' },
+            { icon: UserCog, label: 'Due\u00F1os', href: '/admin/owners' },
             { icon: MessageSquare, label: 'API WhatsApp', href: '/admin/whatsapp' },
-            { icon: Settings, label: 'Parámetros', href: '/admin/settings' },
+            { icon: Settings, label: 'Par\u00E1metros', href: '/admin/settings' },
         ],
         owner: [
             { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
             { icon: Store, label: 'Sucursales', href: '/dashboard/branches' },
             { icon: UserCog, label: 'Encargados', href: '/dashboard/managers' },
             { icon: Megaphone, label: 'Marketing', href: '/dashboard/marketing' },
-            { icon: CreditCard, label: 'Membresía', href: '/dashboard/billing' },
+            { icon: CreditCard, label: 'Membres\u00EDa', href: '/dashboard/billing' },
             { icon: Settings, label: 'Ajustes', href: '/dashboard/settings' },
         ],
         manager: [
@@ -149,7 +149,7 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
                     )}
                 >
                     <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                    {!collapsed && <span className="text-[10px] font-black uppercase tracking-[0.2em]">Cerrar Sesión</span>}
+                    {!collapsed && <span className="text-[10px] font-black uppercase tracking-[0.2em]">Cerrar Sesi\u00F3n</span>}
                 </button>
             </div>
         </div>

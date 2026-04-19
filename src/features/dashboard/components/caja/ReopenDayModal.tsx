@@ -28,7 +28,7 @@ export function ReopenDayModal({ branchId, date }: Props) {
                 toast.error(res.message || 'Error al reabrir caja');
             }
         } catch (error) {
-            toast.error('Error de conexión');
+            toast.error('Error de conexi\u00F3n');
         } finally {
             setIsLoading(false);
         }
@@ -44,11 +44,11 @@ export function ReopenDayModal({ branchId, date }: Props) {
                 <span>Caja Cerrada (Click para Abrir)</span>
             </div>
 
-            <Modal isOpen={open} onClose={() => setOpen(false)} title="Reabrir Caja del Día">
+            <Modal isOpen={open} onClose={() => setOpen(false)} title="Reabrir Caja del D\u00EDa">
                 <div className="space-y-4">
                     <p className="text-sm text-slate-600">
-                        Esta acción eliminará el corte actual ({date}) y permitirá registrar nuevos movimientos.
-                        <strong> Deberás realizar el corte nuevamente al finalizar.</strong>
+                        Esta acci\u00F3n eliminar\u00E1 el corte actual ({date}) y permitir\u00E1 registrar nuevos movimientos.
+                        <strong> Deber\u00E1s realizar el corte nuevamente al finalizar.</strong>
                     </p>
 
                     <div className="flex justify-end gap-2 pt-4">

@@ -17,8 +17,8 @@ const clientSchema = z.object({
     phone: z.string().refine((val) => {
         const digits = val.replace(/\D/g, '');
         return digits.length === 10;
-    }, "DEBE TENER EXACTAMENTE 10 DÍGITOS"),
-    email: z.string().email("ESTRUCTURA DE EMAIL NO VÁLIDA").optional().or(z.literal('')),
+    }, "DEBE TENER EXACTAMENTE 10 D\u00CDGITOS"),
+    email: z.string().email("ESTRUCTURA DE EMAIL NO V\u00C1LIDA").optional().or(z.literal('')),
 });
 
 type ClientFormValues = z.infer<typeof clientSchema>;
@@ -117,7 +117,7 @@ export function ClientFormModal({ onClose, onSuccess, initialData, branchId }: C
                         <input
                             {...register('full_name')}
                             type="text"
-                            placeholder="EJ. JUAN PÉREZ"
+                            placeholder="EJ. JUAN P\u00C9REZ"
                             className={cn(
                                 "w-full bg-slate-50 border-2 rounded-2xl px-10 h-14 font-bold text-slate-700 outline-none transition-all uppercase focus:bg-white",
                                 errors.full_name ? "border-red-200 focus:border-red-500" : "border-slate-100 focus:border-orange-500"
@@ -129,7 +129,7 @@ export function ClientFormModal({ onClose, onSuccess, initialData, branchId }: C
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">WhatsApp / Celular (10 dígitos)</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">WhatsApp / Celular (10 d\u00EDgitos)</label>
                     <div className="relative group flex gap-2">
                         <select
                             {...register('country_code')}

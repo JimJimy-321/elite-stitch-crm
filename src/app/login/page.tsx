@@ -21,7 +21,7 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const [authorizedBranch, setAuthorizedBranchData] = useState<{ id: string, name: string } | null>(null);
 
-    const { signInWithEmail } = useSupabaseAuth();
+    const { signInWithEmail, signOut } = useSupabaseAuth();
 
     useEffect(() => {
         // Detectar si este dispositivo ya está autorizado para una sucursal
@@ -39,8 +39,15 @@ export default function LoginPage() {
 
         try {
             const data = await signInWithEmail(email, password) as any;
+            const profile = data?.profile;
 
-            if (data?.profile?.role === 'super_admin' || data?.profile?.role === 'owner') {
+            // Bloquear acceso a encargados en modo Dueño
+            if (mode === 'owner' && profile?.role !== 'owner' && profile?.role !== 'super_admin') {
+                await signOut();
+                throw new Error('Este acceso es exclusivo para dueños. Por favor usa la Terminal de Sucursal.');
+            }
+
+            if (profile?.role === 'super_admin' || profile?.role === 'owner') {
                 router.push('/dashboard');
             } else {
                 router.push('/dashboard/notas');

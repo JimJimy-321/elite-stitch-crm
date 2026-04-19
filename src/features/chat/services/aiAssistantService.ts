@@ -52,7 +52,8 @@ export const aiAssistantService = {
             
             const { data: clients, error: cErr } = await supabase.rpc('get_client_by_phone_secure', {
                 p_phone: cleanPhone,
-                p_org_id: branch.organization_id
+                p_org_id: branch.organization_id,
+                p_branch_id: branch.id
             });
 
             const client = clients?.[0];

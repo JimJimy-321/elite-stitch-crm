@@ -47,7 +47,7 @@ Instrucciones:
 5. Responde SIEMPRE en espa\u00f1ol.`;
 
             const { text } = await generateText({
-                model: google('gemini-2.0-flash-001') as any,
+                model: google('gemini-1.5-flash') as any,
                 system: systemPrompt,
                 prompt: query,
             });

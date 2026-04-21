@@ -46,10 +46,11 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
         ],
         owner: [
             { icon: LayoutDashboard, label: 'DASHBOARD', href: '/dashboard' },
+            { icon: Sparkles, label: 'INTELIGENCIA', href: '/dashboard/intelligence' },
             { icon: Store, label: 'SUCURSALES', href: '/dashboard/branches' },
             { icon: UserCog, label: 'ENCARGADOS', href: '/dashboard/managers' },
             { icon: Megaphone, label: 'MARKETING', href: '/dashboard/marketing' },
-            { icon: CreditCard, label: 'MEMBRES\u00CDA', href: '/dashboard/billing' },
+            { icon: CreditCard, label: 'MEMBRESÍA', href: '/dashboard/billing' },
             { icon: Settings, label: 'AJUSTES', href: '/dashboard/settings' },
         ],
         manager: [

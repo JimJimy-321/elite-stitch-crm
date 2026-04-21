@@ -40,9 +40,9 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
     const menuByRole = {
         super_admin: [
             { icon: ShieldCheck, label: 'ADMIN GLOBAL', href: '/admin' },
-            { icon: UserCog, label: 'DUE\u00D1OS', href: '/admin/owners' },
+            { icon: UserCog, label: 'DUEÑOS', href: '/admin/owners' },
             { icon: MessageSquare, label: 'API WHATSAPP', href: '/admin/whatsapp' },
-            { icon: Settings, label: 'PAR\u00C1METROS', href: '/admin/settings' },
+            { icon: Settings, label: 'PARÁMETROS', href: '/admin/settings' },
         ],
         owner: [
             { icon: LayoutDashboard, label: 'DASHBOARD', href: '/dashboard' },
@@ -79,7 +79,6 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
                         <span className="font-black text-2xl tracking-tighter text-foreground leading-none">
                             SastrePro
                         </span>
-                        {/* Rol eliminado por solicitud */}
                     </div>
                 )}
             </div>
@@ -150,7 +149,7 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
                     )}
                 >
                     <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                    {!collapsed && <span className="text-[10px] font-black uppercase tracking-[0.2em]">Cerrar Sesi\u00F3n</span>}
+                    {!collapsed && <span className="text-[10px] font-black uppercase tracking-[0.2em]">Cerrar Sesión</span>}
                 </button>
             </div>
         </div>

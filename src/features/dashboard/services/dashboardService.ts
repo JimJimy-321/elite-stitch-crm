@@ -263,8 +263,8 @@ export const dashboardService = {
     async authorizeCurrentDevice(branchId: string, fingerprint: string, friendlyName: string) {
         const { data, error } = await supabase.rpc('authorize_current_device', {
             p_branch_id: branchId,
-            p_fingerprint: fingerprint,
-            p_friendly_name: friendlyName
+            p_token_hash: fingerprint,
+            p_device_name: friendlyName
         });
 
         if (error) throw error;

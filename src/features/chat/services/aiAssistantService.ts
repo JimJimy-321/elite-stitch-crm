@@ -162,7 +162,17 @@ INSTRUCCIONES DE RESPUESTA:
 4. Si el cliente parece enojado o satisfecho, adapta tu tono.
 5. Responde SIEMPRE en español.`;
 
-            // 3. Generar respuesta con Gemini
+            // 3. Verificación de API Key (Diagnóstico)
+            if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+                console.error('[AI_ASSISTANT] ERROR: GOOGLE_GENERATIVE_AI_API_KEY is missing');
+                await supabase.rpc('log_webhook_payload', {
+                    p_webhook_type: 'AI_DIAGNOSTICS',
+                    p_payload: { error: 'GOOGLE_GENERATIVE_AI_API_KEY is null or undefined in production environment' }
+                });
+                throw new Error('Missing Google AI API Key');
+            }
+
+            // 4. Generar respuesta con Gemini
             const { text } = await generateText({
                 model: google('gemini-1.5-flash') as any,
                 system: systemPrompt,

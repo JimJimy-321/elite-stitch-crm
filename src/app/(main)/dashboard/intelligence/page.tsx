@@ -7,6 +7,8 @@ import { useAuthStore } from '@/features/auth/store/authStore';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
+import { AiAgentSettings } from '@/features/dashboard/components/intelligence/AiAgentSettings';
+
 export default function IntelligencePage() {
     const { user } = useAuthStore();
     const router = useRouter();
@@ -17,7 +19,7 @@ export default function IntelligencePage() {
         }
     }, [user, router]);
 
-    if (!user || user.role === 'manager') return null;
+    if (!user || user.role === 'manager' || !user.organization_id) return null;
     return (
         <div className="space-y-8 animate-fade-in max-w-6xl pb-12">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -50,32 +52,9 @@ export default function IntelligencePage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* AI Agent Status */}
+                {/* AI Agent Configuration */}
                 <div className="lg:col-span-2 space-y-8">
-                    <div className="glass-card overflow-hidden group border-t-4 border-t-primary">
-                        <div className="p-8 border-b border-border bg-gradient-to-br from-primary/5 to-transparent flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
-                                    <Brain className="text-primary" size={24} />
-                                </div>
-                                <div>
-                                    <h3 className="font-black text-foreground tracking-tight text-lg">Sastre AI: Customer Support</h3>
-                                    <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1.5">
-                                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                                        Entrenamiento al día
-                                    </p>
-                                </div>
-                            </div>
-                            <button className="px-5 py-2.5 bg-foreground text-background rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg active:scale-95">
-                                Re-Entrenar Modelo
-                            </button>
-                        </div>
-                        <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <IQMetric label="Resolución" value="94%" trend="Excelente" color="text-primary" />
-                            <IQMetric label="Satisfacción" value="98.2%" trend="+0.5%" color="text-orange-500" />
-                            <IQMetric label="Latencia" value="45ms" trend="Ultra Rápido" color="text-emerald-500" />
-                        </div>
-                    </div>
+                    <AiAgentSettings organizationId={user.organization_id} />
 
                     {/* Automation Logs */}
                     <div className="glass-card border-none shadow-xl">

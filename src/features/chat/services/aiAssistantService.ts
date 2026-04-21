@@ -21,16 +21,38 @@ export const aiAssistantService = {
     /**
      * Procesa la consulta del cliente y genera una respuesta basada en datos reales
      */
-    async handleIncoming(phone: string, content: string, phoneNumberId: string) {
+    async handleIncoming(phone: string, content: string, phoneNumberId: string, whatsappId?: string) {
         if (!this.shouldRespond(content)) return null;
+
+        // 0. Prevenci\u00f3n de Duplicados (Idempotencia)
+        if (whatsappId) {
+            const { data: existing } = await supabase
+                .from('chat_messages')
+                .select('id')
+                .contains('metadata', { whatsapp_id: whatsappId })
+                .limit(1);
+
+            if (existing && existing.length > 0) {
+                console.log(`[AI_ASSISTANT] Mensaje duplicado ignorado: ${whatsappId}`);
+                return null;
+            }
+        }
 
         console.log(`[AI_ASSISTANT] Procesando consulta para: ${phone}`);
 
         try {
-            // 1. Obtener Configuración de la Sucursal
+            // 1. Obtener Configuraraci\u00f3n Din\u00e1mica del Agente
+            const { data: agentConfig } = await supabase
+                .from('agent_configs')
+                .select('*')
+                .eq('phone_number_id', phoneNumberId)
+                .eq('is_active', true)
+                .single();
+
+            // 1.1 Obtener Datos de la Sucursal para contexto extra
             const { data: branch, error: bErr } = await supabase
                 .from('branches')
-                .select('id, wa_access_token, wa_phone_number_id, metadata, organization_id, name, business_hours')
+                .select('id, wa_access_token, wa_phone_number_id, metadata, organization_id, name, business_hours, address')
                 .eq('wa_phone_number_id', phoneNumberId)
                 .single();
 
@@ -39,8 +61,8 @@ export const aiAssistantService = {
                 return null;
             }
 
-            // Verificar si el asistente está activo en esta sucursal
-            const aiEnabled = branch.metadata?.ai_enabled !== false; 
+            // Verificar si el asistente est\u00e1 activo (ya sea en metadata o en la nueva tabla)
+            const aiEnabled = agentConfig?.is_active ?? (branch.metadata?.ai_enabled !== false); 
             if (!aiEnabled) return null;
 
             // 2. Buscar Cliente por teléfono
@@ -66,7 +88,7 @@ export const aiAssistantService = {
             }
 
             // 4. Consulta General (IA Inteligente con Gemini)
-            return await this.respondGeneral(phone, client, branch, content);
+            return await this.respondGeneral(phone, client, branch, content, agentConfig);
 
         } catch (error) {
             console.error('[AI_ASSISTANT] Critical Error:', error);
@@ -99,7 +121,7 @@ export const aiAssistantService = {
     /**
      * Respuesta genérica / inteligente usando Gemini
      */
-    async respondGeneral(phone: string, client: any, branch: any, content: string) {
+    async respondGeneral(phone: string, client: any, branch: any, content: string, agentConfig?: any) {
         try {
             // 1. Obtener contexto del catálogo de servicios
             const { data: services } = await supabase
@@ -110,25 +132,35 @@ export const aiAssistantService = {
 
             const servicesContext = services?.map(s => `- ${s.name}: $${s.price}${s.category ? ` (${s.category})` : ''}`).join('\n') || 'Información de precios no disponible temporalmente.';
 
-            // 2. Construir Prompt del Sistema
-            const systemPrompt = `Eres el Asistente IA de "${branch.name}", una sastrer\u00eda profesional de alta costura.
-Tu objetivo es ser amable, eficiente y profesional. 
-IMPORTANTE: S\u00f3lo responde informaci\u00f3n referente a esta sucursal: ${branch.name}.
+            // 3. Obtener Conocimiento Personalizado
+            const customKnowledge = agentConfig?.knowledge_base || '';
+            const customSystemPrompt = agentConfig?.system_prompt || `Eres el Asistente IA de "${branch.name}", una sastrer\u00eda profesional de alta costura.`;
 
-Datos de la Sucursal:
-- Nombre: ${branch.name}
-- Direcci\u00f3n: ${branch.address || 'Consultar por chat'}
+            // 4. Construir Prompt del Sistema Enriquecido
+            const systemPrompt = `${customSystemPrompt}
+
+OBJETIVO: 
+Ser amable, eficiente y profesional. Conversa con el cliente de forma natural. 
+NO digas "perm\u00edtame un momento" o "le enviar\u00e9 su solicitud" a menos que sea estrictamente necesario (ej: quejas graves). 
+Intenta siempre resolver la duda t\u00fa primero.
+
+CONTEXTO DE LA SUCURSAL:
+- Sucursal: ${branch.name}
+- Direcci\u00f3n: ${branch.address || 'Favor de preguntar por este canal'}
 - Horarios: ${JSON.stringify(branch.business_hours || 'Lunes a Viernes 9am-7pm, S\u00e1bados 9am-2pm')}
 
-Cat\u00e1logo de Servicios y Precios:
+BASE DE CONOCIMIENTO EXTRA:
+${customKnowledge}
+
+CAT\u00c1LOGO DE SERVICIOS Y PRECIOS:
 ${servicesContext}
 
-Instrucciones:
-1. Responde de forma concisa y amable en espa\u00f1ol.
-2. Si el cliente pregunta por precios, usa la informaci\u00f3n del cat\u00e1logo.
-3. Si el cliente pregunta por algo que no sabes o es muy complejo (ej: quejas graves, solicitudes especiales de dise\u00f1o), indica que un encargado humano lo atender\u00e1 pronto.
-4. No inventes precios ni servicios que no est\u00e9n en la lista.
-5. El cliente se llama ${client.full_name}.`;
+INSTRUCCIONES DE RESPUESTA:
+1. Responde de forma concisa (m\u00e1ximo 2-3 p\u00e1rrafos cortos).
+2. Si preguntan por precios, usa el cat\u00e1logo. Si no est\u00e1, indica que necesitas ver la prenda para cotizar.
+3. El cliente se llama ${client.full_name}.
+4. Si el cliente parece enojado o satisfecho, adapta tu tono.
+5. Responde SIEMPRE en espa\u00f1ol.`;
 
             // 3. Generar respuesta con Gemini
             const { text } = await generateText({
@@ -218,7 +250,11 @@ Instrucciones:
             p_client_id: clientId,
             p_branch_id: branch.id,
             p_content: text,
-            p_whatsapp_id: sendResult.data?.messages?.[0]?.id
+            p_whatsapp_id: sendResult.data?.messages?.[0]?.id || null,
+            p_metadata: {
+                ai_generated: true,
+                whatsapp_id: sendResult.data?.messages?.[0]?.id
+            }
         });
 
         if (logError) {

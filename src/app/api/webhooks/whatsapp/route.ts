@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
                 // Solo respondemos si NO es un eco (mensaje del cliente)
                 if (!isEcho && content) {
                     // Ejecutamos en segundo plano para no bloquear el webhook (Meta requiere respuesta r\u00E1pida)
-                    aiAssistantService.handleIncoming(from, content, phoneNumberId)
+                    aiAssistantService.handleIncoming(from, content, phoneNumberId, message.id)
                         .catch(err => console.error('[AI_HOOK_ERROR]', err));
                 }
 

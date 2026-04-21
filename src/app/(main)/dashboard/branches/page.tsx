@@ -25,7 +25,12 @@ import {
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/shared/lib/utils';
-import { getDeviceFingerprint, saveDeviceToken, getDeviceFriendlyName } from '@/features/auth/utils/device-auth';
+import { 
+    getDeviceFingerprint, 
+    saveDeviceToken, 
+    getDeviceFriendlyName,
+    setAuthorizedBranch // NUEVO: Para guardar info de sucursal
+} from '@/features/auth/lib/device-auth';
 
 const supabase = createClient();
 
@@ -366,6 +371,8 @@ export default function BranchesPage() {
 
             if (result.success) {
                 saveDeviceToken(result.device_token);
+                // NUEVO: Guardar metadatos de sucursal para que el Login los reconozca
+                setAuthorizedBranch(selectedBranch.id, selectedBranch.name);
                 toast.success("¡Dispositivo autorizado para esta sucursal!");
             }
         } catch (error: any) {

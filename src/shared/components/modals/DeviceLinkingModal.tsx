@@ -4,7 +4,12 @@ import React, { useState } from 'react';
 import { Modal } from '@/shared/components/ui/Modal';
 import { useBranches } from '@/features/dashboard/hooks/useDashboardData';
 import { dashboardService } from '@/features/dashboard/services/dashboardService';
-import { getDeviceFingerprint, saveDeviceToken, getDeviceFriendlyName } from '@/features/auth/utils/device-auth';
+import { 
+    getDeviceFingerprint, 
+    saveDeviceToken, 
+    getDeviceFriendlyName,
+    setAuthorizedBranch // NUEVO: Para guardar info de sucursal
+} from '@/features/auth/lib/device-auth'; // Cambio de import
 import { Monitor, ShieldCheck, Check, Loader2, Info, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/shared/lib/utils';
@@ -25,6 +30,9 @@ export function DeviceLinkingModal({ isOpen, onClose }: DeviceLinkingModalProps)
             return;
         }
 
+        const selectedBranch = branches.find(b => b.id === selectedBranchId);
+        if (!selectedBranch) return;
+
         setIsAuthorizing(true);
         try {
             const fingerprint = await getDeviceFingerprint();
@@ -37,10 +45,16 @@ export function DeviceLinkingModal({ isOpen, onClose }: DeviceLinkingModalProps)
             );
 
             if (result.success) {
+                // 1. Guardar el token (fingerprint)
                 saveDeviceToken(result.device_token);
+                
+                // 2. Guardar la información de la sucursal (lo que LoginPage busca)
+                setAuthorizedBranch(selectedBranch.id, selectedBranch.name);
+                
                 toast.success("¡Dispositivo vinculado con éxito!");
                 onClose();
-                // Opcional: Recargar para que el estado global se actualice si es necesario
+                
+                // Recargar para activar el modo terminal en el login si el usuario sale
                 setTimeout(() => window.location.reload(), 1500);
             }
         } catch (error: any) {
@@ -81,6 +95,7 @@ export function DeviceLinkingModal({ isOpen, onClose }: DeviceLinkingModalProps)
                             ) : branches.map((branch) => (
                                 <button
                                     key={branch.id}
+                                    type="button"
                                     onClick={() => setSelectedBranchId(branch.id)}
                                     className={cn(
                                         "flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left",

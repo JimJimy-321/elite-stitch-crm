@@ -6,6 +6,7 @@ import { cn } from '@/shared/lib/utils';
 import { useStaffProfiles, useBranches } from '@/features/dashboard/hooks/useDashboardData';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 export default function ManagersPage() {
     const { user } = useAuthStore();
@@ -101,9 +102,10 @@ export default function ManagersPage() {
             setSelectedManager(null);
             setSelectedBranchId('');
             setEditContact({ full_name: '', email: '', phone: '', role: 'manager', login_pin: '' });
-        } catch (error) {
-            console.error("Error assigning branch:", error);
-            alert("Error al actualizar los datos del encargado.");
+            toast.success("Miembro actualizado correctamente");
+        } catch (error: any) {
+            console.error("Error updating manager:", error);
+            toast.error(error.message || "Error al actualizar los datos del encargado.");
         } finally {
             setIsSubmitting(false);
         }
@@ -120,9 +122,10 @@ export default function ManagersPage() {
             await createManager(newManager);
             setCreateModalOpen(false);
             setNewManager({ full_name: '', email: '', phone: '', password: '', role: 'manager', assigned_branch_id: '', login_pin: '' });
+            toast.success("Nuevo miembro registrado con éxito");
         } catch (error: any) {
             console.error("Error creating manager:", error);
-            alert(error.message || "Error al crear el encargado.");
+            toast.error(error.message || "Error al crear el encargado.");
         } finally {
             setIsSubmitting(false);
         }

@@ -25,6 +25,7 @@ import {
 import { cn } from '@/shared/lib/utils';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useSupabaseAuth } from '@/features/auth/hooks/useSupabaseAuth';
+import { DeviceLinkingModal } from '@/shared/components/modals/DeviceLinkingModal';
 
 interface SidebarProps {
     collapsed: boolean;
@@ -36,6 +37,7 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
     const pathname = usePathname();
     const { user } = useAuthStore();
     const { signOut } = useSupabaseAuth();
+    const [isLinkingModalOpen, setIsLinkingModalOpen] = useState(false);
 
     const menuByRole = {
         super_admin: [
@@ -141,6 +143,20 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
                         )}
                     </div>
                 )}
+                
+                {role === 'owner' && (
+                    <button
+                        onClick={() => setIsLinkingModalOpen(true)}
+                        className={cn(
+                            "flex items-center gap-4 px-5 py-3 rounded-xl transition-all duration-300 group w-full bg-slate-900 text-white hover:bg-orange-600 shadow-lg",
+                            collapsed && "justify-center px-0"
+                        )}
+                    >
+                        <ShieldCheck className="w-5 h-5" />
+                        {!collapsed && <span className="text-[9px] font-black uppercase tracking-widest">Vincular Terminal</span>}
+                    </button>
+                )}
+
                 <button
                     onClick={() => signOut()}
                     className={cn(
@@ -152,6 +168,11 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
                     {!collapsed && <span className="text-[10px] font-black uppercase tracking-[0.2em]">Cerrar Sesión</span>}
                 </button>
             </div>
+
+            <DeviceLinkingModal 
+                isOpen={isLinkingModalOpen} 
+                onClose={() => setIsLinkingModalOpen(false)} 
+            />
         </div>
     );
 }

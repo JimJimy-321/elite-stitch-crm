@@ -149,26 +149,28 @@ export function AiAgentSettings({ organizationId }: AiAgentSettingsProps) {
                                 </div>
                             </div>
 
-                            <div className="space-y-2 pt-4 border-t border-border/50">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                                    <Key size={14} className="text-amber-500" />
-                                    Google Gemini API Key (Producci\u00f3n)
-                                </label>
+                            <div className="space-y-4 pt-4 border-t border-border/50">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                        <Key size={14} className="text-amber-500" />
+                                        Google Gemini API Key (Producción)
+                                    </label>
+                                    <div className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+                                        <span className="text-[8px] font-black uppercase text-emerald-600 tracking-tighter">Activa</span>
+                                    </div>
+                                </div>
                                 <div className="relative group">
                                     <input 
                                         type="password"
-                                        className="w-full bg-secondary/30 border border-border rounded-2xl p-4 text-xs font-mono focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all"
+                                        className="w-full bg-secondary/30 border border-border rounded-2xl p-4 text-xs font-mono focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all pr-12"
                                         placeholder="AIzaSy..."
                                         value={currentConfig?.google_api_key || ''}
                                         onChange={(e) => handleUpdate({ google_api_key: e.target.value })}
                                     />
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                                        <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-                                        <span className="text-[8px] font-black uppercase text-emerald-600 tracking-tighter">Activa</span>
-                                    </div>
                                 </div>
                                 <p className="text-[9px] text-muted-foreground leading-relaxed italic">
-                                    Esta llave se guarda encriptada y habilita la IA en el entorno de producci\u00f3n de SastrePro.
+                                    Esta llave se guarda encriptada y habilita la IA en el entorno de producción de SastrePro.
                                 </p>
                             </div>
                         </div>

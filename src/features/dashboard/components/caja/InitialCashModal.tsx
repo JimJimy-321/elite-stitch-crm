@@ -14,7 +14,7 @@ import { registerExpense } from '@/features/dashboard/actions/cash-actions';
 
 const schema = z.object({
     amount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-        message: 'El monto debe ser mayor a 0',
+        message: 'EL MONTO DEBE SER MAYOR A 0',
     }),
 });
 
@@ -38,22 +38,22 @@ export function InitialCashModal({ branchId, userId, date }: Props) {
             const res = await registerExpense({
                 branch_id: branchId,
                 amount: Number(data.amount),
-                concept: 'Fondo Inicial de Caja',
-                category: 'Fondo de Caja',
+                concept: 'FONDO INICIAL DE CAJA',
+                category: 'FONDO DE CAJA',
                 recorded_by: userId,
                 type: 'income',
                 date: date,
             });
 
             if (res.success) {
-                toast.success('Fondo inicial registrado');
+                toast.success('FONDO INICIAL REGISTRADO');
                 setOpen(false);
                 reset();
             } else {
                 toast.error(res.message);
             }
         } catch (error) {
-            toast.error('Error al registrar');
+            toast.error('ERROR AL REGISTRAR');
         } finally {
             setIsLoading(false);
         }
@@ -63,21 +63,21 @@ export function InitialCashModal({ branchId, userId, date }: Props) {
         <>
             <Button
                 variant="outline"
-                className="gap-2 border-slate-200 text-slate-600 hover:text-orange-600 hover:border-orange-200"
+                className="gap-2 border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-orange-600 hover:border-orange-200"
                 onClick={() => setOpen(true)}
             >
                 <DollarSign size={16} />
-                Fondo Inicial
+                FONDO INICIAL
             </Button>
 
-            <Modal isOpen={open} onClose={() => setOpen(false)} title="Establecer Fondo Inicial">
+            <Modal isOpen={open} onClose={() => setOpen(false)} title="ESTABLECER FONDO INICIAL">
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="bg-blue-50 p-4 rounded-xl text-blue-700 text-sm mb-4">
-                        Ingresa el efectivo con el que inicias operaciones (cambio, monedas, etc). Esto sumar\u00E1 al efectivo en caja.
+                    <div className="bg-blue-50 p-4 rounded-xl text-blue-700 text-[10px] font-black uppercase tracking-tight mb-4">
+                        INGRESA EL EFECTIVO CON EL QUE INICIAS OPERACIONES (CAMBIO, MONEDAS, ETC). ESTO SUMAR\u00C1 AL EFECTIVO EN CAJA.
                     </div>
 
                     <div className="space-y-2">
-                        <label htmlFor="amount" className="text-sm font-medium text-slate-700">Monto ($)</label>
+                        <label htmlFor="amount" className="text-[10px] font-black uppercase tracking-widest text-slate-700 ml-1">MONTO ($)</label>
                         <Input
                             id="amount"
                             type="number"
@@ -87,16 +87,16 @@ export function InitialCashModal({ branchId, userId, date }: Props) {
                             {...register('amount')}
                         />
                         {errors.amount && (
-                            <p className="text-red-500 text-xs">{(errors as any).amount.message}</p>
+                            <p className="text-red-500 text-[10px] font-black uppercase">{(errors as any).amount.message}</p>
                         )}
                     </div>
 
                     <div className="flex justify-end gap-2 pt-4">
-                        <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
-                            Cancelar
+                        <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isLoading} className="text-[10px] font-black uppercase tracking-widest">
+                            CANCELAR
                         </Button>
-                        <Button type="submit" disabled={isLoading} className="bg-slate-900 text-white hover:bg-slate-800">
-                            {isLoading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : 'Registrar Apertura'}
+                        <Button type="submit" disabled={isLoading} className="bg-slate-900 text-white hover:bg-slate-800 text-[10px] font-black uppercase tracking-widest px-6">
+                            {isLoading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : 'REGISTRAR APERTURA'}
                         </Button>
                     </div>
                 </form>

@@ -39,25 +39,25 @@ export function Sidebar({ collapsed, setCollapsed, role }: SidebarProps) {
 
     const menuByRole = {
         super_admin: [
-            { icon: ShieldCheck, label: 'Admin Global', href: '/admin' },
-            { icon: UserCog, label: 'Due\u00F1os', href: '/admin/owners' },
-            { icon: MessageSquare, label: 'API WhatsApp', href: '/admin/whatsapp' },
-            { icon: Settings, label: 'Par\u00E1metros', href: '/admin/settings' },
+            { icon: ShieldCheck, label: 'ADMIN GLOBAL', href: '/admin' },
+            { icon: UserCog, label: 'DUE\u00D1OS', href: '/admin/owners' },
+            { icon: MessageSquare, label: 'API WHATSAPP', href: '/admin/whatsapp' },
+            { icon: Settings, label: 'PAR\u00C1METROS', href: '/admin/settings' },
         ],
         owner: [
-            { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-            { icon: Store, label: 'Sucursales', href: '/dashboard/branches' },
-            { icon: UserCog, label: 'Encargados', href: '/dashboard/managers' },
-            { icon: Megaphone, label: 'Marketing', href: '/dashboard/marketing' },
-            { icon: CreditCard, label: 'Membres\u00EDa', href: '/dashboard/billing' },
-            { icon: Settings, label: 'Ajustes', href: '/dashboard/settings' },
+            { icon: LayoutDashboard, label: 'DASHBOARD', href: '/dashboard' },
+            { icon: Store, label: 'SUCURSALES', href: '/dashboard/branches' },
+            { icon: UserCog, label: 'ENCARGADOS', href: '/dashboard/managers' },
+            { icon: Megaphone, label: 'MARKETING', href: '/dashboard/marketing' },
+            { icon: CreditCard, label: 'MEMBRES\u00CDA', href: '/dashboard/billing' },
+            { icon: Settings, label: 'AJUSTES', href: '/dashboard/settings' },
         ],
         manager: [
-            { icon: LayoutDashboard, label: 'Operativo', href: '/dashboard' },
-            { icon: Ticket, label: 'Historial', href: '/dashboard/notas' },
-            { icon: Users, label: 'Clientes', href: '/dashboard/clients' },
-            { icon: Wallet, label: 'Caja', href: '/dashboard/finance' },
-            { icon: MessageSquare, label: 'Chat', href: '/dashboard/chat' },
+            { icon: LayoutDashboard, label: 'OPERATIVO', href: '/dashboard' },
+            { icon: Ticket, label: 'HISTORIAL', href: '/dashboard/notas' },
+            { icon: Users, label: 'CLIENTES', href: '/dashboard/clients' },
+            { icon: Wallet, label: 'CAJA', href: '/dashboard/finance' },
+            { icon: MessageSquare, label: 'CHAT', href: '/dashboard/chat' },
         ]
     };
 

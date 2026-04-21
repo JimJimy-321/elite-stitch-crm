@@ -138,8 +138,8 @@ export default function LoginPage() {
                         >
                             <UserCircle2 className={cn(mode === 'owner' ? "text-orange-500" : "text-slate-600")} size={32} />
                             <div className="text-left">
-                                <div className="text-sm font-black uppercase tracking-widest">Portal Administrativo</div>
-                                <div className="text-[10px] font-bold opacity-60">Dueños y Gerentes Generales</div>
+                                <div className="text-sm font-black uppercase tracking-widest">PORTAL ADMINISTRATIVO</div>
+                                <div className="text-[10px] font-bold opacity-60 uppercase">DUEÑOS Y GERENTES GENERALES</div>
                             </div>
                         </button>
 
@@ -154,8 +154,8 @@ export default function LoginPage() {
                         >
                             <Monitor className={cn(mode === 'terminal' ? "text-orange-500" : "text-slate-600")} size={32} />
                             <div className="text-left">
-                                <div className="text-sm font-black uppercase tracking-widest">Terminal de Sucursal</div>
-                                <div className="text-[10px] font-bold opacity-60">Encargados y Personal de Piso</div>
+                                <div className="text-sm font-black uppercase tracking-widest">TERMINAL DE SUCURSAL</div>
+                                <div className="text-[10px] font-bold opacity-60 uppercase">ENCARGADOS Y PERSONAL DE PISO</div>
                             </div>
                         </button>
                     </div>
@@ -171,21 +171,21 @@ export default function LoginPage() {
                             onClick={() => setMode('owner')}
                             className={cn("flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest border-2", mode === 'owner' ? "bg-orange-500 text-white border-orange-500" : "text-slate-400 border-slate-100")}
                         >
-                            Administrador
+                            ADMINISTRADOR
                         </button>
                         <button 
                             onClick={() => setMode('terminal')}
                             className={cn("flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest border-2", mode === 'terminal' ? "bg-orange-500 text-white border-orange-500" : "text-slate-400 border-slate-100")}
                         >
-                            Personal
+                            PERSONAL
                         </button>
                     </div>
 
                     {mode === 'owner' ? (
                         <div className="animate-in slide-in-from-right-10 duration-500">
                             <div className="mb-12">
-                                <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-3">Ingreso Dueño</h2>
-                                <p className="text-slate-500 font-medium">Gestiona tu negocio y analiza el rendimiento de tus sucursales.</p>
+                                <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-3 uppercase">INGRESO DUEÑO</h2>
+                                <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest leading-relaxed">GESTIONA TU NEGOCIO Y ANALIZA EL RENDIMIENTO DE TUS SUCURSALES.</p>
                             </div>
 
                             <form onSubmit={handleLogin} className="space-y-6">
@@ -196,7 +196,7 @@ export default function LoginPage() {
                                 )}
 
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Email Profesional</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">EMAIL PROFESIONAL</label>
                                     <div className="relative group">
                                         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-12 flex justify-center text-slate-300 group-focus-within:text-orange-500 transition-colors">
                                             <Mail size={20} suppressHydrationWarning />
@@ -214,8 +214,8 @@ export default function LoginPage() {
 
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center px-1">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Contraseña</label>
-                                        <a href="#" className="text-[10px] font-black text-orange-600 uppercase tracking-widest">¿Olvidaste tu clave?</a>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">CONTRASEÑA</label>
+                                        <a href="#" className="text-[10px] font-black text-orange-600 uppercase tracking-widest">¿OLVIDASTE TU CLAVE?</a>
                                     </div>
                                     <div className="relative group">
                                         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-12 flex justify-center text-slate-300 group-focus-within:text-orange-500 transition-colors">
@@ -245,7 +245,7 @@ export default function LoginPage() {
                                     className="w-full bg-orange-600 text-white py-5 rounded-[1.25rem] font-black text-xs uppercase tracking-[0.3em] group relative overflow-hidden shadow-2xl shadow-orange-600/20 hover:bg-orange-700 hover:-translate-y-1 active:translate-y-0 transition-all duration-300"
                                 >
                                     <span className="flex items-center justify-center gap-4">
-                                        Entrar al Panel
+                                        ENTRAR AL PANEL
                                         <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform duration-500" />
                                     </span>
                                 </button>

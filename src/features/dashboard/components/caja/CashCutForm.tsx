@@ -133,14 +133,14 @@ export function CashCutForm({ branchId, userId }: CashCutFormProps) {
             });
 
             if (res.success) {
-                toast.success('Corte de caja realizado exitosamente');
+                toast.success("CORTE DE CAJA REALIZADO EXITOSAMENTE");
                 setShowConfirm(false);
                 form.reset();
                 loadState();
                 
                 router.push('/dashboard/finance');
             } else {
-                toast.error('Error al realizar corte: ' + res.message);
+                toast.error("ERROR AL REALIZAR CORTE: " + res.message?.toUpperCase());
             }
         });
     };
@@ -314,7 +314,7 @@ export function CashCutForm({ branchId, userId }: CashCutFormProps) {
                             className="h-9 w-full max-w-sm rounded-[6px] bg-[#ea580c] hover:bg-[#c2410a] text-white font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] border border-white"
                         >
                             {isPending ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
-                            Finalizar y Cerrar Caja
+                            FINALIZAR Y CERRAR CAJA
                         </button>
                     </div>
 
@@ -330,13 +330,13 @@ export function CashCutForm({ branchId, userId }: CashCutFormProps) {
                             <div className="w-12 h-12 bg-orange-500/10 rounded-full flex items-center justify-center mb-3">
                                 <AlertTriangle size={24} className="text-orange-500" />
                             </div>
-                            <h3 className="text-lg font-black text-slate-900 mb-1">¿Confirmar Corte?</h3>
-                            <p className="text-xs font-medium text-slate-500 mb-2">
-                                Efectivo f\u00EDsico total aportado: <b className="text-slate-900">{formatCurrency(efectivoReal)}</b>
+                            <h3 className="text-lg font-black text-slate-900 mb-1 uppercase tracking-tighter">\u00BFCONFIRMAR CORTE?</h3>
+                            <p className="text-xs font-medium text-slate-500 mb-2 uppercase">
+                                EFECTIVO F\u00CDSICO TOTAL APORTADO: <b className="text-slate-900">{formatCurrency(efectivoReal)}</b>
                             </p>
-                            {diferencia !== 0 && (
-                                <div className={cn("px-3 py-1.5 rounded-lg text-xs font-bold", diferencia < 0 ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700")}>
-                                    Diferencia: {formatCurrency(diferencia)}
+                              {diferencia !== 0 && (
+                                <div className={cn("px-3 py-1.5 rounded-lg text-xs font-bold uppercase", diferencia < 0 ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700")}>
+                                    DIFERENCIA: {formatCurrency(diferencia)}
                                 </div>
                             )}
                         </div>
@@ -349,7 +349,7 @@ export function CashCutForm({ branchId, userId }: CashCutFormProps) {
                                     className="flex-1 h-10 rounded-lg font-black uppercase tracking-widest text-[10px]"
                                     disabled={isPending}
                                 >
-                                    Revisar
+                                    REVISAR
                                 </Button>
                                 <Button 
                                     onClick={handleConfirm}
@@ -357,7 +357,7 @@ export function CashCutForm({ branchId, userId }: CashCutFormProps) {
                                     disabled={isPending}
                                 >
                                     {isPending ? <Loader2 size={14} className="animate-spin mr-2" /> : <CheckCircle2 size={14} className="mr-2" />}
-                                    S\u00ed, Cerrar Caja
+                                    S\u00CD, CERRAR CAJA
                                 </Button>
                             </div>
                         </div>

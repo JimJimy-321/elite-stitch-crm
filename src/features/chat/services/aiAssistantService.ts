@@ -62,7 +62,7 @@ export const aiAssistantService = {
             const isStatusQuery = ['estatus', 'status', 'pedido', 'orden', 'mi ropa', 'listo', 'entrega', 'deuda', 'cuanto debo', 'saldo'].some(k => content.toLowerCase().includes(k));
 
             if (isStatusQuery) {
-                return await this.respondStatus(phone, client, branch);
+                return await this.respondStatus(phone, client, branch, content);
             }
 
             // 4. Consulta General (IA Inteligente con Gemini)
@@ -75,45 +75,25 @@ export const aiAssistantService = {
     },
 
     /**
-     * Responde a consultas de estatus de pedidos
+     * Responde a consultas de estatus de pedidos usando la nueva lógica de IA Inteligente (Fase 8)
      */
-    async respondStatus(phone: string, client: any, branch: any) {
-        const { data: tickets, error: tErr } = await supabase.rpc('get_client_tickets_secure', {
-            p_client_id: client.id,
-            p_branch_id: branch.id // FILTRO POR SUCURSAL
-        });
+    async respondStatus(phone: string, client: any, branch: any, originalQuery: string) {
+        const { aiStatusService } = await import('./aiStatusService');
+        
+        const smartResponse = await aiStatusService.getSmartStatus(
+            client.id, 
+            branch.id, 
+            originalQuery, 
+            client.full_name
+        );
 
-        if (tErr || !tickets || tickets.length === 0) {
-            const noOrdersMsg = `¡Hola ${client.full_name}! 👋 Verifiqué en nuestro sistema y no tienes pedidos activos o recientes con nosotros en este momento. Si acabas de dejar algo, es posible que aún lo estemos registrando.`;
-            return await this.sendAndLog(phone, noOrdersMsg, client.id, branch);
+        if (!smartResponse) {
+            // Fallback en caso de error en el servicio de IA
+            const fallbackMsg = `HOLA ${client.full_name}! 👋 ESTOY BUSCANDO LA INFORMACI\u00D3N DE TUS PEDIDOS, PERO TARDAR\u00C9 UN MOMENTO M\u00C1S. UN ENCARGADO TE ATENDER\u00C1 SI TIENES DUDAS URGENTES.`;
+            return await this.sendAndLog(phone, fallbackMsg, client.id, branch);
         }
 
-        let responseText = `¡Hola ${client.full_name}! 👋 Aquí tienes el estatus de tus pedidos:\n\n`;
-
-        tickets.forEach((ticket: any) => {
-            const statusMap: Record<string, string> = {
-                'received': '📥 Recibido',
-                'processing': '🧵 En Proceso',
-                'pending': '🧵 En Proceso',
-                'ready': '✨ ¡Listo para Entrega!',
-                'delivered': '✅ Entregado'
-            };
-
-            const statusLabel = statusMap[ticket.status] || ticket.status;
-            const itemsList = (ticket.ticket_items as any[])?.map(i => i.garment_name).join(', ') || 'Prendas';
-            
-            responseText += `*Orden: ${ticket.ticket_number}*\n`;
-            responseText += `🔹 Detalle: ${itemsList}\n`;
-            responseText += `🔹 Estatus: ${statusLabel}\n`;
-            
-            if (ticket.balance_due > 0) {
-                responseText += `💰 Saldo Pendiente: $${ticket.balance_due}\n`;
-            }
-            responseText += `\n`;
-        });
-
-        responseText += "Si necesitas algo más, aquí estaré. ¡Buen día!";
-        return await this.sendAndLog(phone, responseText, client.id, branch);
+        return await this.sendAndLog(phone, smartResponse, client.id, branch);
     },
 
     /**

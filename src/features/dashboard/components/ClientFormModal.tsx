@@ -172,7 +172,7 @@ export function ClientFormModal({ onClose, onSuccess, initialData, branchId }: C
                         <input
                             {...register('email')}
                             type="email"
-                            placeholder="cliente@ejemplo.com"
+                            placeholder="CLIENTE@EJEMPLO.COM"
                             className={cn(
                                 "w-full bg-slate-50 border-2 rounded-2xl px-10 h-14 font-bold text-slate-700 outline-none transition-all lowercase focus:bg-white",
                                 errors.email ? "border-red-200 focus:border-red-500" : "border-slate-100 focus:border-orange-500"
@@ -190,7 +190,7 @@ export function ClientFormModal({ onClose, onSuccess, initialData, branchId }: C
                     onClick={onClose}
                     className="flex-1 px-8 py-4 rounded-2xl border-2 border-slate-100 font-black text-[10px] uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all"
                 >
-                    Cancelar
+                    CANCELAR
                 </button>
                 <button
                     type="submit"
@@ -202,7 +202,7 @@ export function ClientFormModal({ onClose, onSuccess, initialData, branchId }: C
                     ) : (
                         <>
                             <Save size={18} />
-                            {initialData?.id ? 'Actualizar Cliente' : 'Guardar Cliente'}
+                            {initialData?.id ? 'ACTUALIZAR CLIENTE' : 'GUARDAR CLIENTE'}
                         </>
                     )}
                 </button>

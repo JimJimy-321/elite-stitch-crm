@@ -43,7 +43,7 @@ export function CashCutsHistory({ cuts }: { cuts: any[] }) {
     if (!cuts || cuts.length === 0) {
         return (
             <div className="p-12 text-center text-slate-400 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
-                <p>No hay historial de cortes registrado.</p>
+                <p className="text-[10px] font-black uppercase tracking-widest">NO HAY HISTORIAL DE CORTES REGISTRADO.</p>
             </div>
         );
     }
@@ -85,12 +85,12 @@ export function CashCutsHistory({ cuts }: { cuts: any[] }) {
 
                         {/* Key Metrics Grid */}
                         <div className="space-y-2 mb-6 bg-slate-50/50 p-4 rounded-xl">
-                            <MetricRow label="Efectivo" value={cut.cash_sales} />
-                            <MetricRow label="Tarjeta" value={cut.card_sales} />
-                            <MetricRow label="Transferencia" value={cut.transfer_sales} />
+                            <MetricRow label="EFECTIVO" value={cut.cash_sales} />
+                            <MetricRow label="TARJETA" value={cut.card_sales} />
+                            <MetricRow label="TRANSFERENCIA" value={cut.transfer_sales} />
                             <div className="pt-2 mt-1 border-t border-slate-100">
                                 <MetricRow 
-                                    label="Total Ventas" 
+                                    label="TOTAL VENTAS" 
                                     value={Number(cut.cash_sales || 0) + Number(cut.card_sales || 0) + Number(cut.transfer_sales || 0)} 
                                     highlight 
                                 />
@@ -101,11 +101,11 @@ export function CashCutsHistory({ cuts }: { cuts: any[] }) {
                         <div className="flex gap-2">
                             <Button
                                 variant="outline"
-                                className="flex-1 rounded-xl border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-100 hover:bg-indigo-50 h-10"
+                                className="flex-1 rounded-xl border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-100 hover:bg-indigo-50 h-10 font-black text-[10px] uppercase tracking-widest"
                                 onClick={() => setSelectedCut(cut)}
                             >
                                 <Eye size={16} className="mr-2" />
-                                Detalle
+                                DETALLE
                             </Button>
 
                             {isLatest && (
@@ -135,25 +135,27 @@ export function CashCutsHistory({ cuts }: { cuts: any[] }) {
             <Modal
                 isOpen={!!cutToDelete}
                 onClose={() => setCutToDelete(null)}
-                title="\u00BFAnular Corte de Caja?"
+                title="\u00BFANULAR CORTE DE CAJA?"
                 className="max-w-md"
             >
                 <div className="space-y-4">
                     <div className="flex items-center gap-4 bg-rose-50 p-4 rounded-xl border border-rose-100 text-rose-800">
                         <AlertTriangle className="shrink-0" />
-                        <p className="text-sm font-medium">Esta acci\u00F3n revertir\u00E1 el \u00FAltimo corte. Las ventas volver\u00E1n a estar pendientes.</p>
+                        <p className="text-[10px] font-black uppercase leading-tight tracking-widest">
+                            ESTA ACCI\u00D3N REVERTIR\u00C1 EL \u00DALTIMO CORTE. LAS VENTAS VOLVER\u00C1N A ESTAR PENDIENTES.
+                        </p>
                     </div>
 
                     <div className="flex gap-3 justify-end pt-4">
-                        <Button variant="ghost" onClick={() => setCutToDelete(null)} className="rounded-xl">
-                            Cancelar
+                        <Button variant="ghost" onClick={() => setCutToDelete(null)} className="rounded-xl font-black text-[10px] uppercase tracking-widest">
+                            CANCELAR
                         </Button>
                         <Button
                             onClick={handleDelete}
-                            className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-lg shadow-rose-200"
+                            className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-lg shadow-rose-200 font-black text-[10px] uppercase tracking-widest px-4"
                             disabled={isPending}
                         >
-                            {isPending ? 'Anulando...' : 'S\u00ED, Anular Corte'}
+                            {isPending ? 'ANULANDO...' : 'S\u00CD, ANULAR CORTE'}
                         </Button>
                     </div>
                 </div>

@@ -71,25 +71,37 @@ export async function POST(request: NextRequest) {
                 if (type === 'text') {
                     content = message.text.body;
                 } else if (type === 'image') {
-                    content = message.image.caption || 'Imagen enviada/recibida';
+                    content = message.image.caption || 'IMAGEN RECIBIDA';
                     mediaUrl = `/api/chat/media/${message.image.id}`;
                     mediaType = 'image';
+                } else if (type === 'document') {
+                    content = message.document.caption || message.document.filename || 'DOCUMENTO RECIBIDO';
+                    mediaUrl = `/api/chat/media/${message.document.id}`;
+                    mediaType = 'document';
+                } else if (type === 'video') {
+                    content = message.video.caption || 'VIDEO RECIBIDO';
+                    mediaUrl = `/api/chat/media/${message.video.id}`;
+                    mediaType = 'video';
+                } else if (type === 'audio') {
+                    content = 'NOTA DE VOZ / AUDIO RECIBIDO';
+                    mediaUrl = `/api/chat/media/${message.audio.id}`;
+                    mediaType = 'audio';
                 } else if (type === 'sticker') {
-                    content = 'Sticker';
+                    content = 'STICKER RECIBIDO';
                     mediaUrl = `/api/chat/media/${message.sticker.id}`;
                     mediaType = 'image';
                 } else {
-                    content = `Mensaje de tipo ${type}`;
+                    content = `MENSAJE DE TIPO: ${type.toUpperCase()}`;
                 }
 
-                console.log(`${isEcho ? '[ECO] ' : ''}Mensaje de ${from}: ${content}`);
+                console.log(`${isEcho ? '[ECO] ' : ''}MENSAJE DE ${from}: ${content}`);
 
                 // Procesar mensaje usando el RPC Seguro
                 const phoneNumberId = metadata?.phone_number_id || null;
 
                 const { error: rpcError } = await supabase.rpc('process_incoming_whatsapp', {
                     p_phone: targetPhone,
-                    p_content: content,
+                    p_content: content.toUpperCase(),
                     p_phone_number_id: phoneNumberId,
                     p_media_url: mediaUrl,
                     p_media_type: mediaType,
@@ -100,10 +112,10 @@ export async function POST(request: NextRequest) {
                     console.error('Error in RPC process_incoming_whatsapp:', rpcError);
                 }
 
-                // 🤖 IA RESOLUTIVA (Fase 8)
+                // \ud83e\udd16 IA RESOLUTIVA (FASE 8)
                 // Solo respondemos si NO es un eco (mensaje del cliente)
                 if (!isEcho && content) {
-                    // Ejecutamos en segundo plano para no bloquear el webhook (Meta requiere respuesta rápida)
+                    // Ejecutamos en segundo plano para no bloquear el webhook (Meta requiere respuesta r\u00E1pida)
                     aiAssistantService.handleIncoming(from, content, phoneNumberId)
                         .catch(err => console.error('[AI_HOOK_ERROR]', err));
                 }

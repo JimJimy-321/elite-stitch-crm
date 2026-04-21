@@ -76,8 +76,8 @@ export default async function FinancePage() {
             {/* Header */}
             <div className="flex justify-between items-center pl-2">
                 <div>
-                    <h1 className="text-4xl font-black tracking-tight text-slate-900 mb-2">Finanzas</h1>
-                    <p className="text-slate-500 font-medium">Corte continuo y control de caja</p>
+                    <h1 className="text-4xl font-black tracking-tight text-slate-900 mb-2 uppercase">FINANZAS</h1>
+                    <p className="text-slate-500 font-bold text-sm uppercase tracking-widest">CORTE CONTINUO Y CONTROL DE CAJA</p>
                 </div>
                 <div className="flex gap-3">
                     <ExpenseModal
@@ -96,36 +96,36 @@ export default async function FinancePage() {
             {/* KPIs en tiempo real (Calculated from validation range) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
-                    title="Ventas Totales (Periodo)"
+                    title="VENTAS TOTALES (PERIODO)"
                     value={formatCurrency(totals.grossSales)}
                     icon={<TrendingUp size={24} className="text-indigo-600" />}
                     color="bg-indigo-100"
                     borderColor="border-indigo-300"
-                    subvalue="Desde último corte"
+                    subvalue="DESDE ÚLTIMO CORTE"
                 />
                 <StatCard
-                    title="Efectivo en Caja (Sistema)"
+                    title="EFECTIVO EN CAJA (SISTEMA)"
                     value={formatCurrency(totals.calculatedCash)}
                     icon={<Wallet size={24} className="text-emerald-600" />}
                     color="bg-emerald-100"
                     borderColor="border-emerald-300"
-                    subvalue="Acumulado actual"
+                    subvalue="ACUMULADO ACTUAL"
                 />
                 <StatCard
-                    title="Pagos con Tarjeta/Transferencias"
+                    title="PAGOS CON TARJETA/TRANSFERENCIAS"
                     value={formatCurrency((totals.cardSales || 0) + (totals.transferSales || 0))}
                     icon={<CreditCard size={24} className="text-blue-600" />}
                     color="bg-blue-100"
                     borderColor="border-blue-300"
-                    subvalue="Acumulado tarjeta/Transf."
+                    subvalue="ACUMULADO TARJETA/TRANSF."
                 />
                 <StatCard
-                    title="Gastos (Periodo)"
+                    title="GASTOS (PERIODO)"
                     value={formatCurrency(totals.totalExpenses)}
                     icon={<TrendingDown size={24} className="text-rose-600" />}
                     color="bg-rose-100"
                     borderColor="border-rose-300"
-                    subvalue="Operativos + Retiros"
+                    subvalue="OPERATIVOS + RETIROS"
                 />
             </div>
 
@@ -135,7 +135,7 @@ export default async function FinancePage() {
                     <CashCutForm branchId={branchId} userId={user.id} />
 
                     <div className="space-y-4">
-                        <h3 className="text-xl font-bold text-slate-800 pl-2">Historial de Cortes</h3>
+                        <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 pl-2">HISTORIAL DE CORTES</h3>
                         <CashCutsHistory cuts={history} />
                     </div>
                 </div>
@@ -144,14 +144,14 @@ export default async function FinancePage() {
                 <div className="space-y-6">
                     <Card className="border-none shadow-xl bg-slate-900 rounded-[2rem]">
                         <CardContent className="p-6">
-                            <h3 className="text-lg font-bold text-slate-300 mb-6 flex items-center gap-2">
+                            <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-300 mb-6 flex items-center gap-2">
                                 <Activity size={20} className="text-slate-400" />
-                                Movimientos del Periodo
+                                MOVIMIENTOS DEL PERIODO
                             </h3>
 
                             <div className="space-y-4">
                                 {cashState?.transactions?.expenses?.length === 0 && (
-                                    <p className="text-slate-400 text-center py-4">No hay gastos registrados</p>
+                                    <p className="text-slate-400 text-center py-4 text-[10px] font-black uppercase tracking-widest">NO HAY GASTOS REGISTRADOS</p>
                                 )}
                                 {cashState?.transactions?.expenses?.map((mov: any) => (
                                     <div key={mov.id} className="flex justify-between items-center p-3 bg-white rounded-xl border border-slate-100 shadow-sm">

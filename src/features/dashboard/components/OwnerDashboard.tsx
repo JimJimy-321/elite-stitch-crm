@@ -63,18 +63,18 @@ export function OwnerDashboard({ user }: Props) {
         <div className="space-y-8 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-col gap-2">
-                    <h1 className="text-3xl font-black tracking-tight text-foreground">Bienvenido, {firstName}</h1>
-                    <p className="text-muted-foreground text-sm font-medium">Resumen consolidado de <span className="text-orange-600 font-bold">{branchData.length || 0}</span> sedes activas.</p>
+                    <h1 className="text-3xl font-black tracking-tight text-foreground uppercase">BIENVENIDO, {firstName}</h1>
+                    <p className="text-muted-foreground text-sm font-medium uppercase tracking-tight">RESUMEN CONSOLIDADO DE <span className="text-orange-600 font-bold">{branchData.length || 0}</span> SEDES ACTIVAS.</p>
                 </div>
                 <div className="bg-orange-500/5 border border-orange-500/10 px-4 py-2 rounded-2xl flex items-center gap-3">
                     <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-orange-600">Datos en Tiempo Real: HOY (Corte Activo)</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-orange-600">DATOS EN TIEMPO REAL: HOY (CORTE ACTIVO)</span>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <KPICard
-                    title="Venta Bruta (Notas Hoy)"
+                    title="VENTA BRUTA (NOTAS HOY)"
                     value={formatCurrency(financials?.grossSales || 0)}
                     change="HOY"
                     isPositive={true}
@@ -83,7 +83,7 @@ export function OwnerDashboard({ user }: Props) {
                     border="border-orange-500 shadow-orange-100"
                 />
                 <KPICard
-                    title="Cobranza Real (Caja Hoy)"
+                    title="COBRANZA REAL (CAJA HOY)"
                     value={formatCurrency(financials?.income || 0)}
                     change="HOY"
                     isPositive={true}
@@ -92,16 +92,16 @@ export function OwnerDashboard({ user }: Props) {
                     border="border-emerald-500 shadow-emerald-100"
                 />
                 <KPICard
-                    title="Cuentas por Cobrar"
+                    title="CUENTAS POR COBRAR"
                     value={formatCurrency(stats?.totalReceivable || 0)}
-                    change="Total"
+                    change="TOTAL"
                     isPositive={true}
                     icon={Clock}
                     color="blue"
                     border="border-blue-500 shadow-blue-100"
                 />
                 <KPICard
-                    title="Gastos (Corte Activo)"
+                    title="GASTOS (CORTE ACTIVO)"
                     value={formatCurrency(financials?.expense || 0)}
                     change="HOY"
                     isPositive={false}
@@ -115,8 +115,8 @@ export function OwnerDashboard({ user }: Props) {
                 <div className="lg:col-span-2 glass-card p-8 shadow-2xl border-none">
                     <div className="flex items-center justify-between mb-8">
                         <div>
-                            <h3 className="font-black text-foreground uppercase text-[11px] tracking-[0.2em] mb-1">Flujo de Ingresos Semanal</h3>
-                            <p className="text-xs text-muted-foreground font-medium">Consolidado todas las sedes</p>
+                            <h3 className="font-black text-foreground uppercase text-[11px] tracking-[0.2em] mb-1">FLUJO DE INGRESOS SEMANAL</h3>
+                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-tighter">CONSOLIDADO TODAS LAS SEDES</p>
                         </div>
                         <button className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
                             <MoreHorizontal size={20} className="text-muted-foreground" />
@@ -172,7 +172,7 @@ export function OwnerDashboard({ user }: Props) {
                 </div>
 
                 <div className="glass-card p-8 border-none shadow-2xl bg-gradient-to-b from-card to-background">
-                    <h3 className="font-black text-foreground uppercase text-[11px] tracking-[0.2em] mb-8">Venta Bruta por Sede (HOY)</h3>
+                    <h3 className="font-black text-foreground uppercase text-[11px] tracking-[0.2em] mb-8">VENTA BRUTA POR SEDE (HOY)</h3>
                     <div className="space-y-8">
                         {loading ? (
                              [1,2,3,4].map(i => (
@@ -205,12 +205,12 @@ export function OwnerDashboard({ user }: Props) {
                     </div>
 
                     <div className="mt-10 p-5 bg-orange-500/5 rounded-2xl border border-orange-500/10 border-l-4 border-l-orange-500">
-                        <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-2">Insight IA</p>
-                        <p className="text-xs text-muted-foreground leading-relaxed font-medium">
+                        <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-2">INSIGHT IA</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed font-medium uppercase tracking-tighter">
                             {strongestBranch ? (
-                                <>Tu sede m\u00e1s fuerte hoy es <span className="text-foreground font-bold font-black italic">"{strongestBranch.name}"</span>, con una venta bruta de <span className="text-orange-600 font-black">{formatCurrency(strongestBranch.grossSales)}</span>.</>
+                                <>TU SEDE M\u00C1S FUERTE HOY ES <span className="text-foreground font-black italic">"{strongestBranch.name?.toUpperCase()}"</span>, CON UNA VENTA BRUTA DE <span className="text-orange-600 font-black">{formatCurrency(strongestBranch.grossSales)}</span>.</>
                             ) : (
-                                "Inicia operaciones en tus sedes para recibir insights hoy."
+                                "INICIA OPERACIONES EN TUS SEDES PARA RECIBIR INSIGHTS HOY."
                             )}
                         </p>
                     </div>

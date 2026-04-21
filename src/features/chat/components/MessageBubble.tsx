@@ -32,6 +32,12 @@ export function MessageBubble({ message }: Props) {
                                         alt={message.content}
                                         className="max-w-full h-auto object-contain rounded"
                                     />
+                                ) : message.media_type === 'video' ? (
+                                    <video src={message.media_url} controls className="max-w-full rounded" />
+                                ) : message.media_type === 'audio' ? (
+                                    <div className="w-full min-w-[200px]">
+                                        <audio src={message.media_url} controls className="w-full h-8" />
+                                    </div>
                                 ) : (
                                     <div className="flex items-center gap-2 p-3 bg-white/50 w-full rounded">
                                         <FileText className="w-8 h-8 text-orange-500" />
@@ -42,7 +48,7 @@ export function MessageBubble({ message }: Props) {
                                                 rel="noopener noreferrer"
                                                 className="text-[9px] text-blue-500 font-black uppercase hover:underline"
                                             >
-                                                Descargar
+                                                DESCARGAR ARCHIVO
                                             </a>
                                         </div>
                                     </div>

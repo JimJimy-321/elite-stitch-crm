@@ -143,11 +143,11 @@ export function ManagerDashboard({ user: initialUser }: Props) {
 
 
                 <div className="space-y-2">
-                    <h1 className="text-4xl font-black tracking-tighter text-slate-900 flex items-center gap-4">
-                        Centro de Control <span className="text-orange-500">{isMonitorMode ? 'de Sede' : 'Operativo'}</span>
+                    <h1 className="text-4xl font-black tracking-tighter text-slate-900 flex items-center gap-4 uppercase">
+                        CENTRO DE CONTROL <span className="text-orange-500">{isMonitorMode ? 'DE SEDE' : 'OPERATIVO'}</span>
                     </h1>
                     <p className="text-slate-500 font-bold text-sm uppercase tracking-widest">
-                        {isMonitorMode ? `Monitoreando: ${monitoredBranch?.name}` : 'SastrePro Intelligence v3.0'}
+                        {isMonitorMode ? `MONITOREANDO: ${monitoredBranch?.name?.toUpperCase()}` : 'SASTREPRO INTELLIGENCE V3.0'}
                     </p>
                 </div>
 
@@ -156,7 +156,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                         <Search className="text-slate-300" size={20} />
                         <input
                             type="text"
-                            placeholder="Buscar notas o clientes..."
+                            placeholder="BUSCAR NOTAS O CLIENTES..."
                             className="bg-transparent border-none outline-none text-sm font-bold w-full uppercase placeholder:text-slate-300"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value.toUpperCase())}
@@ -189,11 +189,11 @@ export function ManagerDashboard({ user: initialUser }: Props) {
 
             {/* Dashboard Speed Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                <KPICard title="Venta Bruta (Notas)" value={formatCurrency(financials?.grossSales || 0)} icon={Plus} color="orange" border="border-[3px] border-orange-500 shadow-orange-100" />
-                <KPICard title="Cobranza Real" value={formatCurrency(financials?.income || 0)} icon={TrendingUp} color="emerald" border="border-[3px] border-emerald-500 shadow-emerald-100" />
-                <KPICard title="Efectivo en Caja" value={formatCurrency(financials?.netCash || 0)} icon={Activity} color="emerald" border="border-[3px] border-slate-300 shadow-sm" />
-                <KPICard title="Pagos Tarjeta/Transf." value={formatCurrency((financials?.breakdown?.methods?.card || 0) + (financials?.breakdown?.methods?.transfer || 0))} icon={CreditCard} color="blue" border="border-[3px] border-blue-500 shadow-blue-100" />
-                <KPICard title="Gastos (Periodo)" value={formatCurrency(financials?.expense || 0)} icon={TrendingDown} color="rose" border="border-[3px] border-rose-500 shadow-rose-100" />
+                <KPICard title="VENTA BRUTA (NOTAS)" value={formatCurrency(financials?.grossSales || 0)} icon={Plus} color="orange" border="border-[3px] border-orange-500 shadow-orange-100" />
+                <KPICard title="COBRANZA REAL" value={formatCurrency(financials?.income || 0)} icon={TrendingUp} color="emerald" border="border-[3px] border-emerald-500 shadow-emerald-100" />
+                <KPICard title="EFECTIVO EN CAJA" value={formatCurrency(financials?.netCash || 0)} icon={Activity} color="emerald" border="border-[3px] border-slate-300 shadow-sm" />
+                <KPICard title="PAGOS TARJETA/TRANSF." value={formatCurrency((financials?.breakdown?.methods?.card || 0) + (financials?.breakdown?.methods?.transfer || 0))} icon={CreditCard} color="blue" border="border-[3px] border-blue-500 shadow-blue-100" />
+                <KPICard title="GASTOS (PERIODO)" value={formatCurrency(financials?.expense || 0)} icon={TrendingDown} color="rose" border="border-[3px] border-rose-500 shadow-rose-100" />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-10">
@@ -201,9 +201,9 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                 <div className="xl:col-span-3 space-y-6">
                     <div className="flex items-center justify-between px-4">
                         <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 flex items-center gap-3">
-                            <Activity size={16} className="text-orange-500" /> Cola de Trabajo Activa
+                            <Activity size={16} className="text-orange-500" /> COLA DE TRABAJO ACTIVA
                         </h2>
-                        <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-3 py-1 rounded-full">{activeQueue.length} \u00D3rdenes</span>
+                        <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-3 py-1 rounded-full uppercase">{activeQueue.length} \u00D3RDENES</span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
@@ -223,7 +223,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                         ) : (
                             <div className="col-span-full py-20 text-center bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-100">
                                 <Package className="mx-auto text-slate-200 mb-4" size={48} />
-                                <p className="text-[11px] font-black uppercase text-slate-400 tracking-widest">No hay notas activas</p>
+                                <p className="text-[11px] font-black uppercase text-slate-400 tracking-widest">NO HAY NOTAS ACTIVAS</p>
                             </div>
                         )}
                     </div>
@@ -232,7 +232,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                         onClick={() => router.push(`/dashboard/notas?branchId=${initialUser?.assigned_branch_id}`)}
                         className="w-full py-6 text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 hover:text-orange-600 transition-all group flex items-center justify-center gap-3"
                     >
-                        Ver todas las notas <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                        VER TODAS LAS NOTAS <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                     </button>
                 </div>
 
@@ -242,7 +242,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                     <div className="glass-card p-8 border-none shadow-2xl bg-white rounded-[2.5rem] relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full -mr-16 -mt-16 blur-2xl" />
                         <h3 className="font-black text-slate-900 uppercase text-[11px] tracking-[0.2em] mb-6 flex items-center gap-3">
-                            Express / Hoy
+                            EXPRESS / HOY
                             <span className="w-2 h-2 bg-orange-500 rounded-full animate-ping" />
                         </h3>
                         <div className="space-y-4">
@@ -271,7 +271,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                     {/* Retrasados */}
                     {overdueNotas.length > 0 && (
                         <div className="glass-card p-8 border-none shadow-2xl bg-rose-50 rounded-[2.5rem]">
-                            <h3 className="font-black text-rose-600 uppercase text-[11px] tracking-[0.2em] mb-6">Retrasados / Vencidos</h3>
+                            <h3 className="font-black text-rose-600 uppercase text-[11px] tracking-[0.2em] mb-6">RETRASADOS / VENCIDOS</h3>
                             <div className="space-y-4">
                                 {overdueNotas.map((t: any) => (
                                     <div key={t.id} onClick={() => { setSelectedNota(t); setIsDetailModalOpen(true); }} className="p-4 bg-white/80 border border-rose-100 rounded-2xl hover:shadow-lg transition-all cursor-pointer group">
@@ -508,10 +508,10 @@ function KPICard({ title, value, icon: Icon, color, border }: any) {
 
 function QuickNotaCard({ nota, onClick }: { nota: any, onClick: () => void }) {
     const statusMap: Record<string, { label: string, color: string, bg: string }> = {
-        received: { label: 'Recibido', color: 'text-amber-600', bg: 'bg-amber-100' },
-        processing: { label: 'En Proceso', color: 'text-orange-600', bg: 'bg-orange-100' },
-        ready: { label: 'Listo', color: 'text-emerald-600', bg: 'bg-emerald-100' },
-        delivered: { label: 'Entregado', color: 'text-slate-600', bg: 'bg-slate-100' }
+        received: { label: 'RECIBIDO', color: 'text-amber-600', bg: 'bg-amber-100' },
+        processing: { label: 'EN PROCESO', color: 'text-orange-600', bg: 'bg-orange-100' },
+        ready: { label: 'LISTO', color: 'text-emerald-600', bg: 'bg-emerald-100' },
+        delivered: { label: 'ENTREGADO', color: 'text-slate-600', bg: 'bg-slate-100' }
     };
     const status = statusMap[nota.status] || statusMap.received;
 
@@ -533,7 +533,7 @@ function QuickNotaCard({ nota, onClick }: { nota: any, onClick: () => void }) {
             {nota.items?.some((i: any) => i.priority === 'express') && (
                 <div className="absolute top-0 right-0">
                     <div className="bg-red-500 text-white text-[6px] font-black px-3 py-0.5 rotate-45 translate-x-3 -translate-y-1 shadow-lg uppercase tracking-widest">
-                        Express
+                        EXPRESS
                     </div>
                 </div>
             )}

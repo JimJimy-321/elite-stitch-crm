@@ -63,3 +63,9 @@ Thumbs.db
 # Supabase
 supabase/.branches
 supabase/.temp
+
+# Testing & Local Reports
+/playwright-report
+/test-results
+/playwright/.cache
+tsconfig.tsbuildinfo

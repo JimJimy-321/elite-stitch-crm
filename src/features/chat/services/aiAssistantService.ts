@@ -24,7 +24,7 @@ export const aiAssistantService = {
     async handleIncoming(phone: string, content: string, phoneNumberId: string, whatsappId?: string) {
         if (!this.shouldRespond(content)) return null;
 
-        // 0. Prevenci\u00f3n de Duplicados (Idempotencia)
+        // 0. Prevención de Duplicados (Idempotencia)
         if (whatsappId) {
             const { data: existing } = await supabase
                 .from('chat_messages')
@@ -41,7 +41,7 @@ export const aiAssistantService = {
         console.log(`[AI_ASSISTANT] Procesando consulta para: ${phone}`);
 
         try {
-            // 1. Obtener Configuraraci\u00f3n Din\u00e1mica del Agente
+            // 1. Obtener Configuración Dinámica del Agente
             const { data: agentConfig } = await supabase
                 .from('agent_configs')
                 .select('*')
@@ -171,22 +171,22 @@ INSTRUCCIONES DE RESPUESTA:
 
             if (!text) throw new Error('No response from AI');
 
-            // 4. Detección de Handoff en el texto generado
-            const handoffLower = text.toLowerCase();
-            const needsHuman = handoffLower.includes('encargado') || 
-                              handoffLower.includes('pronto') || 
-                              handoffLower.includes('paciencia') || 
-                              handoffLower.includes('atender');
-
-            if (needsHuman) {
-                console.log(`[AI_ASSISTANT] Handoff detectado en respuesta de IA para: ${phone}`);
-                await this.markForHuman(client.id, branch.id, "AI_SUGGESTED_HANDOFF");
-            }
-
+            // 4. Enviamos la respuesta generada
             return await this.sendAndLog(phone, text, client.id, branch);
 
         } catch (error) {
             console.error('[AI_ASSISTANT_GEMINI] Error Generando Texto:', error);
+            
+            // Loguear error para diagnóstico en DB
+            await supabase.rpc('log_webhook_payload', {
+                p_webhook_type: 'AI_ERROR',
+                p_payload: { 
+                    error: error instanceof Error ? error.message : String(error),
+                    phone,
+                    content
+                }
+            });
+
             // Fallback a handoff si la IA falla
             return await this.handleHandoff(phone, branch, content, client.id, client.full_name);
         }
@@ -264,4 +264,3 @@ INSTRUCCIONES DE RESPUESTA:
         return sendResult;
     }
 };
-

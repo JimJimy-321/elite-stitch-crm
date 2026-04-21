@@ -12,6 +12,7 @@ export interface AgentConfig {
     knowledge_base: string;
     welcome_message: string;
     response_style: string;
+    google_api_key: string;
 }
 
 export const aiAgentService = {

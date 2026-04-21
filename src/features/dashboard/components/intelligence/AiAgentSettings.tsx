@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Brain, Save, Info, Power, BookOpen, MessageSquare, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Brain, Save, Info, Power, BookOpen, MessageSquare, AlertTriangle, CheckCircle2, Key } from 'lucide-react';
 import { aiAgentService, AgentConfig } from '@/features/chat/services/aiAgentService';
 import { toast } from 'sonner';
 
@@ -147,6 +147,29 @@ export function AiAgentSettings({ organizationId }: AiAgentSettingsProps) {
                                         Pro tip: El agente usar\u00e1 esta informaci\u00f3n para responder preguntas espec\u00edficas antes de derivar a un humano.
                                     </p>
                                 </div>
+                            </div>
+
+                            <div className="space-y-2 pt-4 border-t border-border/50">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                    <Key size={14} className="text-amber-500" />
+                                    Google Gemini API Key (Producci\u00f3n)
+                                </label>
+                                <div className="relative group">
+                                    <input 
+                                        type="password"
+                                        className="w-full bg-secondary/30 border border-border rounded-2xl p-4 text-xs font-mono focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all"
+                                        placeholder="AIzaSy..."
+                                        value={currentConfig?.google_api_key || ''}
+                                        onChange={(e) => handleUpdate({ google_api_key: e.target.value })}
+                                    />
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                        <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+                                        <span className="text-[8px] font-black uppercase text-emerald-600 tracking-tighter">Activa</span>
+                                    </div>
+                                </div>
+                                <p className="text-[9px] text-muted-foreground leading-relaxed italic">
+                                    Esta llave se guarda encriptada y habilita la IA en el entorno de producci\u00f3n de SastrePro.
+                                </p>
                             </div>
                         </div>
                     </div>

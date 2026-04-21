@@ -1,7 +1,7 @@
 import { supabaseWebhookClient as supabase } from '@/lib/supabase/webhook';
 import { whatsappService } from './whatsappService';
 import { generateText } from 'ai';
-import { google } from '@ai-sdk/google';
+import { createGoogleGenerativeAI, google as defaultGoogle } from '@ai-sdk/google';
 
 /**
  * AI Assistant Service - SastrePro
@@ -162,22 +162,29 @@ INSTRUCCIONES DE RESPUESTA:
 4. Si el cliente parece enojado o satisfecho, adapta tu tono.
 5. Responde SIEMPRE en español.`;
 
-            // 3. Verificación de API Key (Diagnóstico)
-            if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-                console.error('[AI_ASSISTANT] ERROR: GOOGLE_GENERATIVE_AI_API_KEY is missing');
+            // 3. Verificación y Configuración de API Key
+            const apiKey = agentConfig?.google_api_key || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+
+            if (!apiKey) {
+                console.error('[AI_ASSISTANT] ERROR: Missing Gemini API Key');
                 await supabase.rpc('log_webhook_payload', {
                     p_payload: { 
                         diagnostics: 'AI_DIAGNOSTICS',
-                        error: 'GOOGLE_GENERATIVE_AI_API_KEY is null or undefined in production environment',
+                        error: 'Gemini API Key is missing (neither in DB nor in Env)',
                         context: 'aiAssistantService.respondGeneral'
                     }
                 });
                 throw new Error('Missing Google AI API Key');
             }
 
+            // Crear el modelo con la llave detectada
+            const googleProvider = createGoogleGenerativeAI({
+                apiKey: apiKey
+            });
+
             // 4. Generar respuesta con Gemini
             const { text } = await generateText({
-                model: google('gemini-1.5-flash') as any,
+                model: googleProvider('gemini-1.5-flash') as any,
                 system: systemPrompt,
                 prompt: content,
             });
@@ -192,8 +199,8 @@ INSTRUCCIONES DE RESPUESTA:
             
             // Loguear error para diagnóstico en DB
             await supabase.rpc('log_webhook_payload', {
-                p_webhook_type: 'AI_ERROR',
                 p_payload: { 
+                    type: 'AI_ERROR',
                     error: error instanceof Error ? error.message : String(error),
                     phone,
                     content

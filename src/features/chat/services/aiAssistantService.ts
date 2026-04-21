@@ -61,7 +61,7 @@ export const aiAssistantService = {
                 return null;
             }
 
-            // Verificar si el asistente est\u00e1 activo (ya sea en metadata o en la nueva tabla)
+            // Verificar si el asistente está activo (ya sea en metadata o en la nueva tabla)
             const aiEnabled = agentConfig?.is_active ?? (branch.metadata?.ai_enabled !== false); 
             if (!aiEnabled) return null;
 
@@ -111,7 +111,7 @@ export const aiAssistantService = {
 
         if (!smartResponse) {
             // Fallback en caso de error en el servicio de IA
-            const fallbackMsg = `HOLA ${client.full_name}! 👋 ESTOY BUSCANDO LA INFORMACI\u00D3N DE TUS PEDIDOS, PERO TARDAR\u00C9 UN MOMENTO M\u00C1S. UN ENCARGADO TE ATENDER\u00C1 SI TIENES DUDAS URGENTES.`;
+            const fallbackMsg = `HOLA ${client.full_name}! 👋 ESTOY BUSCANDO LA INFORMACION DE TUS PEDIDOS, PERO TARDARE UN MOMENTO MAS. UN ENCARGADO TE ATENDERA SI TIENES DUDAS URGENTES.`;
             return await this.sendAndLog(phone, fallbackMsg, client.id, branch);
         }
 
@@ -134,37 +134,37 @@ export const aiAssistantService = {
 
             // 3. Obtener Conocimiento Personalizado
             const customKnowledge = agentConfig?.knowledge_base || '';
-            const customSystemPrompt = agentConfig?.system_prompt || `Eres el Asistente IA de "${branch.name}", una sastrer\u00eda profesional de alta costura.`;
+            const customSystemPrompt = agentConfig?.system_prompt || `Eres el Asistente IA de "${branch.name}", una sastrería profesional de alta costura.`;
 
             // 4. Construir Prompt del Sistema Enriquecido
             const systemPrompt = `${customSystemPrompt}
 
 OBJETIVO: 
 Ser amable, eficiente y profesional. Conversa con el cliente de forma natural. 
-NO digas "perm\u00edtame un momento" o "le enviar\u00e9 su solicitud" a menos que sea estrictamente necesario (ej: quejas graves). 
-Intenta siempre resolver la duda t\u00fa primero.
+NO digas "permítame un momento" o "le enviaré su solicitud" a menos que sea estrictamente necesario (ej: quejas graves). 
+Intenta siempre resolver la duda tú primero.
 
 CONTEXTO DE LA SUCURSAL:
 - Sucursal: ${branch.name}
-- Direcci\u00f3n: ${branch.address || 'Favor de preguntar por este canal'}
-- Horarios: ${JSON.stringify(branch.business_hours || 'Lunes a Viernes 9am-7pm, S\u00e1bados 9am-2pm')}
+- Dirección: ${branch.address || 'Favor de preguntar por este canal'}
+- Horarios: ${JSON.stringify(branch.business_hours || 'Lunes a Viernes 9am-7pm, Sábados 9am-2pm')}
 
 BASE DE CONOCIMIENTO EXTRA:
 ${customKnowledge}
 
-CAT\u00c1LOGO DE SERVICIOS Y PRECIOS:
+CATÁLOGO DE SERVICIOS Y PRECIOS:
 ${servicesContext}
 
 INSTRUCCIONES DE RESPUESTA:
-1. Responde de forma concisa (m\u00e1ximo 2-3 p\u00e1rrafos cortos).
-2. Si preguntan por precios, usa el cat\u00e1logo. Si no est\u00e1, indica que necesitas ver la prenda para cotizar.
+1. Responde de forma concisa (máximo 2-3 párrafos cortos).
+2. Si preguntan por precios, usa el catálogo. Si no está, indica que necesitas ver la prenda para cotizar.
 3. El cliente se llama ${client.full_name}.
 4. Si el cliente parece enojado o satisfecho, adapta tu tono.
-5. Responde SIEMPRE en espa\u00f1ol.`;
+5. Responde SIEMPRE en español.`;
 
             // 3. Generar respuesta con Gemini
             const { text } = await generateText({
-                model: google('gemini-2.0-flash-001') as any,
+                model: google('gemini-1.5-flash') as any,
                 system: systemPrompt,
                 prompt: content,
             });
@@ -186,7 +186,7 @@ INSTRUCCIONES DE RESPUESTA:
             return await this.sendAndLog(phone, text, client.id, branch);
 
         } catch (error) {
-            console.error('[AI_ASSISTANT_GEMINI] Error:', error);
+            console.error('[AI_ASSISTANT_GEMINI] Error Generando Texto:', error);
             // Fallback a handoff si la IA falla
             return await this.handleHandoff(phone, branch, content, client.id, client.full_name);
         }
@@ -203,8 +203,8 @@ INSTRUCCIONES DE RESPUESTA:
             await this.markForHuman(clientId, branch.id, "FAILED_OR_COMPLEX");
         }
 
-        // Si la IA fall\u00f3 por completo, enviamos un mensaje de espera
-        const fallbackMsg = `Hola ${clientName || 'Estimado Cliente'}, le enviar\u00e9 su solicitud al encargado de la sucursal, perm\u00edtame un momento por favor, gracias.`;
+        // Si la IA falló por completo, enviamos un mensaje de espera
+        const fallbackMsg = `Hola ${clientName || 'Estimado Cliente'}, le enviaré su solicitud al encargado de la sucursal, permítame un momento por favor, gracias.`;
         return await this.sendAndLog(phone, fallbackMsg, clientId || '', branch);
     },
 

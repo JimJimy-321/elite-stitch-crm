@@ -153,7 +153,7 @@ export default function MarketingPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-1">
                     <h1 className="text-4xl font-black italic text-slate-900 tracking-tight flex items-center gap-3">
-                        MARKETING <span className="text-orange-600">& FIDELIZACI\u00D3N</span>
+                        MARKETING <span className="text-orange-600">& FIDELIZACIÓN</span>
                     </h1>
                     <p className="text-slate-500 font-medium tracking-tight">Crea promociones y gestiona tus plantillas de WhatsApp para automatizar tu negocio.</p>
                 </div>
@@ -181,7 +181,7 @@ export default function MarketingPage() {
                             : "text-slate-400 hover:text-slate-600"
                     )}
                 >
-                    <Tag size={18} /> Campa\u00F1as
+                    <Tag size={18} /> Campañas
                 </button>
                 <button 
                     onClick={() => setActiveTab('templates')}
@@ -208,13 +208,13 @@ export default function MarketingPage() {
                         
                         <div className="relative z-10 space-y-8">
                             <div className="space-y-2">
-                                <h2 className="text-2xl font-black italic">Nueva Campa\u00F1a</h2>
+                                <h2 className="text-2xl font-black italic">Nueva Campaña</h2>
                                 <p className="text-slate-400 text-sm font-medium">Lanza una promoción en segundos para tus sucursales.</p>
                             </div>
 
                             <div className="space-y-4">
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase text-slate-500 ml-2">Nombre de la Promoci\u00F3n</label>
+                                    <label className="text-[10px] font-black uppercase text-slate-500 ml-2">Nombre de la Promoción</label>
                                     <input 
                                         placeholder="Ej: Regalo por Apertura"
                                         className="w-full bg-slate-800 border-none rounded-2xl px-4 py-4 text-white placeholder:text-slate-600 font-bold focus:ring-2 focus:ring-orange-500 transition-all outline-none"
@@ -617,7 +617,7 @@ export default function MarketingPage() {
                                 <h3 className="text-2xl font-black italic uppercase tracking-tight">
                                     {selectedTemplate ? 'Editar Plantilla' : 'Registrar Plantilla'}
                                 </h3>
-                                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mt-1">Configuraci\u00F3n de IDs (Detecci\u00F3n Manual/Auto)</p>
+                                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mt-1">Configuración de IDs (Detección Manual/Auto)</p>
                             </div>
                             <button onClick={() => setIsTemplateModalOpen(false)} className="p-3 hover:bg-white rounded-2xl transition-all shadow-sm">
                                 <X size={20} />

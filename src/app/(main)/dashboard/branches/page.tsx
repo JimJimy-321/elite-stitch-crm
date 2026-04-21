@@ -364,11 +364,9 @@ export default function BranchesPage() {
                 friendlyName
             );
 
-            if (result.success && result.device_token) {
+            if (result.success) {
                 saveDeviceToken(result.device_token);
                 toast.success("¡Dispositivo autorizado para esta sucursal!");
-            } else {
-                toast.error(result.error || "No se pudo autorizar el dispositivo.");
             }
         } catch (error: any) {
             toast.error("Error: " + error.message);

@@ -261,14 +261,20 @@ export const dashboardService = {
      * Seguridad: Autoriza el dispositivo actual para una sucursal específica
      */
     async authorizeCurrentDevice(branchId: string, fingerprint: string, friendlyName: string) {
-        const { data, error } = await supabase.rpc('authorize_current_device', {
+        const { error } = await supabase.rpc('authorize_current_device', {
             p_branch_id: branchId,
             p_token_hash: fingerprint,
             p_device_name: friendlyName
         });
 
         if (error) throw error;
-        return data;
+        
+        // La RPC devuelve void, así que construimos la respuesta de éxito manual
+        // El token del dispositivo es el propio fingerprint en este sistema
+        return { 
+            success: true, 
+            device_token: fingerprint 
+        };
     },
 
     /**

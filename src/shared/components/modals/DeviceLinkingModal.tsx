@@ -36,14 +36,12 @@ export function DeviceLinkingModal({ isOpen, onClose }: DeviceLinkingModalProps)
                 friendlyName
             );
 
-            if (result.success && result.device_token) {
+            if (result.success) {
                 saveDeviceToken(result.device_token);
                 toast.success("¡Dispositivo vinculado con éxito!");
                 onClose();
                 // Opcional: Recargar para que el estado global se actualice si es necesario
                 setTimeout(() => window.location.reload(), 1500);
-            } else {
-                toast.error(result.error || "No se pudo vincular el dispositivo.");
             }
         } catch (error: any) {
             toast.error("Error: " + error.message);

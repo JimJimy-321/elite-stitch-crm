@@ -41,7 +41,7 @@ export function ReportZModal({ cutId, isOpen, branchName, preparedBy, onClose }:
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title="Reporte Z Detallado"
+            title="REPORTE Z DETALLADO"
             className="max-w-6xl"
         >
             {loading ? (
@@ -133,11 +133,11 @@ export function ReportZModal({ cutId, isOpen, branchName, preparedBy, onClose }:
                     </div>
 
                     <div className="flex justify-end gap-3">
-                        <Button variant="outline" className="rounded-xl" onClick={() => window.print()}>
-                            <Printer size={16} className="mr-2" /> Imprimir Vista
+                        <Button variant="outline" className="rounded-xl font-black uppercase tracking-widest" onClick={() => window.print()}>
+                            <Printer size={16} className="mr-2" /> IMPRIMIR VISTA
                         </Button>
-                        <Button className="rounded-xl px-10 bg-slate-900" onClick={onClose}>
-                            Cerrar
+                        <Button className="rounded-xl px-10 bg-slate-900 font-black uppercase tracking-widest" onClick={onClose}>
+                            CERRAR
                         </Button>
                     </div>
                 </div>

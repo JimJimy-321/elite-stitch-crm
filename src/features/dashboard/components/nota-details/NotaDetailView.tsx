@@ -103,9 +103,9 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
                                 nota.status === 'ready' ? "bg-emerald-500 text-white" :
                                     nota.status === 'processing' ? "bg-orange-500 text-white" : "bg-amber-500 text-white"
                         )}>
-                            {nota.status === 'delivered' ? 'Entregado' :
-                                nota.status === 'ready' ? 'Listo' :
-                                    nota.status === 'processing' ? 'En Proceso' : 'Recibido'}
+                            {nota.status === 'delivered' ? 'ENTREGADO' :
+                                nota.status === 'ready' ? 'LISTO' :
+                                    nota.status === 'processing' ? 'EN PROCESO' : 'RECIBIDO'}
                         </div>
                         <span className="text-sm font-black text-slate-500 tracking-tight">#{nota.ticket_number}</span>
                         <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
@@ -161,7 +161,7 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
                                             </span>
                                         )}
                                     </div>
-                                    <p className="text-[11px] text-slate-400 font-medium leading-relaxed">{item.description || 'Sin notas adicionales'}</p>
+                                    <p className="text-[11px] text-slate-400 font-bold leading-relaxed uppercase tracking-widest">{item.description || 'SIN NOTAS ADICIONALES'}</p>
                                 </div>
                             </div>
 
@@ -181,7 +181,7 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
                                                     if (error?.includes('costurera')) setError(null);
                                                 }}
                                             >
-                                                <option value="">Asignar Costurera...</option>
+                                                <option value="">ASIGNAR COSTURERA...</option>
                                                 {profiles.map(p => (
                                                     <option key={p.id} value={p.id}>{p.full_name}</option>
                                                 ))}
@@ -205,7 +205,7 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
                                     {item.status === 'finished' && (
                                         <div className="px-6 py-3 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100 flex items-center gap-2">
                                             <CheckCircle2 size={14} />
-                                            Listo
+                                            LISTO
                                         </div>
                                     )}
                                 </div>
@@ -266,9 +266,9 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
                                         value={paymentMethod}
                                         onChange={(e) => setPaymentMethod(e.target.value)}
                                     >
-                                        <option value="efectivo">Efectivo</option>
-                                        <option value="tarjeta">Tarjeta</option>
-                                        <option value="transferencia">Transferencia</option>
+                                        <option value="efectivo">EFECTIVO</option>
+                                        <option value="tarjeta">TARJETA</option>
+                                        <option value="transferencia">TRANSFERENCIA</option>
                                     </select>
                                 </div>
                             </div>
@@ -277,7 +277,7 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
                                 disabled={loading}
                                 className="w-full py-4 bg-orange-500 hover:bg-orange-600 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-xl shadow-orange-500/20 active:scale-95"
                             >
-                                {loading ? 'Procesando...' : 'Registrar Pago'}
+                                {loading ? 'PROCESANDO...' : 'REGISTRAR PAGO'}
                             </button>
                         </div>
                     </div>
@@ -286,8 +286,8 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
                         <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mb-1">
                             <ShieldCheck size={20} />
                         </div>
-                        <h3 className="text-sm font-black uppercase tracking-tight">\u00A1Cuenta Saldada!</h3>
-                        <p className="text-[10px] font-medium opacity-90">No hay saldos pendientes para esta nota.</p>
+                        <h3 className="text-sm font-black uppercase tracking-tight">!CUENTA SALDADA!</h3>
+                        <p className="text-[10px] font-bold opacity-90 uppercase tracking-widest">NO HAY SALDOS PENDIENTES PARA ESTA NOTA.</p>
                     </div>
                 )}
 
@@ -321,7 +321,7 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
                                     : "bg-slate-100 text-slate-400 cursor-not-allowed"
                             )}
                         >
-                            {loading ? 'Confirmando...' : 'Confirmar Entrega Final'}
+                            {loading ? 'CONFIRMANDO...' : 'CONFIRMAR ENTREGA FINAL'}
                             <ChevronRight size={16} />
                         </button>
                     )}

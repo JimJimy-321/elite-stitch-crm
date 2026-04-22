@@ -244,6 +244,16 @@ Liquid Glass, Gradient Mesh, Neumorphism, Bento Grid, Neobrutalism
 - **Fix**: Se cambió el string del modelo a `gemini-2.5-flash` que es la versión actual soportada y funcional. `gemini-2.0-flash` presentaba límites de cuota (Quota exceeded).
 - **Aplicar en**: Creación de nuevos agentes. Evitar quemar en código nombres de modelos viejos; mantenerlos actualizados a las versiones `gemini-2.5-flash` o `gemini-flash-latest`.
 
+### 2026-04-22: Error de Suspensión de Funciones Serverless en Vercel (IA no Responde)
+- **Error**: El bot de IA dejó de responder silenciosamente sin dejar rastro de error (`AI_ERROR`) en la base de datos tras actualizar a `gemini-2.5-flash`. Esto se debe a que Vercel "congela" (suspende) el proceso *inmediatamente* después de que la API de Next.js devuelve la respuesta al webhook de WhatsApp (`return new NextResponse(...)`), cancelando silenciosamente la promesa en segundo plano de generación de texto (que tarda 3-4s).
+- **Fix**: Se agregó `await` a la invocación de `aiAssistantService.handleIncoming(...)` dentro del handler del webhook. El webhook de WhatsApp tiene un límite de 15 segundos para recibir la respuesta `200 OK`, por lo que hacer un `await` de la generación de texto de 3-5 segundos es completamente seguro y previene la cancelación del proceso.
+- **Aplicar en**: Webhooks y endpoints en entornos serverless (Vercel). NUNCA dejar promesas de ejecución prolongada (llamadas a APIs LLM, envíos de correo, etc.) flotando en segundo plano ("fire-and-forget") sin usar `await` o `waitUntil()`, ya que Vercel matará el proceso.
+
+### 2026-04-22: Normalización No Deseada de Texto a Mayúsculas en Chats
+- **Error**: Todos los mensajes enviados por el cliente vía WhatsApp aparecían en el dashboard del sistema en letras MAYÚSCULAS, alterando la legibilidad original.
+- **Fix**: Se eliminó la llamada a `.toUpperCase()` que se le estaba aplicando directamente al contenido del payload en el Webhook de WhatsApp (`src/app/api/webhooks/whatsapp/route.ts`) antes de pasarlo al RPC `process_incoming_whatsapp`. 
+- **Aplicar en**: Al registrar mensajes de chat o inputs directos del usuario final, NUNCA forzar normalización a mayúsculas. Reservar `.toUpperCase()` estrictamente para identificadores de base de datos o corrección de nombres.
+
 ---
 
 *V4: Agent-First. El usuario habla, tú construyes.*

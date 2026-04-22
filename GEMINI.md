@@ -234,6 +234,11 @@ Liquid Glass, Gradient Mesh, Neumorphism, Bento Grid, Neobrutalism
 - **Fix**: Modificar la RPC `log_bot_message` para guardar el ID en la columna JSONB `metadata`. Eliminar el return prematuro en el useEffect de Realtime (`ChatPage.tsx`) suscribiendo al dueño a un canal global o de todas las sucursales cuando su branchId es `null`.
 - **Aplicar en**: Creación y actualización de RPCs (verificar schema actual) y suscripciones a Supabase Realtime que dependan de propiedades que puedan ser nulas para administradores globales.
 
+### 2026-04-22: Crash por Versión de AI SDK y Columna metadata Inexistente
+- **Error**: El bot de IA no respondía y mandaba el mensaje de "fallback" (Handoff). Se detectó en `webhook_logs` un error de versión de Vercel AI SDK: "Unsupported model version v1 for provider...". Adicionalmente, el RPC `log_bot_message` seguía fallando porque intentaba hacer `UPDATE chat_conversations SET metadata = ...` cuando la tabla `chat_conversations` NO TIENE columna `metadata`.
+- **Fix**: Se actualizó `@ai-sdk/google` a la versión `^3.0.64` en `package.json` para ser compatible con `ai` v5+. Se removió el intento de actualizar la columna `metadata` en la tabla `chat_conversations` en el RPC `log_bot_message`.
+- **Aplicar en**: Siempre verificar versiones de AI SDK y confirmar el Schema de la base de datos (con `information_schema.columns`) antes de intentar actualizar columnas dinámicas.
+
 ---
 
 *V4: Agent-First. El usuario habla, tú construyes.*

@@ -308,6 +308,7 @@ export const dashboardService = {
             profile: {
                 id: result.user_id,
                 full_name: result.full_name,
+                email: result.email,
                 role: result.role,
                 branch_id: result.branch_id
             }

@@ -25,20 +25,34 @@ export async function POST(req: Request) {
             );
         }
 
-        // 2. Si es exitoso, necesitamos establecer la sesión de Supabase
-        // NOTA: Como estamos usando una autenticación custom (PIN), s
-        // se asume que el RPC verificó todo. Para "loguear" al usuario en el cliente,
-        // podríamos usar el session_token devuelto si el RPC lo genera, o 
-        // realizar un login administrativo.
+        // 2. Si es exitoso, establecemos una sesión real de Supabase 
+        // para que el RLS y el middleware funcionen correctamente.
+        const supabase = await createClient();
         
-        // OPCIÓN: Si el RPC devolviera un JWT válido, lo establecemos.
-        // Por ahora, redirigimos al dashboard con la intención de que el middleware 
-        // o un estado local reconozca la "sesión de terminal".
-        
+        if (result.profile?.email) {
+            const { error: authError } = await supabase.auth.signInWithPassword({
+                email: result.profile.email,
+                password: 'Staff@2026!'
+            });
+            
+            if (authError) {
+                console.error('[AUTH_PIN_SUPABASE_ERROR]', authError);
+                return NextResponse.json(
+                    { error: 'Error al establecer sesión segura' }, 
+                    { status: 500 }
+                );
+            }
+        } else {
+             return NextResponse.json(
+                { error: 'Perfil de encargado incompleto (sin email asociado)' }, 
+                { status: 400 }
+            );
+        }
+
         return NextResponse.json({
             success: true,
             user: result.profile,
-            redirectUrl: '/dashboard'
+            redirectUrl: '/dashboard/notas'
         });
 
     } catch (error: any) {

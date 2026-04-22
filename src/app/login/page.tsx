@@ -24,13 +24,31 @@ export default function LoginPage() {
     const { signInWithEmail, signOut } = useSupabaseAuth();
 
     useEffect(() => {
-        // Detectar si este dispositivo ya está autorizado para una sucursal
-        const branch = getAuthorizedBranch();
-        if (branch) {
-            setAuthorizedBranchData(branch);
-            setMode('terminal'); // Default a terminal si ya está autorizado
-        }
+        const updateBranch = () => {
+            const branch = getAuthorizedBranch();
+            if (branch) {
+                setAuthorizedBranchData(branch);
+                setMode('terminal');
+            } else {
+                setAuthorizedBranchData(null);
+                setMode('owner');
+            }
+        };
+
+        updateBranch();
+        
+        window.addEventListener('storage', updateBranch);
+        return () => window.removeEventListener('storage', updateBranch);
     }, []);
+
+    const handleModeSwitch = (newMode: LoginMode) => {
+        // Strict separation: If a terminal is authorized, DO NOT allow switching to owner mode.
+        if (authorizedBranch && newMode === 'owner') return;
+        // If NO terminal is authorized, DO NOT allow switching to terminal mode.
+        if (!authorizedBranch && newMode === 'terminal') return;
+        
+        setMode(newMode);
+    };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -92,7 +110,6 @@ export default function LoginPage() {
                 throw new Error(data.error || 'Error de autenticación');
             }
 
-            // Si el login fue exitoso, el API nos devuelve un link de redirección o sesión
             if (data.redirectUrl) {
                 window.location.href = data.redirectUrl;
             } else {
@@ -128,9 +145,10 @@ export default function LoginPage() {
 
                     <div className="grid grid-cols-1 gap-4">
                         <button 
-                            onClick={() => setMode('owner')}
+                            onClick={() => handleModeSwitch('owner')}
                             className={cn(
                                 "flex items-center gap-4 p-6 rounded-3xl border-2 transition-all group",
+                                authorizedBranch ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
                                 mode === 'owner' 
                                     ? "bg-white/5 border-orange-500/50 text-white shadow-xl shadow-orange-500/5" 
                                     : "bg-transparent border-white/5 text-slate-500 hover:bg-white/5"
@@ -144,9 +162,10 @@ export default function LoginPage() {
                         </button>
 
                         <button 
-                            onClick={() => setMode('terminal')}
+                            onClick={() => handleModeSwitch('terminal')}
                             className={cn(
                                 "flex items-center gap-4 p-6 rounded-3xl border-2 transition-all group",
+                                !authorizedBranch ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
                                 mode === 'terminal' 
                                     ? "bg-white/5 border-orange-500/50 text-white shadow-xl shadow-orange-500/5" 
                                     : "bg-transparent border-white/5 text-slate-500 hover:bg-white/5"
@@ -168,14 +187,22 @@ export default function LoginPage() {
                     {/* Botones de modo móvil */}
                     <div className="lg:hidden flex gap-2 mb-12">
                         <button 
-                            onClick={() => setMode('owner')}
-                            className={cn("flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest border-2", mode === 'owner' ? "bg-orange-500 text-white border-orange-500" : "text-slate-400 border-slate-100")}
+                            onClick={() => handleModeSwitch('owner')}
+                            className={cn(
+                                "flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest border-2", 
+                                authorizedBranch ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
+                                mode === 'owner' ? "bg-orange-500 text-white border-orange-500" : "text-slate-400 border-slate-100"
+                            )}
                         >
                             ADMINISTRADOR
                         </button>
                         <button 
-                            onClick={() => setMode('terminal')}
-                            className={cn("flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest border-2", mode === 'terminal' ? "bg-orange-500 text-white border-orange-500" : "text-slate-400 border-slate-100")}
+                            onClick={() => handleModeSwitch('terminal')}
+                            className={cn(
+                                "flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest border-2", 
+                                !authorizedBranch ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
+                                mode === 'terminal' ? "bg-orange-500 text-white border-orange-500" : "text-slate-400 border-slate-100"
+                            )}
                         >
                             PERSONAL
                         </button>

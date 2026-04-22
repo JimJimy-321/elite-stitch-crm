@@ -23,7 +23,9 @@ export default function DashboardLayout({
         </div>
       </div>
     }>
-      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+      <AuthGuard>
+        <DashboardLayoutContent>{children}</DashboardLayoutContent>
+      </AuthGuard>
     </Suspense>
     );
 }
@@ -37,7 +39,7 @@ function DashboardLayoutContent({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [collapsed, setCollapsed] = useState(false);
-  const { user } = useAuthStore();
+  const { user, isInitialized } = useAuthStore();
   const { branches } = useBranches();
 
   const branchId = searchParams.get('branchId');
@@ -45,12 +47,18 @@ function DashboardLayoutContent({
 
   const isSearchHidden = pathname === '/dashboard' || pathname?.startsWith('/dashboard/notas');
 
-  if (!user) return null;
+  if (!isInitialized) return null; // AuthGuard already shows loading
+
+  if (!user) {
+    if (typeof window !== 'undefined') {
+      router.push('/login');
+    }
+    return null;
+  }
 
   const userRole = user.role;
 
   return (
-    <AuthGuard>
       <div className="flex bg-slate-50 min-h-screen text-foreground transition-colors duration-300">
         <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} role={userRole} />
 
@@ -118,7 +126,6 @@ function DashboardLayoutContent({
           </div>
         </main>
       </div>
-    </AuthGuard>
   );
 }
 

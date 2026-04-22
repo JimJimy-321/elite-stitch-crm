@@ -180,7 +180,7 @@ INSTRUCCIONES DE RESPUESTA:
 
             // 4. Generar respuesta con Gemini
             const { text } = await generateText({
-                model: googleProvider('gemini-1.5-flash') as any,
+                model: googleProvider('gemini-2.5-flash') as any,
                 system: systemPrompt,
                 prompt: content,
             });

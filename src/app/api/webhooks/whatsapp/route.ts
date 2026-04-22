@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
 
                 const { error: rpcError } = await supabase.rpc('process_incoming_whatsapp', {
                     p_phone: targetPhone,
-                    p_content: content.toUpperCase(),
+                    p_content: content,
                     p_phone_number_id: phoneNumberId,
                     p_media_url: mediaUrl,
                     p_media_type: mediaType,
@@ -115,8 +115,8 @@ export async function POST(request: NextRequest) {
                 // \ud83e\udd16 IA RESOLUTIVA (FASE 8)
                 // Solo respondemos si NO es un eco (mensaje del cliente)
                 if (!isEcho && content) {
-                    // Ejecutamos en segundo plano para no bloquear el webhook (Meta requiere respuesta r\u00E1pida)
-                    aiAssistantService.handleIncoming(from, content, phoneNumberId, message.id)
+                    // Esperamos la respuesta para evitar que Vercel mate el proceso serverless
+                    await aiAssistantService.handleIncoming(from, content, phoneNumberId, message.id)
                         .catch(err => console.error('[AI_HOOK_ERROR]', err));
                 }
 

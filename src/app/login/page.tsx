@@ -42,8 +42,6 @@ export default function LoginPage() {
     }, []);
 
     const handleModeSwitch = (newMode: LoginMode) => {
-        // Strict separation: If a terminal is authorized, DO NOT allow switching to owner mode.
-        if (authorizedBranch && newMode === 'owner') return;
         // If NO terminal is authorized, DO NOT allow switching to terminal mode.
         if (!authorizedBranch && newMode === 'terminal') return;
         
@@ -147,8 +145,7 @@ export default function LoginPage() {
                         <button 
                             onClick={() => handleModeSwitch('owner')}
                             className={cn(
-                                "flex items-center gap-4 p-6 rounded-3xl border-2 transition-all group",
-                                authorizedBranch ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
+                                "flex items-center gap-4 p-6 rounded-3xl border-2 transition-all group cursor-pointer",
                                 mode === 'owner' 
                                     ? "bg-white/5 border-orange-500/50 text-white shadow-xl shadow-orange-500/5" 
                                     : "bg-transparent border-white/5 text-slate-500 hover:bg-white/5"
@@ -189,8 +186,7 @@ export default function LoginPage() {
                         <button 
                             onClick={() => handleModeSwitch('owner')}
                             className={cn(
-                                "flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest border-2", 
-                                authorizedBranch ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
+                                "flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest border-2 cursor-pointer",
                                 mode === 'owner' ? "bg-orange-500 text-white border-orange-500" : "text-slate-400 border-slate-100"
                             )}
                         >

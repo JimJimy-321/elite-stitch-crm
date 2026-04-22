@@ -239,6 +239,11 @@ Liquid Glass, Gradient Mesh, Neumorphism, Bento Grid, Neobrutalism
 - **Fix**: Se actualizó `@ai-sdk/google` a la versión `^3.0.64` en `package.json` para ser compatible con `ai` v5+. Se removió el intento de actualizar la columna `metadata` en la tabla `chat_conversations` en el RPC `log_bot_message`.
 - **Aplicar en**: Siempre verificar versiones de AI SDK y confirmar el Schema de la base de datos (con `information_schema.columns`) antes de intentar actualizar columnas dinámicas.
 
+### 2026-04-22: Modelo Gemini 1.5 Flash Deprecado (Not Found)
+- **Error**: El modelo `gemini-1.5-flash` arrojaba error "not found for API version v1beta" después de actualizar el SDK, causando que el bot hiciera el Handoff automático siempre ("le enviaré su solicitud al encargado...").
+- **Fix**: Se cambió el string del modelo a `gemini-2.5-flash` que es la versión actual soportada y funcional. `gemini-2.0-flash` presentaba límites de cuota (Quota exceeded).
+- **Aplicar en**: Creación de nuevos agentes. Evitar quemar en código nombres de modelos viejos; mantenerlos actualizados a las versiones `gemini-2.5-flash` o `gemini-flash-latest`.
+
 ---
 
 *V4: Agent-First. El usuario habla, tú construyes.*

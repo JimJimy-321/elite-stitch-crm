@@ -145,10 +145,9 @@ export default function ChatPage() {
     }, []);
 
     useEffect(() => {
-        if (!currentBranchId) return;
-
+        const channelName = currentBranchId ? `chat_branch_${currentBranchId}` : 'chat_global_admin';
         const channel = supabase
-            .channel(`chat_branch_${currentBranchId}`) // Canal específico por sucursal
+            .channel(channelName)
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',
@@ -205,7 +204,7 @@ export default function ChatPage() {
                 event: 'INSERT',
                 schema: 'public',
                 table: 'chat_conversations',
-                filter: `branch_id=eq.${currentBranchId}`
+                ...(currentBranchId ? { filter: `branch_id=eq.${currentBranchId}` } : {})
             }, (payload: any) => {
                 const newConv = payload.new;
                 console.log("[REALTIME] Nueva conversación detectada");
@@ -224,7 +223,7 @@ export default function ChatPage() {
                 event: 'UPDATE',
                 schema: 'public',
                 table: 'chat_conversations',
-                filter: `branch_id=eq.${currentBranchId}`
+                ...(currentBranchId ? { filter: `branch_id=eq.${currentBranchId}` } : {})
             }, (payload: any) => {
                 const updatedConv = payload.new;
                 setConversations((prev) => prev.map((c) =>

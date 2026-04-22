@@ -229,6 +229,11 @@ Liquid Glass, Gradient Mesh, Neumorphism, Bento Grid, Neobrutalism
 - **Fix**: Reemplazar `supabase.from().insert()/update()` en las APIs por llamadas a rutinas RPC de Postgres configuradas con el privilegio `SECURITY DEFINER` (`log_outgoing_message`, `update_whatsapp_message_status`, `log_webhook_payload`). Modificar `supabaseWebhookClient` para depender única y controladamente del `ANON_KEY`.
 - **Aplicar en**: Siempre que el sistema necesite escribir a la base de datos desde un evento desatendido (como un Webhook Meta) o API backend que no cuenta con sesión de usuario ni accesos Service Role verificados.
 
+### 2026-04-22: Error en RPC log_bot_message y Realtime para Dueño
+- **Error**: Los mensajes enviados por el bot no se guardaban en la base de datos debido a que la RPC `log_bot_message` intentaba insertar en una columna inexistente (`whatsapp_id`). Además, el dueño (Owner) no recibía actualizaciones en tiempo real en el chat porque su `assigned_branch_id` es `null`, lo que cancelaba la suscripción a Supabase Realtime.
+- **Fix**: Modificar la RPC `log_bot_message` para guardar el ID en la columna JSONB `metadata`. Eliminar el return prematuro en el useEffect de Realtime (`ChatPage.tsx`) suscribiendo al dueño a un canal global o de todas las sucursales cuando su branchId es `null`.
+- **Aplicar en**: Creación y actualización de RPCs (verificar schema actual) y suscripciones a Supabase Realtime que dependan de propiedades que puedan ser nulas para administradores globales.
+
 ---
 
 *V4: Agent-First. El usuario habla, tú construyes.*

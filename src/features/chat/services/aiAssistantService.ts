@@ -78,7 +78,7 @@ export const aiAssistantService = {
 
             const { data: branch, error: bErr } = await supabase
                 .from('branches')
-                .select('id, wa_access_token, wa_phone_number_id, metadata, organization_id, name, business_hours, address')
+                .select('id, wa_access_token, wa_phone_number_id, wa_phone_number, metadata, organization_id, name, business_hours, address')
                 .eq('wa_phone_number_id', phoneNumberId)
                 .single();
 
@@ -138,12 +138,12 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
                 ] as any,
                 maxSteps: 5,
                 tools: {
-                    find_tickets: tool({
+                    find_tickets: {
                         description: 'Busca el estatus de las notas. Úsalo si preguntan por su ropa o deuda.',
                         parameters: z.object({
                             noteNumber: z.string().optional(),
                         }),
-                        execute: async ({ noteNumber }) => {
+                        execute: async ({ noteNumber }: { noteNumber: any }) => {
                             try {
                                 console.log('[AI_TOOL] Searching tickets for:', { noteNumber, phone });
                                 let query = supabase
@@ -176,7 +176,7 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
 
                                 // Seguridad: Si buscan por número de nota, validar que el teléfono coincida
                                 const isOwner = phone === branch.wa_phone_number;
-                                const phoneMatch = tickets.some(t => t.clients?.phone === phone);
+                                const phoneMatch = tickets.some(t => (t.clients as any)?.phone === phone);
 
                                 if (!phoneMatch && !isOwner && noteNumber) {
                                     return 'Por seguridad, solo puedo dar información si escribes desde el número registrado en la nota.';
@@ -188,7 +188,7 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
                                 return `Error crítico en la herramienta de búsqueda: ${e.message}`;
                             }
                         }
-                    })
+                    } as any
                 }
             } as any);
 

@@ -191,7 +191,11 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
                                 });
 
                                 if (!tickets || tickets.length === 0) {
-                                    return JSON.stringify({ error: 'No encontré ninguna nota registrada con este número de celular o número de nota.' });
+                                    return JSON.stringify({ 
+                                        success: true, 
+                                        data_found: false, 
+                                        message: 'No encontré ninguna nota registrada con este número de celular o número de nota.' 
+                                    });
                                 }
 
                                 // Seguridad: Si buscan por número de nota, validar que el teléfono coincida
@@ -203,13 +207,17 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
                                 });
 
                                 if (!phoneMatch && !isOwner && noteNumber) {
-                                    return JSON.stringify({ error: 'Por seguridad, solo puedo dar información si escribes desde el número registrado en la nota.' });
+                                    return JSON.stringify({ 
+                                        success: false, 
+                                        error_type: 'security_violation',
+                                        message: 'Por seguridad, solo puedo dar información si escribes desde el número registrado en la nota.' 
+                                    });
                                 }
 
-                                return JSON.stringify({ tickets });
+                                return JSON.stringify({ success: true, data_found: true, tickets });
                             } catch (e: any) {
                                 console.error('TOOL_EXECUTION_CRASH:', e);
-                                return `Error crítico en la herramienta de búsqueda: ${e.message}`;
+                                return JSON.stringify({ success: false, message: `Error crítico: ${e.message}` });
                             }
                         }
                     } as any
@@ -219,20 +227,23 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
             const { text } = result;
 
             if (!text) {
-                // Log debug info to DB
+                // FALLBACK: Si hubo llamadas a herramientas pero no hay texto final, forzar un handoff
+                const hadTools = result.steps?.some((s: any) => s.toolCalls && s.toolCalls.length > 0);
+                
                 await supabase.from('webhook_logs').insert({
                     payload: {
-                        type: 'AI_DEBUG',
-                        message: 'Empty text response',
-                        steps: result.steps?.map((s: any) => ({ 
-                            finishReason: s.finishReason, 
-                            text: s.text, 
-                            toolCalls: s.toolCalls?.length 
-                        })),
+                        type: 'AI_DEBUG_EMPTY_FALLBACK',
+                        hadTools,
+                        stepsCount: result.steps?.length,
                         phone,
                         content
                     }
                 });
+
+                if (hadTools) {
+                    return await this.handleHandoff(phone, branch, content, client?.id, client?.full_name);
+                }
+                
                 throw new Error('No response from AI');
             }
 

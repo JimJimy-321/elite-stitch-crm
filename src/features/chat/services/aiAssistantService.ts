@@ -131,6 +131,7 @@ Instrucciones:
 - Responde siempre en español de México.
 - Sé amable y profesional.
 - SIEMPRE debes dar una respuesta de texto al usuario, incluso después de usar herramientas. NUNCA respondas con un texto vacío.
+- Si usas find_tickets, DEBES explicar el estatus de cada prenda encontrada (recibida, en proceso, terminada o entregada) y si hay algún saldo pendiente. Menciona si la nota pertenece a la sucursal actual o a otra.
 - Si no encuentras una nota, informa al usuario y ofrécele ayuda del personal humano.
 - Usa emojis de forma moderada.
 
@@ -152,10 +153,16 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
                         }),
                         execute: async ({ noteNumber }: { noteNumber: any }) => {
                             try {
-                                // Normalizar búsqueda: quitar prefijos y espacios, buscar por los últimos 10 dígitos
+                                // 1. Buscar clientes por teléfono
                                 const searchPhone = phone.slice(-10);
-                                console.log('[AI_TOOL] Normalized Search:', { original: phone, search: searchPhone });
+                                const { data: foundClients } = await supabase
+                                    .from('clients')
+                                    .select('id')
+                                    .ilike('phone', `%${searchPhone}%`);
 
+                                const clientIds = foundClients?.map(c => c.id) || [];
+
+                                // 2. Buscar tickets
                                 let query = supabase
                                     .from('tickets')
                                     .select(`
@@ -163,16 +170,25 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
                                         status,
                                         balance_due,
                                         total_amount,
-                                        clients!inner (full_name, phone)
-                                    `)
-                                    .filter('clients.phone', 'ilike', `%${searchPhone}%`);
+                                        created_at,
+                                        branch_id,
+                                        clients (full_name, phone)
+                                    `);
 
-                                if (noteNumber) {
-                                    query = query.or(`ticket_number.eq."${noteNumber}"`);
+                                if (clientIds.length > 0 && noteNumber) {
+                                    query = query.or(`client_id.in.(${clientIds.join(',')}),ticket_number.eq."${noteNumber}"`);
+                                } else if (clientIds.length > 0) {
+                                    query = query.in('client_id', clientIds);
+                                } else if (noteNumber) {
+                                    query = query.eq('ticket_number', noteNumber);
+                                } else {
+                                    // Nada que buscar
+                                    return JSON.stringify({ success: true, data_found: false, message: 'No encontré clientes ni notas.' });
                                 }
 
                                 const { data: tickets, error: ticketError } = await query
-                                    .order('created_at', { ascending: false });
+                                    .order('created_at', { ascending: false })
+                                    .limit(10);
 
                                 if (ticketError) {
                                     console.error('TOOL_TICKETS_ERROR:', ticketError);
@@ -200,7 +216,13 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
 
                                 // Seguridad: Si buscan por número de nota, validar que el teléfono coincida
                                 const isOwner = phone === branch.wa_phone_number;
-                                // Verificar si el teléfono coincide con alguno de los tickets encontrados
+                                
+                                // Marcar cuáles son de la sucursal actual
+                                const ticketsWithContext = tickets.map(t => ({
+                                    ...t,
+                                    is_current_branch: t.branch_id === branch.id
+                                }));
+
                                 const phoneMatch = tickets.some(t => {
                                     const tPhone = (t.clients as any)?.phone || '';
                                     return tPhone.includes(searchPhone);
@@ -214,7 +236,7 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
                                     });
                                 }
 
-                                return JSON.stringify({ success: true, data_found: true, tickets });
+                                return JSON.stringify({ success: true, data_found: true, tickets: ticketsWithContext });
                             } catch (e: any) {
                                 console.error('TOOL_EXECUTION_CRASH:', e);
                                 return JSON.stringify({ success: false, message: `Error crítico: ${e.message}` });

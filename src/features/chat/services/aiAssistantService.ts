@@ -170,6 +170,17 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
                                     return `Error al buscar en la base de datos.`;
                                 }
 
+                                // Log tool results to DB for visibility
+                                await supabase.from('webhook_logs').insert({
+                                    payload: {
+                                        type: 'AI_TOOL_RESULT',
+                                        tool: 'find_tickets',
+                                        noteNumber,
+                                        ticketsCount: tickets?.length || 0,
+                                        phone
+                                    }
+                                });
+
                                 if (!tickets || tickets.length === 0) {
                                     return 'No encontré ninguna nota registrada con este número de celular o número de nota.';
                                 }

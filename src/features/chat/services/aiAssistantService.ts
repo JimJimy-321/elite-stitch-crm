@@ -130,7 +130,7 @@ ${servicesContext}
 CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
 
             const result = await generateText({
-                model: googleProvider('gemini-2.0-flash') as any,
+                model: googleProvider('gemini-flash-latest') as any,
                 system: systemPrompt,
                 messages: [
                     ...history,

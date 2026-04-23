@@ -128,7 +128,7 @@ ${servicesContext}
 CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
 
             const { text } = await generateText({
-                model: googleProvider('gemini-2.5-flash') as any,
+                model: googleProvider('gemini-1.5-flash-latest') as any,
                 system: systemPrompt,
                 messages: [
                     ...history,
@@ -158,7 +158,16 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
             return await this.sendAndLog(phone, text, client?.id || '', branch);
 
         } catch (error) {
-            console.error('[AI_ASSISTANT] Error:', error);
+            console.error('[AI_ASSISTANT] Critical Error:', error);
+            // Loguear error para diagnóstico en DB
+            await supabase.rpc('log_webhook_payload', {
+                p_payload: { 
+                    type: 'AI_ERROR',
+                    error: error instanceof Error ? error.message : String(error),
+                    phone,
+                    content
+                }
+            });
             return null;
         }
     },

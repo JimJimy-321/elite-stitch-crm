@@ -141,17 +141,54 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
                     find_tickets: tool({
                         description: 'Busca el estatus de las notas. Úsalo si preguntan por su ropa o deuda.',
                         parameters: z.object({
-                            ticket_number: z.string().optional().describe('Número de nota'),
+                            noteNumber: z.string().optional(),
                         }),
-                        execute: async ({ ticket_number }: { ticket_number?: string }) => {
-                            return await aiAssistantTools.findTickets({
-                                ticket_number,
-                                sender_phone: phone,
-                                branch_id: branch.id,
-                                organization_id: branch.organization_id
-                            });
-                        },
-                    } as any),
+                        execute: async ({ noteNumber }) => {
+                            try {
+                                let query = supabase
+                                    .from('tickets')
+                                    .select(`
+                                        ticket_number,
+                                        status,
+                                        balance_due,
+                                        total_amount,
+                                        clients!inner (full_name, phone)
+                                    `);
+
+                                if (noteNumber) {
+                                    query = query.or(`ticket_number.eq."${noteNumber}",clients.phone.eq."${phone}"`);
+                                } else {
+                                    query = query.eq('clients.phone', phone);
+                                }
+
+                                const { data: tickets, error: ticketError } = await query
+                                    .order('created_at', { ascending: false });
+
+                                if (ticketError) {
+                                    console.error('TOOL_TICKETS_ERROR:', ticketError);
+                                    return `Error al buscar en la base de datos.`;
+                                }
+
+                                if (!tickets || tickets.length === 0) {
+                                    return 'No encontré ninguna nota registrada con este número de celular o número de nota.';
+                                }
+
+                                // Seguridad: Si buscan por número de nota, validar que el teléfono coincida
+                                // O si son dueños (phone === branch.wa_phone_number)
+                                const isOwner = phone === branch.wa_phone_number;
+                                const phoneMatch = tickets.some(t => t.clients?.phone === phone);
+
+                                if (!phoneMatch && !isOwner && noteNumber) {
+                                    return 'Por seguridad, solo puedo dar información si escribes desde el número registrado en la nota.';
+                                }
+
+                                return JSON.stringify(tickets);
+                            } catch (e: any) {
+                                console.error('TOOL_EXECUTION_CRASH:', e);
+                                return `Error crítico en la herramienta de búsqueda: ${e.message}`;
+                            }
+                        }
+                    })
                 },
                 maxSteps: 5,
             } as any);

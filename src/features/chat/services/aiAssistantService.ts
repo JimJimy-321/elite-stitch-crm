@@ -1,9 +1,8 @@
 import { supabaseWebhookClient as supabase } from '@/lib/supabase/webhook';
 import { whatsappService } from './whatsappService';
-import { generateText, tool } from 'ai';
+import { generateText } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { z } from 'zod';
-import { aiAssistantTools } from './aiAssistantTools';
 
 /**
  * AI Assistant Service - SastrePro
@@ -163,7 +162,8 @@ ${servicesContext}
 INSTRUCCIONES ADICIONALES:
 - Responde siempre en español de México.
 - Máximo 2 párrafos cortos.
-- Usa emojis (🧵, ✅).`;
+- Usa emojis (🧵, ✅).
+- Conocimiento extra: ${agentConfig?.knowledge_base || ''}`;
 
             const result = await generateText({
                 model: googleProvider('gemini-2.0-flash') as any,

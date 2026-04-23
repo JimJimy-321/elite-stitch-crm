@@ -51,15 +51,15 @@ export function DeviceLinkingModal({ isOpen, onClose }: DeviceLinkingModalProps)
                 // 2. Guardar la información de la sucursal (lo que LoginPage busca)
                 setAuthorizedBranch(selectedBranch.id, selectedBranch.name);
                 
-                // Notificar a la página de login (si está abierta en otra pestaña o si el evento no se dispara localmente)
+                // Notificar a la página de login (si está abierta en otra pestaña)
                 window.dispatchEvent(new Event('storage'));
                 
                 toast.success("¡Dispositivo vinculado con éxito!");
                 
-                // Cerrar el modal después de un breve delay para que el usuario vea el éxito
+                // Redirigir al login después de un breve delay
                 setTimeout(() => {
-                    onClose();
-                }, 1000);
+                    window.location.href = '/login';
+                }, 1500);
             }
         } catch (error: any) {
             toast.error("Error: " + error.message);

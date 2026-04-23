@@ -292,21 +292,20 @@ export const dashboardService = {
             return { success: false, error: error.message };
         }
         
-        // El RPC retorna un conjunto de filas (o una con RETURNS TABLE)
         const result = data && data.length > 0 ? data[0] : null;
 
-        if (!result || !result.is_device_valid) {
-            return { success: false, error: 'Dispositivo no autorizado para esta sucursal' };
+        if (!result) {
+            return { success: false, error: 'PIN incorrecto o no tienes acceso a esta sucursal' };
         }
 
-        if (!result.user_id) {
-            return { success: false, error: 'PIN incorrecto' };
+        if (!result.device_authorized) {
+            return { success: false, error: 'Este dispositivo no está autorizado para esta sucursal' };
         }
 
         return { 
             success: true, 
             profile: {
-                id: result.user_id,
+                id: result.id,
                 full_name: result.full_name,
                 email: result.email,
                 role: result.role,

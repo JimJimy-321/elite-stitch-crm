@@ -68,6 +68,8 @@ export const aiAssistantService = {
             if (existing && existing.length > 0) return null;
         }
 
+        const cleanPhone = phone.replace(/\D/g, '');
+
         try {
             const { data: agentConfig } = await supabase
                 .from('agent_configs')
@@ -86,6 +88,21 @@ export const aiAssistantService = {
 
             const aiEnabled = agentConfig?.is_active ?? (branch.metadata?.ai_enabled !== false); 
             if (!aiEnabled) return null;
+
+            // 1. Pre-fetch de Tickets (Ahorra pasos de IA y mejora confiabilidad)
+            const ticketKeywords = ['prenda', 'ropa', 'estatus', 'nota', 'saldo', 'listo', 'terminado', 'cuanto', 'pago', 'debo', 'ticket', 'pedido'];
+            const isTicketQuery = ticketKeywords.some(k => content.toLowerCase().includes(k));
+            let preFetchedTickets = null;
+
+            if (isTicketQuery) {
+                const { data: tickets } = await supabase.rpc('get_tickets_by_phone_ai', {
+                    p_phone: cleanPhone,
+                    p_branch_id: branch.id
+                });
+                if (tickets && tickets.length > 0) {
+                    preFetchedTickets = tickets;
+                }
+            }
 
             const { data: clients } = await supabase.rpc('get_client_by_phone_secure', {
                 p_phone: phone,
@@ -111,17 +128,30 @@ export const aiAssistantService = {
                 apiKey
             });
 
+            const currentDate = new Date().toLocaleDateString('es-MX', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+            });
+
+            // Contexto de tickets pre-cargados
+            const ticketContext = preFetchedTickets ? 
+                `ESTATUS ACTUAL DEL CLIENTE (No necesitas consultar find_tickets): \n${JSON.stringify(preFetchedTickets, null, 2)}` : 
+                'No se encontraron prendas pendientes en una búsqueda inicial.';
+
             const systemPrompt = `Eres el asistente virtual experto de la sastrería "${branch.name}". Tu objetivo es ayudar a los clientes de forma rápida, amable y eficiente.
 
+FECHA ACTUAL: ${currentDate}
+
 REGLAS DE ORO:
-1. ESTATUS DE PRENDAS: Si preguntan "¿está lista mi ropa?", "¿cómo va mi pedido?" o similar, USA la herramienta "find_tickets" de inmediato.
-2. RESPUESTAS CLARAS: 
-   - Prioriza informar sobre prendas en estatus "LISTO" (Ready).
-   - Si hay saldo pendiente, menciónalo claramente.
-   - Si no hay prendas listas, informa con amabilidad y ofrece que un humano revise el detalle si es urgente.
-3. FLUIDEZ: No uses saludos largos ni repetitivos. Ve al grano. 
-4. PRIVACIDAD: Si el teléfono no coincide exactamente con el registro, pide el número de nota para continuar.
-5. UBICACIÓN: Invita a visitarnos en ${branch.address}.
+1. ESTATUS DE PRENDAS: Si ves información en "ESTATUS ACTUAL DEL CLIENTE", úsala directamente para responder. Si no ves nada ahí pero el cliente pregunta por su ropa, usa "find_tickets".
+2. RESPUESTAS TRAS CONSULTAR:
+   - Si hay prendas "ready": Dile con alegría que ya puede pasar por ellas.
+   - Si hay prendas "processing", "received" o "in_progress": Dile que seguimos trabajando en ellas y menciona la "delivery_date" si es futura.
+   - Si tiene saldo pendiente ("balance_due" > 0), recuérdale el monto amablemente.
+3. PERSONALIZACIÓN: Si conoces su nombre (${client?.full_name || 'Desconocido'}), úsalo.
+4. FLUIDEZ: Sé breve, natural y conversacional. No repitas saludos. No menciones IDs técnicos.
+5. NO ENCONTRADO: Si no hay tickets, pide disculpas e informa que un humano revisará el sistema manualmente en un momento.
+
+${ticketContext}
 
 DATOS SUCURSAL:
 - Dirección: ${branch.address}
@@ -132,111 +162,114 @@ ${servicesContext}
 
 INSTRUCCIONES ADICIONALES:
 - Responde siempre en español de México.
-- Máximo 2-3 párrafos cortos.
-- Usa emojis de forma moderada (ej. 🧵, 👔, ✅).
-- NUNCA dejes al usuario sin respuesta de texto.
-
-CONOCIMIENTO EXTRA: ${agentConfig?.knowledge_base || ''}`;
+- Máximo 2 párrafos cortos.
+- Usa emojis (🧵, ✅).`;
 
             const result = await generateText({
-                model: googleProvider('gemini-flash-latest') as any,
+                model: googleProvider('gemini-2.0-flash') as any,
                 system: systemPrompt,
                 messages: [
                     ...history,
                     { role: 'user', content }
                 ] as any,
-                maxSteps: 5,
+                maxSteps: 2,
                 tools: {
                     find_tickets: {
-                        description: 'Consulta el estatus de las notas/prendas y saldos pendientes.',
+                        description: 'Consulta el estatus de las notas/prendas y saldos pendientes (solo si no tienes la info arriba).',
                         parameters: z.object({
-                            noteNumber: z.string().optional().describe('Número de nota opcional si el cliente lo proporciona'),
+                            noteNumber: z.string().optional().describe('Número de nota opcional'),
                         }),
                         execute: async ({ noteNumber }: { noteNumber: any }) => {
                             try {
-                                // 1. Búsqueda vía RPC (Bypass RLS)
-                                const cleanPhone = phone.replace(/\D/g, '');
                                 const { data: tickets, error: rpcError } = await supabase.rpc('get_tickets_by_phone_ai', {
                                     p_phone: noteNumber || cleanPhone,
                                     p_branch_id: branch.id
                                 });
 
                                 if (rpcError) throw rpcError;
-
-                                // Log para diagnóstico
-                                await supabase.from('webhook_logs').insert({
-                                    payload: {
-                                        type: 'AI_TOOL_TICKETS_RPC',
-                                        phone: cleanPhone,
-                                        found: tickets?.length || 0,
-                                        noteNumber
-                                    }
-                                });
-
-                                if (!tickets || tickets.length === 0) {
-                                    return JSON.stringify({ success: true, data_found: false });
-                                }
-
-                                // Mapeo de resultados
-                                const results = tickets.map((t: any) => ({
-                                    ticket_number: t.ticket_number,
-                                    status: t.status,
-                                    status_display: t.status === 'ready' ? 'LISTO PARA ENTREGA' : 
-                                                    t.status === 'in_progress' ? 'EN TRABAJO' : 
-                                                    t.status === 'received' ? 'RECIBIDO' : t.status,
-                                    balance_due: t.balance_due,
-                                    delivery_date: t.delivery_date,
-                                    client_name: t.client_name,
-                                    authorized: true
-                                }));
-
-                                return JSON.stringify({ success: true, data_found: true, tickets: results });
+                                return JSON.stringify({ success: true, tickets: tickets || [] });
                             } catch (e: any) {
-                                console.error('AI_TOOL_ERROR:', e);
                                 return JSON.stringify({ success: false, error: e.message });
                             }
                         }
-                    } as any
+                    }
                 }
             } as any);
 
             const { text } = result;
 
             if (!text || text.trim() === '') {
-                // FALLBACK: Si no hay texto pero se llamaron herramientas, intentar una respuesta genérica basada en el éxito de la herramienta
-                const lastStep = result.steps?.[result.steps.length - 1];
-                const toolResults = lastStep?.toolResults as any[];
-                
-                if (toolResults?.some(tr => tr.toolName === 'find_tickets' && tr.result)) {
-                   const tr = toolResults.find(tr => tr.toolName === 'find_tickets');
-                   const parsed = JSON.parse(tr.result);
-                   if (parsed.success && parsed.data_found) {
-                       const readyCount = parsed.tickets.filter((t: any) => t.status === 'ready').length;
-                       const responseText = readyCount > 0 
-                           ? `¡Buenas noticias! He encontrado ${readyCount} prenda(s) lista(s) para entrega. ¿Deseas que te dé los detalles de las notas?`
-                           : `He encontrado tus notas pero aún están en proceso. ¿En qué más te puedo ayudar?`;
-                       return await this.sendAndLog(phone, responseText, client?.id || '', branch);
-                   }
+                // Fallback robusto si la IA no generó texto
+                if (preFetchedTickets && preFetchedTickets.length > 0) {
+                    const safeResponse = this.formatSafeResponse(preFetchedTickets, client?.full_name);
+                    return await this.sendAndLog(phone, safeResponse, client?.id || '', branch);
                 }
-
                 return await this.handleHandoff(phone, branch, content, client?.id, client?.full_name);
             }
 
             return await this.sendAndLog(phone, text, client?.id || '', branch);
 
-        } catch (error) {
-            console.error('[AI_ASSISTANT] Critical Error:', error);
-            // Loguear error para diagnóstico en DB
-            await supabase.rpc('log_webhook_payload', {
-                p_payload: { 
-                    type: 'AI_ERROR',
-                    error: error instanceof Error ? error.message : String(error),
-                    phone,
-                    content
-                }
+        } catch (error: any) {
+            console.error('[AI_ASSISTANT] Error:', error);
+            
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            const isQuotaError = errorMsg.toLowerCase().includes('quota') || 
+                               errorMsg.toLowerCase().includes('rate limit') ||
+                               errorMsg.toLowerCase().includes('429');
+
+            // Intento de Safe Mode ante CUALQUIER error crítico
+            const safeModeResponse = await this.getSafeModeResponse(phone, branch.id, client?.full_name);
+            if (safeModeResponse) {
+                return await this.sendAndLog(phone, safeModeResponse, client?.id || '', branch);
+            }
+
+            return await this.handleHandoff(phone, branch, content, client?.id, client?.full_name);
+        }
+    },
+
+    /**
+     * Helper para generar una respuesta basada en datos sin usar la IA (Safe Mode)
+     */
+    async getSafeModeResponse(phone: string, branchId: string, clientName?: string) {
+        try {
+            const cleanPhone = phone.replace(/\D/g, '');
+            const { data: tickets } = await supabase.rpc('get_tickets_by_phone_ai', {
+                p_phone: cleanPhone,
+                p_branch_id: branchId
             });
+
+            if (!tickets || tickets.length === 0) return null;
+
+            return this.formatSafeResponse(tickets, clientName);
+        } catch (e) {
+            console.error('[AI_ASSISTANT] Error in Safe Mode Response:', e);
             return null;
         }
+    },
+
+    /**
+     * Formatea un listado de tickets en un mensaje legible
+     */
+    formatSafeResponse(tickets: any[], clientName?: string) {
+        const readyCount = tickets.filter((t: any) => t.status === 'ready').length;
+        const processingCount = tickets.filter((t: any) => t.status === 'processing' || t.status === 'received' || t.status === 'in_progress').length;
+        const greeting = clientName ? `Hola ${clientName}, ` : 'Hola, ';
+        
+        let responseText = `${greeting}he consultado el sistema sobre sus prendas (Modo de Respaldo). \n\n`;
+        if (readyCount > 0) {
+            responseText += `✅ Tienes ${readyCount} prenda(s) LISTAS para recoger. \n`;
+        }
+        if (processingCount > 0) {
+            responseText += `⏳ Tienes ${processingCount} prenda(s) aún en proceso. \n`;
+        }
+        
+        const totalBalance = tickets.reduce((acc: number, t: any) => acc + (t.balance_due || 0), 0);
+        if (totalBalance > 0) {
+            responseText += `💰 Saldo pendiente: $${totalBalance}. \n`;
+        }
+        
+        responseText += `\n¡Te esperamos en la sucursal! 🧵`;
+        return responseText;
     },
 
     async handleHandoff(phone: string, branch: any, content: string, clientId?: string, clientName?: string) {

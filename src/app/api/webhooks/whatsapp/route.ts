@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
                     p_phone: targetPhone,
                     p_content: content,
                     p_phone_number_id: phoneNumberId,
+                    p_whatsapp_id: message.id, // Pasar ID de WhatsApp
                     p_media_url: mediaUrl,
                     p_media_type: mediaType,
                     p_is_echo: isEcho

@@ -57,9 +57,16 @@ export function ChatListItem({ conversation, isActive, onClick }: Props) {
                             {conversation.client_name}
                         </h3>
                         {conversation.client_phone && (
-                            <p className="text-[10px] text-gray-400 font-bold tabular-nums leading-none mt-0.5">
-                                {conversation.client_phone}
-                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                                <p className="text-[10px] text-gray-400 font-bold tabular-nums leading-none">
+                                    {conversation.client_phone}
+                                </p>
+                                {(conversation as any).branch_name && (
+                                    <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter">
+                                        {(conversation as any).branch_name}
+                                    </span>
+                                )}
+                            </div>
                         )}
                     </div>
                     <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap ml-2 opacity-80">

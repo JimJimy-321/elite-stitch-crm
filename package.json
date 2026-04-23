@@ -22,6 +22,7 @@
     "ai": "^6.0.168",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.4.2",
     "jspdf": "^4.1.0",
     "jspdf-autotable": "^5.0.7",
     "libphonenumber-js": "^1.12.36",

@@ -23,7 +23,8 @@ export const chatService = {
             .from('chat_conversations')
             .select(`
                 *,
-                client:clients(full_name, phone, avatar_url)
+                client:clients(full_name, phone, avatar_url),
+                branch:branches(name)
             `)
             .order('last_message_at', { ascending: false });
 
@@ -38,8 +39,9 @@ export const chatService = {
             ...conv,
             client_name: conv.client?.full_name || 'Desconocido',
             client_phone: conv.client?.phone || conv.customer_phone || '',
-            client_avatar: conv.client?.avatar_url || ''
-        })) as ChatConversation[];
+            client_avatar: conv.client?.avatar_url || '',
+            branch_name: (conv as any).branch?.name || ''
+        })) as (ChatConversation & { branch_name: string })[];
     },
 
     /**
@@ -207,6 +209,7 @@ export const chatService = {
                 client:clients(full_name, phone, avatar_url)
             `)
             .eq('client_id', client.id)
+            .eq('branch_id', branchId)
             .eq('status', 'active')
             .maybeSingle();
 

@@ -107,7 +107,9 @@ export const aiAssistantService = {
             const apiKey = agentConfig?.google_api_key || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
             if (!apiKey) throw new Error('Missing Gemini API Key');
 
-            const googleProvider = createGoogleGenerativeAI({ apiKey });
+            const googleProvider = createGoogleGenerativeAI({ 
+                apiKey
+            });
 
             const systemPrompt = `Eres el asistente virtual de la sastrería "${branch.name}".
             
@@ -128,7 +130,7 @@ ${servicesContext}
 CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
 
             const { text } = await generateText({
-                model: googleProvider('gemini-2.0-flash') as any,
+                model: googleProvider('gemini-1.5-flash-latest') as any,
                 system: systemPrompt,
                 messages: [
                     ...history,

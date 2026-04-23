@@ -127,6 +127,13 @@ DATOS SUCURSAL:
 SERVICIOS:
 ${servicesContext}
 
+Instrucciones:
+- Responde siempre en español de México.
+- Sé amable y profesional.
+- SIEMPRE debes dar una respuesta de texto al usuario, incluso después de usar herramientas. NUNCA respondas con un texto vacío.
+- Si no encuentras una nota, informa al usuario y ofrécele ayuda del personal humano.
+- Usa emojis de forma moderada.
+
 CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
 
             const result = await generateText({
@@ -145,7 +152,10 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
                         }),
                         execute: async ({ noteNumber }: { noteNumber: any }) => {
                             try {
-                                console.log('[AI_TOOL] Searching tickets for:', { noteNumber, phone });
+                                // Normalizar búsqueda: quitar prefijos y espacios, buscar por los últimos 10 dígitos
+                                const searchPhone = phone.slice(-10);
+                                console.log('[AI_TOOL] Normalized Search:', { original: phone, search: searchPhone });
+
                                 let query = supabase
                                     .from('tickets')
                                     .select(`
@@ -154,12 +164,11 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
                                         balance_due,
                                         total_amount,
                                         clients!inner (full_name, phone)
-                                    `);
+                                    `)
+                                    .filter('clients.phone', 'ilike', `%${searchPhone}%`);
 
                                 if (noteNumber) {
-                                    query = query.or(`ticket_number.eq."${noteNumber}",clients.phone.eq."${phone}"`);
-                                } else {
-                                    query = query.eq('clients.phone', phone);
+                                    query = query.or(`ticket_number.eq."${noteNumber}"`);
                                 }
 
                                 const { data: tickets, error: ticketError } = await query
@@ -182,18 +191,22 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
                                 });
 
                                 if (!tickets || tickets.length === 0) {
-                                    return 'No encontré ninguna nota registrada con este número de celular o número de nota.';
+                                    return JSON.stringify({ error: 'No encontré ninguna nota registrada con este número de celular o número de nota.' });
                                 }
 
                                 // Seguridad: Si buscan por número de nota, validar que el teléfono coincida
                                 const isOwner = phone === branch.wa_phone_number;
-                                const phoneMatch = tickets.some(t => (t.clients as any)?.phone === phone);
+                                // Verificar si el teléfono coincide con alguno de los tickets encontrados
+                                const phoneMatch = tickets.some(t => {
+                                    const tPhone = (t.clients as any)?.phone || '';
+                                    return tPhone.includes(searchPhone);
+                                });
 
                                 if (!phoneMatch && !isOwner && noteNumber) {
-                                    return 'Por seguridad, solo puedo dar información si escribes desde el número registrado en la nota.';
+                                    return JSON.stringify({ error: 'Por seguridad, solo puedo dar información si escribes desde el número registrado en la nota.' });
                                 }
 
-                                return JSON.stringify(tickets);
+                                return JSON.stringify({ tickets });
                             } catch (e: any) {
                                 console.error('TOOL_EXECUTION_CRASH:', e);
                                 return `Error crítico en la herramienta de búsqueda: ${e.message}`;

@@ -111,14 +111,17 @@ export const aiAssistantService = {
                 apiKey
             });
 
-            const systemPrompt = `Eres el asistente virtual de la sastrería "${branch.name}".
-            
-REGLAS:
-1. Usa el historial para dar seguimiento. No repitas saludos largos.
-2. Si preguntan por estatus de ropa o deuda, USA la herramienta "find_tickets".
-3. PRIVACIDAD: Si el teléfono no coincide con la nota encontrada, pide el número de Nota/Ticket exacto para dar detalles.
-4. Invita siempre a visitarnos en ${branch.address}.
-5. Sé breve (máximo 2 párrafos).
+            const systemPrompt = `Eres el asistente virtual experto de la sastrería "${branch.name}". Tu objetivo es ayudar a los clientes de forma rápida, amable y eficiente.
+
+REGLAS DE ORO:
+1. ESTATUS DE PRENDAS: Si preguntan "¿está lista mi ropa?", "¿cómo va mi pedido?" o similar, USA la herramienta "find_tickets" de inmediato.
+2. RESPUESTAS CLARAS: 
+   - Prioriza informar sobre prendas en estatus "LISTO" (Ready).
+   - Si hay saldo pendiente, menciónalo claramente.
+   - Si no hay prendas listas, informa con amabilidad y ofrece que un humano revise el detalle si es urgente.
+3. FLUIDEZ: No seas repetitivo. Saluda cordialmente y ve al grano. Si el cliente ya te dio su número de nota, úsalo. Si encuentras al cliente por su teléfono, puedes dirigirte a él por su nombre si está disponible.
+4. PRIVACIDAD: Si el teléfono no coincide exactamente con el registro, pide el número de nota para continuar.
+5. UBICACIÓN: Invita a visitarnos en ${branch.address}.
 
 DATOS SUCURSAL:
 - Dirección: ${branch.address}
@@ -127,15 +130,13 @@ DATOS SUCURSAL:
 SERVICIOS:
 ${servicesContext}
 
-Instrucciones:
+INSTRUCCIONES ADICIONALES:
 - Responde siempre en español de México.
-- Sé amable y profesional.
-- SIEMPRE debes dar una respuesta de texto al usuario, incluso después de usar herramientas. NUNCA respondas con un texto vacío.
-- Si usas find_tickets, DEBES explicar el estatus de cada prenda encontrada (recibida, en proceso, terminada o entregada) y si hay algún saldo pendiente. Solo da información de la sucursal actual.
-- Si no encuentras una nota, informa al usuario y ofrécele ayuda del personal humano.
-- Usa emojis de forma moderada.
+- Máximo 2-3 párrafos cortos.
+- Usa emojis de forma moderada (ej. 🧵, 👔, ✅).
+- NUNCA dejes al usuario sin respuesta de texto.
 
-CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
+CONOCIMIENTO EXTRA: ${agentConfig?.knowledge_base || ''}`;
 
             const result = await generateText({
                 model: googleProvider('gemini-flash-latest') as any,
@@ -147,100 +148,52 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
                 maxSteps: 5,
                 tools: {
                     find_tickets: {
-                        description: 'Busca el estatus de las notas. Úsalo si preguntan por su ropa o deuda.',
+                        description: 'Consulta el estatus de las notas/prendas y saldos pendientes.',
                         parameters: z.object({
-                            noteNumber: z.string().optional(),
+                            noteNumber: z.string().optional().describe('Número de nota opcional si el cliente lo proporciona'),
                         }),
                         execute: async ({ noteNumber }: { noteNumber: any }) => {
                             try {
-                                // 1. Buscar clientes por teléfono
-                                const searchPhone = phone.slice(-10);
-                                const { data: foundClients } = await supabase
-                                    .from('clients')
-                                    .select('id')
-                                    .ilike('phone', `%${searchPhone}%`);
+                                // 1. Búsqueda vía RPC (Bypass RLS)
+                                const cleanPhone = phone.replace(/\D/g, '');
+                                const { data: tickets, error: rpcError } = await supabase.rpc('get_tickets_by_phone_ai', {
+                                    p_phone: noteNumber || cleanPhone,
+                                    p_branch_id: branch.id
+                                });
 
-                                const clientIds = foundClients?.map(c => c.id) || [];
+                                if (rpcError) throw rpcError;
 
-                                // 2. Buscar tickets SOLO en la sucursal actual
-                                let query = supabase
-                                    .from('tickets')
-                                    .select(`
-                                        ticket_number,
-                                        status,
-                                        balance_due,
-                                        total_amount,
-                                        created_at,
-                                        branch_id,
-                                        clients (full_name, phone)
-                                    `)
-                                    .eq('branch_id', branch.id); // FILTRO CRÍTICO: Solo esta sucursal
-
-                                if (clientIds.length > 0 && noteNumber) {
-                                    query = query.or(`client_id.in.(${clientIds.join(',')}),ticket_number.eq."${noteNumber}"`);
-                                } else if (clientIds.length > 0) {
-                                    query = query.in('client_id', clientIds);
-                                } else if (noteNumber) {
-                                    query = query.eq('ticket_number', noteNumber);
-                                } else {
-                                    // Nada que buscar
-                                    return JSON.stringify({ success: true, data_found: false, message: 'No encontré clientes ni notas en esta sucursal.' });
-                                }
-
-                                const { data: tickets, error: ticketError } = await query
-                                    .order('created_at', { ascending: false })
-                                    .limit(10);
-
-                                if (ticketError) {
-                                    console.error('TOOL_TICKETS_ERROR:', ticketError);
-                                    return `Error al buscar en la base de datos.`;
-                                }
-
-                                // Log tool results to DB for visibility
+                                // Log para diagnóstico
                                 await supabase.from('webhook_logs').insert({
                                     payload: {
-                                        type: 'AI_TOOL_RESULT',
-                                        tool: 'find_tickets',
-                                        noteNumber,
-                                        ticketsCount: tickets?.length || 0,
-                                        phone
+                                        type: 'AI_TOOL_TICKETS_RPC',
+                                        phone: cleanPhone,
+                                        found: tickets?.length || 0,
+                                        noteNumber
                                     }
                                 });
 
                                 if (!tickets || tickets.length === 0) {
-                                    return JSON.stringify({ 
-                                        success: true, 
-                                        data_found: false, 
-                                        message: 'No encontré ninguna nota registrada con este número de celular o número de nota.' 
-                                    });
+                                    return JSON.stringify({ success: true, data_found: false });
                                 }
 
-                                // Seguridad: Si buscan por número de nota, validar que el teléfono coincida
-                                const isOwner = phone === branch.wa_phone_number;
-                                
-                                // Marcar cuáles son de la sucursal actual
-                                const ticketsWithContext = tickets.map(t => ({
-                                    ...t,
-                                    is_current_branch: t.branch_id === branch.id
+                                // Mapeo de resultados
+                                const results = tickets.map((t: any) => ({
+                                    ticket_number: t.ticket_number,
+                                    status: t.status,
+                                    status_display: t.status === 'ready' ? 'LISTO PARA ENTREGA' : 
+                                                    t.status === 'in_progress' ? 'EN TRABAJO' : 
+                                                    t.status === 'received' ? 'RECIBIDO' : t.status,
+                                    balance_due: t.balance_due,
+                                    delivery_date: t.delivery_date,
+                                    client_name: t.client_name,
+                                    authorized: true
                                 }));
 
-                                const phoneMatch = tickets.some(t => {
-                                    const tPhone = (t.clients as any)?.phone || '';
-                                    return tPhone.includes(searchPhone);
-                                });
-
-                                if (!phoneMatch && !isOwner && noteNumber) {
-                                    return JSON.stringify({ 
-                                        success: false, 
-                                        error_type: 'security_violation',
-                                        message: 'Por seguridad, solo puedo dar información si escribes desde el número registrado en la nota.' 
-                                    });
-                                }
-
-                                return JSON.stringify({ success: true, data_found: true, tickets: ticketsWithContext });
+                                return JSON.stringify({ success: true, data_found: true, tickets: results });
                             } catch (e: any) {
-                                console.error('TOOL_EXECUTION_CRASH:', e);
-                                return JSON.stringify({ success: false, message: `Error crítico: ${e.message}` });
+                                console.error('AI_TOOL_ERROR:', e);
+                                return JSON.stringify({ success: false, error: e.message });
                             }
                         }
                     } as any
@@ -249,25 +202,26 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
 
             const { text } = result;
 
-            if (!text) {
-                // FALLBACK: Si hubo llamadas a herramientas pero no hay texto final, forzar un handoff
-                const hadTools = result.steps?.some((s: any) => s.toolCalls && s.toolCalls.length > 0);
+            if (!text || text.trim() === '') {
+                // FALLBACK: Si no hay texto pero se llamaron herramientas, intentar una respuesta genérica basada en el éxito de la herramienta
+                const lastStep = result.steps?.[result.steps.length - 1];
+                const toolResults = lastStep?.toolResults as any[];
                 
-                await supabase.from('webhook_logs').insert({
-                    payload: {
-                        type: 'AI_DEBUG_EMPTY_FALLBACK',
-                        hadTools,
-                        stepsCount: result.steps?.length,
-                        phone,
-                        content
-                    }
-                });
-
-                if (hadTools) {
-                    return await this.handleHandoff(phone, branch, content, client?.id, client?.full_name);
+                if (toolResults?.some(tr => tr.toolName === 'find_tickets' && tr.result)) {
+                   const tr = toolResults.find(tr => tr.toolName === 'find_tickets');
+                   const parsed = JSON.parse(tr.result);
+                   if (parsed.success && parsed.data_found) {
+                       const readyCount = parsed.tickets.filter((t: any) => t.status === 'ready').length;
+                       const clientName = parsed.tickets[0]?.client_name || '';
+                       const greeting = clientName ? `Hola ${clientName}, ` : '';
+                       const responseText = readyCount > 0 
+                           ? `${greeting}¡Buenas noticias! He encontrado ${readyCount} prenda(s) lista(s) para entrega. Te esperamos en sucursal.`
+                           : `${greeting}He encontrado tus notas pero aún están en proceso. Seguimos trabajando en ellas.`;
+                       return await this.sendAndLog(phone, responseText, client?.id || '', branch);
+                   }
                 }
-                
-                throw new Error('No response from AI');
+
+                return await this.handleHandoff(phone, branch, content, client?.id, client?.full_name);
             }
 
             return await this.sendAndLog(phone, text, client?.id || '', branch);

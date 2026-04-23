@@ -69,3 +69,4 @@ supabase/.temp
 /test-results
 /playwright/.cache
 tsconfig.tsbuildinfo
+/scratch

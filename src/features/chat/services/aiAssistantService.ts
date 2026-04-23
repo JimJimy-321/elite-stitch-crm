@@ -131,7 +131,7 @@ Instrucciones:
 - Responde siempre en español de México.
 - Sé amable y profesional.
 - SIEMPRE debes dar una respuesta de texto al usuario, incluso después de usar herramientas. NUNCA respondas con un texto vacío.
-- Si usas find_tickets, DEBES explicar el estatus de cada prenda encontrada (recibida, en proceso, terminada o entregada) y si hay algún saldo pendiente. Menciona si la nota pertenece a la sucursal actual o a otra.
+- Si usas find_tickets, DEBES explicar el estatus de cada prenda encontrada (recibida, en proceso, terminada o entregada) y si hay algún saldo pendiente. Solo da información de la sucursal actual.
 - Si no encuentras una nota, informa al usuario y ofrécele ayuda del personal humano.
 - Usa emojis de forma moderada.
 
@@ -162,7 +162,7 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
 
                                 const clientIds = foundClients?.map(c => c.id) || [];
 
-                                // 2. Buscar tickets
+                                // 2. Buscar tickets SOLO en la sucursal actual
                                 let query = supabase
                                     .from('tickets')
                                     .select(`
@@ -173,7 +173,8 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
                                         created_at,
                                         branch_id,
                                         clients (full_name, phone)
-                                    `);
+                                    `)
+                                    .eq('branch_id', branch.id); // FILTRO CRÍTICO: Solo esta sucursal
 
                                 if (clientIds.length > 0 && noteNumber) {
                                     query = query.or(`client_id.in.(${clientIds.join(',')}),ticket_number.eq."${noteNumber}"`);
@@ -183,7 +184,7 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
                                     query = query.eq('ticket_number', noteNumber);
                                 } else {
                                     // Nada que buscar
-                                    return JSON.stringify({ success: true, data_found: false, message: 'No encontré clientes ni notas.' });
+                                    return JSON.stringify({ success: true, data_found: false, message: 'No encontré clientes ni notas en esta sucursal.' });
                                 }
 
                                 const { data: tickets, error: ticketError } = await query

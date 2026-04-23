@@ -136,6 +136,7 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
                     ...history,
                     { role: 'user', content }
                 ] as any,
+                maxSteps: 5,
                 tools: {
                     find_tickets: tool({
                         description: 'Busca el estatus de las notas. Úsalo si preguntan por su ropa o deuda.',

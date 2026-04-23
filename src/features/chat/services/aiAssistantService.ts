@@ -129,7 +129,7 @@ ${servicesContext}
 
 CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
 
-            const { text } = await generateText({
+            const result = await generateText({
                 model: googleProvider('gemini-2.5-flash') as any,
                 system: systemPrompt,
                 messages: [
@@ -145,6 +145,7 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
                         }),
                         execute: async ({ noteNumber }) => {
                             try {
+                                console.log('[AI_TOOL] Searching tickets for:', { noteNumber, phone });
                                 let query = supabase
                                     .from('tickets')
                                     .select(`
@@ -174,7 +175,6 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
                                 }
 
                                 // Seguridad: Si buscan por número de nota, validar que el teléfono coincida
-                                // O si son dueños (phone === branch.wa_phone_number)
                                 const isOwner = phone === branch.wa_phone_number;
                                 const phoneMatch = tickets.some(t => t.clients?.phone === phone);
 
@@ -189,11 +189,28 @@ CONOCIMIENTO: ${agentConfig?.knowledge_base || ''}`;
                             }
                         }
                     })
-                },
-                maxSteps: 5,
+                }
             } as any);
 
-            if (!text) throw new Error('No response from AI');
+            const { text } = result;
+
+            if (!text) {
+                // Log debug info to DB
+                await supabase.from('webhook_logs').insert({
+                    payload: {
+                        type: 'AI_DEBUG',
+                        message: 'Empty text response',
+                        steps: result.steps?.map((s: any) => ({ 
+                            finishReason: s.finishReason, 
+                            text: s.text, 
+                            toolCalls: s.toolCalls?.length 
+                        })),
+                        phone,
+                        content
+                    }
+                });
+                throw new Error('No response from AI');
+            }
 
             return await this.sendAndLog(phone, text, client?.id || '', branch);
 

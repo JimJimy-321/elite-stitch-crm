@@ -562,7 +562,7 @@ export default function BranchesPage() {
                                             )}
                                             {nativeStep === 2 && (
                                                 <div className="space-y-4 text-center">
-                                                    <div className="font-black text-emerald-600 uppercase mb-2">\u00A1Vinculado con \u00E9xito!</div>
+                                                    <div className="font-black text-emerald-600 uppercase mb-2">¡Vinculado con éxito!</div>
                                                     <button 
                                                         onClick={handleDisconnectWhatsApp}
                                                         className="w-full text-[9px] font-black text-rose-500 py-3 border border-rose-100 rounded-xl hover:bg-rose-50 transition-all uppercase"
@@ -574,7 +574,7 @@ export default function BranchesPage() {
                                         </div>
                                     </div>
                                     <div className="pt-4 border-t border-slate-200 text-center">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mt-2">Configuraci\u00F3n de IDs (Detecci\u00F3n Manual/Auto)</p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mt-2">Configuración de IDs (Detección Manual/Auto)</p>
                                     </div>
                                     <div className="pt-2 space-y-4">
                                         <div className="grid grid-cols-2 gap-3">
@@ -665,9 +665,25 @@ export default function BranchesPage() {
                                                 {isAuthorizingDevice ? (
                                                     <><Loader2 className="animate-spin" size={20} /> Autorizando...</>
                                                 ) : (
-                                                    <>Vincular este Equipo <Check size={18} /></>
+                                                    <>{typeof window !== 'undefined' && localStorage.getItem('sp_device_auth_token') ? 'Re-vincular este Equipo' : 'Vincular este Equipo'} <Check size={18} /></>
                                                 )}
                                             </button>
+
+                                            {typeof window !== 'undefined' && localStorage.getItem('sp_device_auth_token') && (
+                                                <button 
+                                                    onClick={() => {
+                                                        if (confirm('¿Deseas desvincular este equipo? Dejará de funcionar como terminal hasta que lo vuelvas a vincular.')) {
+                                                            localStorage.removeItem('sp_device_auth_token');
+                                                            localStorage.removeItem('sp_authorized_branch');
+                                                            toast.success("Equipo desvinculado localmente.");
+                                                            window.location.reload();
+                                                        }
+                                                    }}
+                                                    className="w-full bg-slate-100 text-slate-500 py-3 rounded-xl font-black uppercase text-[9px] hover:bg-rose-50 hover:text-rose-600 transition-all"
+                                                >
+                                                    ✕ Desvincular este equipo
+                                                </button>
+                                            )}
                                         </div>
 
                                         <div className="bg-amber-50 border border-amber-100 p-6 rounded-3xl flex gap-4">

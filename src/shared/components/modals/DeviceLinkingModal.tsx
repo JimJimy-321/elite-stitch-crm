@@ -143,9 +143,25 @@ export function DeviceLinkingModal({ isOpen, onClose }: DeviceLinkingModalProps)
                         {isAuthorizing ? (
                             <><Loader2 className="animate-spin" size={20} /> Vinculando...</>
                         ) : (
-                            <>Vincular este Equipo <Check size={18} /></>
+                            <>{typeof window !== 'undefined' && localStorage.getItem('sp_device_auth_token') ? 'Re-vincular este Equipo' : 'Vincular este Equipo'} <Check size={18} /></>
                         )}
                     </button>
+                    
+                    {typeof window !== 'undefined' && localStorage.getItem('sp_device_auth_token') && (
+                        <button 
+                            onClick={() => {
+                                if (confirm('¿Deseas desvincular este equipo? Dejará de funcionar como terminal hasta que lo vuelvas a vincular.')) {
+                                    localStorage.removeItem('sp_device_auth_token');
+                                    localStorage.removeItem('sp_authorized_branch');
+                                    toast.success("Equipo desvinculado localmente.");
+                                    window.location.reload();
+                                }
+                            }}
+                            className="w-full bg-slate-100 text-slate-400 py-3 rounded-xl font-bold uppercase text-[9px] hover:bg-rose-50 hover:text-rose-600 transition-all"
+                        >
+                            ✕ Desvincular este equipo
+                        </button>
+                    )}
                     
                     <button
                         onClick={onClose}

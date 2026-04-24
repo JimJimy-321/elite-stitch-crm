@@ -228,7 +228,12 @@ export default function ChatPage() {
                 const updatedConv = payload.new;
                 setConversations((prev) => prev.map((c) =>
                     c.id === updatedConv.id
-                        ? { ...c, ...updatedConv, client_name: c.client_name || updatedConv.client_name, branch_name: c.branch_name }
+                        ? { 
+                            ...c, 
+                            ...updatedConv, 
+                            client_name: c.client_name || updatedConv.client_name, 
+                            branch_name: c.branch_name 
+                          }
                         : c
                 ));
             })

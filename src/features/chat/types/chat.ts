@@ -16,6 +16,7 @@ export interface ChatConversation {
     unread_count: number;
     sentiment_score: Sentiment;
     tags?: string[];
+    branch_name?: string;
 }
 
 export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed';

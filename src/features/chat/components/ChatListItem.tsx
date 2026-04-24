@@ -61,9 +61,14 @@ export function ChatListItem({ conversation, isActive, onClick }: Props) {
                                 <p className="text-[10px] text-gray-400 font-bold tabular-nums leading-none">
                                     {conversation.client_phone}
                                 </p>
-                                {(conversation as any).branch_name && (
-                                    <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter">
-                                        {(conversation as any).branch_name}
+                                {conversation.branch_name && (
+                                    <span className={cn(
+                                        "text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm",
+                                        conversation.branch_name.toLowerCase().includes('elite') ? "bg-orange-100 text-orange-600 border border-orange-200" :
+                                        conversation.branch_name.toLowerCase().includes('refugio') ? "bg-emerald-100 text-emerald-600 border border-emerald-200" :
+                                        "bg-slate-100 text-slate-600 border border-slate-200"
+                                    )}>
+                                        {conversation.branch_name}
                                     </span>
                                 )}
                             </div>

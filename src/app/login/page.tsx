@@ -282,6 +282,21 @@ export default function LoginPage() {
                                 error={error}
                                 title={authorizedBranch?.name ? `Sucursal: ${authorizedBranch.name}` : "Ingresa tu PIN"}
                             />
+                            
+                            <div className="mt-8 flex justify-center">
+                                <button
+                                    onClick={() => {
+                                        if (confirm('¿Deseas desvincular este equipo? Deberás volver a vincularlo desde el panel de Dueño.')) {
+                                            localStorage.removeItem('sp_device_auth_token');
+                                            localStorage.removeItem('sp_authorized_branch');
+                                            window.location.reload();
+                                        }
+                                    }}
+                                    className="text-[10px] font-black uppercase text-slate-300 hover:text-orange-500 transition-colors tracking-widest"
+                                >
+                                    ✕ Desvincular este equipo
+                                </button>
+                            </div>
                         </div>
                     )}
 

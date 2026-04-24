@@ -36,7 +36,7 @@ const supabase = createClient();
 
 const META_APP_ID = "3780486202082501";
 const META_CONFIG_ID = "1598768074758028";
-const SYNC_VERSION = "V2.8 - BUILD FIX";
+const SYNC_VERSION = "V3.0 - STABILITY ONE-SHOT";
 
 export default function BranchesPage() {
     const [branches, setBranches] = useState<any[]>([]);
@@ -374,6 +374,9 @@ export default function BranchesPage() {
                 // NUEVO: Guardar metadatos de sucursal para que el Login los reconozca
                 setAuthorizedBranch(selectedBranch.id, selectedBranch.name);
                 toast.success("¡Dispositivo autorizado para esta sucursal!");
+                
+                // Refrescar para que el estado se refleje inmediatamente
+                setTimeout(() => window.location.reload(), 1000);
             }
         } catch (error: any) {
             toast.error("Error: " + error.message);

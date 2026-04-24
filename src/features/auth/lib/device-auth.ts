@@ -18,9 +18,6 @@ export async function getDeviceFingerprint(): Promise<string> {
     const components = [
         nab.userAgent,
         nab.language,
-        screen.colorDepth,
-        screen.width + 'x' + screen.height,
-        new Date().getTimezoneOffset(),
         nab.platform || 'unknown',
         nab.hardwareConcurrency || 'unknown'
     ];

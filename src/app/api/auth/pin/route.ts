@@ -30,16 +30,21 @@ export async function POST(req: Request) {
         const supabase = await createClient();
         
         if (result.profile?.email) {
+            console.log(`[AUTH_PIN] Attempting sign-in for ${result.profile.email}`);
             const { error: authError } = await supabase.auth.signInWithPassword({
                 email: result.profile.email,
                 password: 'Staff@2026!'
             });
             
             if (authError) {
-                console.error('[AUTH_PIN_SUPABASE_ERROR]', authError);
+                console.error('[AUTH_PIN_SUPABASE_ERROR]', {
+                    email: result.profile.email,
+                    error: authError.message,
+                    status: authError.status
+                });
                 return NextResponse.json(
-                    { error: 'Error al establecer sesión segura' }, 
-                    { status: 500 }
+                    { error: `Error de sesión: ${authError.message}. Verifica que el usuario de Auth existe.` }, 
+                    { status: 401 }
                 );
             }
         } else {

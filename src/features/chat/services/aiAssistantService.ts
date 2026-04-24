@@ -68,6 +68,8 @@ export const aiAssistantService = {
         }
 
         const cleanPhone = phone.replace(/\D/g, '');
+        let branch: any = null;
+        let client: any = null;
 
         try {
             const { data: agentConfig } = await supabase
@@ -77,11 +79,13 @@ export const aiAssistantService = {
                 .eq('is_active', true)
                 .single();
 
-            const { data: branch, error: bErr } = await supabase
+            const { data: branchData, error: bErr } = await supabase
                 .from('branches')
                 .select('id, wa_access_token, wa_phone_number_id, wa_phone_number, metadata, organization_id, name, business_hours, address')
                 .eq('wa_phone_number_id', phoneNumberId)
                 .single();
+            
+            branch = branchData;
 
             if (bErr || !branch) return null;
 
@@ -109,7 +113,7 @@ export const aiAssistantService = {
                 p_branch_id: branch.id
             });
 
-            const client = clients?.[0];
+            client = clients?.[0];
             const history = client ? await this.getConversationHistory(client.id, branch.id) : [];
 
             const { data: services } = await supabase
@@ -132,8 +136,8 @@ export const aiAssistantService = {
             });
 
             // Contexto de tickets pre-cargados
-            const ticketContext = preFetchedTickets ? 
-                `ESTATUS ACTUAL DEL CLIENTE (No necesitas consultar find_tickets): \n${JSON.stringify(preFetchedTickets, null, 2)}` : 
+            const ticketContext = preFetchedTickets && preFetchedTickets.length > 0 ? 
+                `ESTATUS ACTUAL DEL CLIENTE (Usa esto para responder YA): \n${JSON.stringify(preFetchedTickets, null, 2)}` : 
                 'No se encontraron prendas pendientes en una búsqueda inicial.';
 
             const systemPrompt = `Eres el asistente virtual experto de la sastrería "${branch.name}". Tu objetivo es ayudar a los clientes de forma rápida, amable y eficiente.
@@ -141,14 +145,14 @@ export const aiAssistantService = {
 FECHA ACTUAL: ${currentDate}
 
 REGLAS DE ORO:
-1. ESTATUS DE PRENDAS: Si ves información en "ESTATUS ACTUAL DEL CLIENTE", úsala directamente para responder. Si no ves nada ahí pero el cliente pregunta por su ropa, usa "find_tickets".
+1. ESTATUS DE PRENDAS: Si ves información en "ESTATUS ACTUAL DEL CLIENTE", úsala directamente para responder. Menciona las piezas, el estatus y el saldo.
 2. RESPUESTAS TRAS CONSULTAR:
    - Si hay prendas "ready": Dile con alegría que ya puede pasar por ellas.
-   - Si hay prendas "processing", "received" o "in_progress": Dile que seguimos trabajando en ellas y menciona la "delivery_date" si es futura.
+   - Si hay prendas "processing", "received" o "in_progress": Dile que seguimos trabajando en ellas.
    - Si tiene saldo pendiente ("balance_due" > 0), recuérdale el monto amablemente.
 3. PERSONALIZACIÓN: Si conoces su nombre (${client?.full_name || 'Desconocido'}), úsalo.
 4. FLUIDEZ: Sé breve, natural y conversacional. No repitas saludos. No menciones IDs técnicos.
-5. NO ENCONTRADO: Si no hay tickets, pide disculpas e informa que un humano revisará el sistema manualmente en un momento.
+5. NO ENCONTRADO: Si de verdad no hay tickets (la búsqueda inicial falló Y find_tickets no devolvió nada), pide disculpas e informa que un humano revisará.
 
 ${ticketContext}
 
@@ -162,11 +166,10 @@ ${servicesContext}
 INSTRUCCIONES ADICIONALES:
 - Responde siempre en español de México.
 - Máximo 2 párrafos cortos.
-- Usa emojis (🧵, ✅).
-- Conocimiento extra: ${agentConfig?.knowledge_base || ''}`;
+- Usa emojis (🧵, ✅).`;
 
             const result = await generateText({
-                model: googleProvider('gemini-2.0-flash') as any,
+                model: googleProvider('gemini-1.5-flash-latest') as any,
                 system: systemPrompt,
                 messages: [
                     ...history,
@@ -196,7 +199,17 @@ INSTRUCCIONES ADICIONALES:
                 }
             } as any);
 
-            const { text } = result;
+            let { text } = result;
+
+            // VALIDACIÓN CRÍTICA: Si Gemini dice que no hay prendas pero nosotros TENEMOS pre-fetched tickets,
+            // forzamos la respuesta de Safe Mode para evitar información errónea.
+            const textLower = text?.toLowerCase() || '';
+            const impliesNoTickets = textLower.includes('no encontr') || textLower.includes('no hay') || textLower.includes('encargado') || textLower.includes('humano');
+            
+            if (preFetchedTickets && preFetchedTickets.length > 0 && impliesNoTickets) {
+                console.log('[AI_CORRECTION] Gemini suggested no tickets but we found some. Using Safe Mode response.');
+                text = this.formatSafeResponse(preFetchedTickets, client?.full_name);
+            }
 
             if (!text || text.trim() === '') {
                 // Fallback robusto si la IA no generó texto
@@ -218,9 +231,11 @@ INSTRUCCIONES ADICIONALES:
                                errorMsg.toLowerCase().includes('429');
 
             // Intento de Safe Mode ante CUALQUIER error crítico
-            const safeModeResponse = await this.getSafeModeResponse(phone, branch.id, client?.full_name);
-            if (safeModeResponse) {
-                return await this.sendAndLog(phone, safeModeResponse, client?.id || '', branch);
+            if (branch?.id) {
+                const safeModeResponse = await this.getSafeModeResponse(phone, branch.id, client?.full_name);
+                if (safeModeResponse) {
+                    return await this.sendAndLog(phone, safeModeResponse, client?.id || '', branch);
+                }
             }
 
             return await this.handleHandoff(phone, branch, content, client?.id, client?.full_name);

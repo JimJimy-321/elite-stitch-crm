@@ -136,7 +136,7 @@ export const aiAssistantService = {
 
             // Contexto de tickets pre-cargados
             const ticketContext = preFetchedTickets && preFetchedTickets.length > 0 ? 
-                `ESTATUS ACTUAL DEL CLIENTE: \n${JSON.stringify(preFetchedTickets.map(t => ({
+                `ESTATUS ACTUAL DEL CLIENTE: \n${JSON.stringify(preFetchedTickets.map((t: any) => ({
                     articulo: t.item_name || t.service_name,
                     estado: t.status === 'ready' ? 'LISTO PARA ENTREGA' : 
                             t.status === 'received' ? 'RECIBIDO' : 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Brain, Save, Info, Power, BookOpen, MessageSquare, AlertTriangle, CheckCircle2, Key } from 'lucide-react';
+import { Brain, Save, Info, Power, BookOpen, MessageSquare, AlertTriangle, CheckCircle2, Key, Zap } from 'lucide-react';
 import { aiAgentService, AgentConfig } from '@/features/chat/services/aiAgentService';
 import { toast } from 'sonner';
 

@@ -13,6 +13,9 @@ export interface AgentConfig {
     welcome_message: string;
     response_style: string;
     google_api_key: string;
+    ai_provider: string;
+    openrouter_api_key: string;
+    ai_model: string;
 }
 
 export const aiAgentService = {

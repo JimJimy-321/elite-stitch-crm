@@ -149,30 +149,89 @@ export function AiAgentSettings({ organizationId }: AiAgentSettingsProps) {
                                 </div>
                             </div>
 
-                            <div className="space-y-4 pt-4 border-t border-border/50">
-                                <div className="flex items-center justify-between">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                                        <Key size={14} className="text-amber-500" />
-                                        Google Gemini API Key (Producción)
-                                    </label>
-                                    <div className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-                                        <span className="text-[8px] font-black uppercase text-emerald-600 tracking-tighter">Activa</span>
+                                <div className="space-y-4 pt-4 border-t border-border/50">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                            <Zap size={14} className="text-blue-500" />
+                                            Motor de Inteligencia (IA)
+                                        </label>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            onClick={() => handleUpdate({ ai_provider: 'google' })}
+                                            className={`p-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${
+                                                currentConfig?.ai_provider === 'google'
+                                                ? 'bg-blue-500/10 border-blue-500 text-blue-700'
+                                                : 'bg-background border-border text-muted-foreground'
+                                            }`}
+                                        >
+                                            Google Gemini
+                                        </button>
+                                        <button
+                                            onClick={() => handleUpdate({ ai_provider: 'openrouter' })}
+                                            className={`p-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${
+                                                currentConfig?.ai_provider === 'openrouter'
+                                                ? 'bg-purple-500/10 border-purple-500 text-purple-700'
+                                                : 'bg-background border-border text-muted-foreground'
+                                            }`}
+                                        >
+                                            OpenRouter
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="relative group">
+
+                                {currentConfig?.ai_provider === 'google' ? (
+                                    <div className="space-y-4 pt-4">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                                <Key size={14} className="text-amber-500" />
+                                                Google Gemini API Key
+                                            </label>
+                                        </div>
+                                        <input 
+                                            type="password"
+                                            className="w-full bg-secondary/30 border border-border rounded-2xl p-4 text-xs font-mono focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all"
+                                            placeholder="AIzaSy..."
+                                            value={currentConfig?.google_api_key || ''}
+                                            onChange={(e) => handleUpdate({ google_api_key: e.target.value })}
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4 pt-4">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                                <Key size={14} className="text-purple-500" />
+                                                OpenRouter API Key
+                                            </label>
+                                        </div>
+                                        <input 
+                                            type="password"
+                                            className="w-full bg-secondary/30 border border-border rounded-2xl p-4 text-xs font-mono focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+                                            placeholder="sk-or-v1-..."
+                                            value={currentConfig?.openrouter_api_key || ''}
+                                            onChange={(e) => handleUpdate({ openrouter_api_key: e.target.value })}
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="space-y-2 pt-4">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                        <Activity size={14} className="text-primary" />
+                                        Modelo de IA (ID del Modelo)
+                                    </label>
                                     <input 
-                                        type="password"
-                                        className="w-full bg-secondary/30 border border-border rounded-2xl p-4 text-xs font-mono focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all pr-12"
-                                        placeholder="AIzaSy..."
-                                        value={currentConfig?.google_api_key || ''}
-                                        onChange={(e) => handleUpdate({ google_api_key: e.target.value })}
+                                        type="text"
+                                        className="w-full bg-secondary/30 border border-border rounded-2xl p-4 text-xs font-mono focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                        placeholder={currentConfig?.ai_provider === 'google' ? 'gemini-2.5-flash' : 'google/gemma-2-9b-it:free'}
+                                        value={currentConfig?.ai_model || ''}
+                                        onChange={(e) => handleUpdate({ ai_model: e.target.value })}
                                     />
+                                    <p className="text-[9px] text-muted-foreground italic">
+                                        {currentConfig?.ai_provider === 'openrouter' 
+                                            ? 'Puedes usar modelos gratuitos como "google/gemma-2-9b-it:free" o "mistralai/mistral-7b-instruct:free".'
+                                            : 'Recomendado: "gemini-2.5-flash" para mayor velocidad.'}
+                                    </p>
                                 </div>
-                                <p className="text-[9px] text-muted-foreground leading-relaxed italic">
-                                    Esta llave se guarda encriptada y habilita la IA en el entorno de producción de SastrePro.
-                                </p>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -183,7 +242,7 @@ export function AiAgentSettings({ organizationId }: AiAgentSettingsProps) {
                         <h4 className="font-black uppercase text-[11px] tracking-[0.2em] text-foreground mb-6">Estado de Entrenamiento</h4>
                         <div className="space-y-4">
                             <TrainingItem label="Conexi\u00f3n WhatsApp" status="OK" />
-                            <TrainingItem label="IA Engine (Gemini 2.0)" status="Active" />
+                            <TrainingItem label="IA Engine" status={currentConfig?.ai_provider === 'google' ? 'Gemini 2.5' : 'OpenRouter'} />
                             <TrainingItem label="Precios Sincronizados" status="Sync" />
                             <TrainingItem label="Idempotencia (Anti-Duplicado)" status="Activa" />
                         </div>

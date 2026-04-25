@@ -132,7 +132,9 @@ export const aiAssistantService = {
 
             const currentDate = new Date().toLocaleDateString('es-MX', { 
                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-                        // Contexto de tickets pre-cargados
+            });
+
+            // Contexto de tickets pre-cargados
             const ticketContext = preFetchedTickets && preFetchedTickets.length > 0 ? 
                 `ESTATUS ACTUAL DEL CLIENTE: \n${JSON.stringify(preFetchedTickets.map(t => ({
                     articulo: t.item_name || t.service_name,

@@ -174,7 +174,7 @@ INSTRUCCIONES ADICIONALES:
 
             try {
                 const result = await generateText({
-                    model: googleProvider('gemini-1.5-flash') as any,
+                    model: googleProvider('gemini-2.5-flash') as any,
                     system: systemPrompt,
                     messages: [
                         ...history,
@@ -219,7 +219,7 @@ INSTRUCCIONES ADICIONALES:
                     system_prompt: systemPrompt.substring(0, 1000), // Evitar prompts gigantes
                     ai_response: aiText,
                     ai_error: aiError,
-                    metadata: { whatsapp_id: whatsappId, model: 'gemini-1.5-flash' }
+                    metadata: { whatsapp_id: whatsappId, model: 'gemini-2.5-flash' }
                 });
             } catch (e) {
                 console.error('[AI_LOG_ERROR]', e);

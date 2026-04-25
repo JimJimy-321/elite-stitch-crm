@@ -2,6 +2,7 @@ import { supabaseWebhookClient as supabase } from '@/lib/supabase/webhook';
 import { whatsappService } from './whatsappService';
 import { generateText } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 /**
@@ -133,12 +134,25 @@ export const aiAssistantService = {
 
             const servicesContext = services?.map(s => `- ${s.name}: $${s.price}`).join('\n') || 'Info no disponible.';
 
-            const apiKey = agentConfig?.google_api_key || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-            if (!apiKey) throw new Error('Missing Gemini API Key');
+            // 3. Selección de Proveedor y Modelo
+            const provider = agentConfig?.ai_provider || 'google';
+            const modelName = agentConfig?.ai_model || 'gemini-2.5-flash';
+            let aiModel: any;
 
-            const googleProvider = createGoogleGenerativeAI({ 
-                apiKey
-            });
+            if (provider === 'openrouter') {
+                const apiKey = agentConfig?.openrouter_api_key || process.env.OPENROUTER_API_KEY;
+                if (!apiKey) throw new Error('Missing OpenRouter API Key');
+                const openrouter = createOpenAI({
+                    apiKey,
+                    baseURL: 'https://openrouter.ai/api/v1',
+                });
+                aiModel = openrouter(modelName);
+            } else {
+                const apiKey = agentConfig?.google_api_key || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+                if (!apiKey) throw new Error('Missing Gemini API Key');
+                const google = createGoogleGenerativeAI({ apiKey });
+                aiModel = google(modelName);
+            }
 
             const currentDate = new Date().toLocaleDateString('es-MX', { 
                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
@@ -184,7 +198,7 @@ ${servicesContext}`;
 
             try {
                 const result = await generateText({
-                    model: googleProvider('gemini-2.5-flash') as any,
+                    model: aiModel,
                     system: systemPrompt,
                     messages: [
                         ...history,

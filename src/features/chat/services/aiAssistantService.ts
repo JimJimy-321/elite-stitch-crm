@@ -116,6 +116,16 @@ export const aiAssistantService = {
             client = clients?.[0];
             const history = client ? await this.getConversationHistory(client.id, branch.id) : [];
 
+            // 2. Fast Path: Detección de Emojis y Cierre (Ahorra cuota de AI)
+            const closureKeywords = ['gracias', 'muchas gracias', 'ok', 'enterado', 'perfecto', 'excelente', 'buen día', 'bye', 'adiós'];
+            const isEmojiOnly = /^[\p{Emoji}\s]+$/u.test(content);
+            const isShortClosure = content.length < 15 && closureKeywords.some(k => content.toLowerCase().includes(k));
+
+            if (isEmojiOnly || isShortClosure) {
+                const closureResponse = isEmojiOnly ? '😊' : '¡De nada! Que tenga un excelente día. 😊';
+                return await this.sendAndLog(phone, closureResponse, client?.id || '', branch);
+            }
+
             const { data: services } = await supabase
                 .from('service_catalogs')
                 .select('name, price')

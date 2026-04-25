@@ -132,42 +132,40 @@ export const aiAssistantService = {
 
             const currentDate = new Date().toLocaleDateString('es-MX', { 
                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-            });
-
-            // Contexto de tickets pre-cargados
+                        // Contexto de tickets pre-cargados
             const ticketContext = preFetchedTickets && preFetchedTickets.length > 0 ? 
-                `ESTATUS ACTUAL DEL CLIENTE (Usa esto para responder): \n${JSON.stringify(preFetchedTickets, null, 2)}` : 
-                'No se encontraron prendas pendientes en la búsqueda inicial por teléfono.';
+                `ESTATUS ACTUAL DEL CLIENTE: \n${JSON.stringify(preFetchedTickets.map(t => ({
+                    articulo: t.item_name || t.service_name,
+                    estado: t.status === 'ready' ? 'LISTO PARA ENTREGA' : 
+                            t.status === 'received' ? 'RECIBIDO' : 
+                            t.status === 'processing' ? 'EN PROCESO' : 
+                            t.status === 'in_progress' ? 'EN TRABAJO' : 'PENDIENTE',
+                    fecha_entrega: t.delivery_date
+                })), null, 2)}` : 
+                'No se encontraron prendas pendientes.';
 
-            const systemPrompt = `Eres el asistente virtual experto de la sastrería "${branch.name}". Tu objetivo es ayudar a los clientes de forma rápida, amable y eficiente.
-
+            const systemPrompt = `Eres el asistente virtual de la sastrería "${branch.name}". Responde SIEMPRE en español de México.
+            
 FECHA ACTUAL: ${currentDate}
-
-REGLAS DE ORO:
-1. ESTATUS DE PRENDAS: Si ves información en "ESTATUS ACTUAL DEL CLIENTE", úsala directamente para responder. Menciona las piezas, el estatus y el saldo.
-2. RESPUESTAS TRAS CONSULTAR:
-   - Si hay prendas "ready": Dile con alegría que ya puede pasar por ellas.
-   - Si hay prendas "processing", "received" o "in_progress": Dile que seguimos trabajando en ellas.
-   - Si tiene saldo pendiente ("balance_due" > 0), recuérdale el monto amablemente.
-3. PERSONALIZACIÓN: Si conoces su nombre (${client?.full_name || 'Desconocido'}), úsalo.
-4. FLUIDEZ: Sé breve, natural y conversacional. No repitas saludos. No menciones IDs técnicos. Responde a saludos ("hola", "buenos días") de forma amable sin necesariamente dar el estatus de prendas a menos que sea relevante.
-5. INFORMACIÓN GENERAL: Si preguntan por horarios o ubicación, usa los "DATOS SUCURSAL".
-6. NO ENCONTRADO: Si el cliente pregunta por sus prendas y NO hay información en "ESTATUS ACTUAL DEL CLIENTE", usa la herramienta 'find_tickets'. Si después de eso no hay nada, dile que no encuentras registros con su número y que un humano revisará.
-
-${ticketContext}
 
 DATOS SUCURSAL:
 - Dirección: ${branch.address || 'Consultar en sucursal'}
 - Horarios: ${typeof branch.business_hours === 'string' ? branch.business_hours : JSON.stringify(branch.business_hours)}
+- Formas de Pago: EFECTIVO, TRANSFERENCIA y TARJETA DE CRÉDITO/DÉBITO.
 
-SERVICIOS DISPONIBLES (Precios base):
-${servicesContext}
+REGLAS CRÍTICAS:
+1. PRIVACIDAD: NUNCA menciones montos de dinero, saldos pendientes o costos específicos a menos que el cliente pregunte explícitamente por un precio de catálogo.
+2. TRADUCCIÓN: Usa términos naturales. NUNCA digas "received" o "ready". Di "Recibido", "En proceso" o "Listo para que pases por él".
+3. CIERRE DE CONVERSACIÓN (MUY IMPORTANTE): 
+   - Si el cliente envía mensajes de agradecimiento o confirmación corta (ej: "gracias", "ok", "enterado", "perfecto", "muchas gracias", "👍", "🙏"), RESPONDE ÚNICAMENTE con una despedida cordial (ej: "¡De nada! Que tenga un excelente día").
+   - En estos casos de cierre, NO vuelvas a preguntar "¿Hay algo más en lo que pueda ayudarte?".
+4. FLUJO: Sé breve (máximo 2 párrafos). Usa emojis (🧵, ✅, 📍).
 
-INSTRUCCIONES ADICIONALES:
-- Responde siempre en español de México.
-- Máximo 2 párrafos cortos.
-- Usa emojis (🧵, ✅, 📍).
-- Si el cliente solo saluda, responde el saludo y pregunta en qué puedes ayudar.`;
+${ticketContext}
+
+SERVICIOS DISPONIBLES:
+${servicesContext}`;
+
 
             let aiText = '';
             let aiError = null;
@@ -296,11 +294,6 @@ INSTRUCCIONES ADICIONALES:
         }
         if (processingCount > 0) {
             responseText += `⏳ Tienes ${processingCount} prenda(s) aún en proceso. \n`;
-        }
-        
-        const totalBalance = tickets.reduce((acc: number, t: any) => acc + (t.balance_due || 0), 0);
-        if (totalBalance > 0) {
-            responseText += `💰 Saldo pendiente: $${totalBalance}. \n`;
         }
         
         responseText += `\n¡Te esperamos en la sucursal! 🧵`;

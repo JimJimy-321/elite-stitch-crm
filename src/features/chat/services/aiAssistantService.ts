@@ -118,11 +118,10 @@ export const aiAssistantService = {
 
             const { data: services } = await supabase
                 .from('service_catalogs')
-                .select('name, price, category')
-                .eq('organization_id', branch.organization_id)
-                .is('deleted_at', null);
+                .select('name, price')
+                .eq('organization_id', branch.organization_id);
 
-            const servicesContext = services?.map(s => `- ${s.name}: $${s.price}${s.category ? ` (${s.category})` : ''}`).join('\n') || 'Info no disponible.';
+            const servicesContext = services?.map(s => `- ${s.name}: $${s.price}`).join('\n') || 'Info no disponible.';
 
             const apiKey = agentConfig?.google_api_key || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
             if (!apiKey) throw new Error('Missing Gemini API Key');
@@ -137,8 +136,8 @@ export const aiAssistantService = {
 
             // Contexto de tickets pre-cargados
             const ticketContext = preFetchedTickets && preFetchedTickets.length > 0 ? 
-                `ESTATUS ACTUAL DEL CLIENTE (Usa esto para responder YA): \n${JSON.stringify(preFetchedTickets, null, 2)}` : 
-                'No se encontraron prendas pendientes en una búsqueda inicial.';
+                `ESTATUS ACTUAL DEL CLIENTE (Usa esto para responder): \n${JSON.stringify(preFetchedTickets, null, 2)}` : 
+                'No se encontraron prendas pendientes en la búsqueda inicial por teléfono.';
 
             const systemPrompt = `Eres el asistente virtual experto de la sastrería "${branch.name}". Tu objetivo es ayudar a los clientes de forma rápida, amable y eficiente.
 
@@ -151,68 +150,93 @@ REGLAS DE ORO:
    - Si hay prendas "processing", "received" o "in_progress": Dile que seguimos trabajando en ellas.
    - Si tiene saldo pendiente ("balance_due" > 0), recuérdale el monto amablemente.
 3. PERSONALIZACIÓN: Si conoces su nombre (${client?.full_name || 'Desconocido'}), úsalo.
-4. FLUIDEZ: Sé breve, natural y conversacional. No repitas saludos. No menciones IDs técnicos.
-5. NO ENCONTRADO: Si de verdad no hay tickets (la búsqueda inicial falló Y find_tickets no devolvió nada), pide disculpas e informa que un humano revisará.
+4. FLUIDEZ: Sé breve, natural y conversacional. No repitas saludos. No menciones IDs técnicos. Responde a saludos ("hola", "buenos días") de forma amable sin necesariamente dar el estatus de prendas a menos que sea relevante.
+5. INFORMACIÓN GENERAL: Si preguntan por horarios o ubicación, usa los "DATOS SUCURSAL".
+6. NO ENCONTRADO: Si el cliente pregunta por sus prendas y NO hay información en "ESTATUS ACTUAL DEL CLIENTE", usa la herramienta 'find_tickets'. Si después de eso no hay nada, dile que no encuentras registros con su número y que un humano revisará.
 
 ${ticketContext}
 
 DATOS SUCURSAL:
-- Dirección: ${branch.address}
-- Horarios: ${JSON.stringify(branch.business_hours)}
+- Dirección: ${branch.address || 'Consultar en sucursal'}
+- Horarios: ${typeof branch.business_hours === 'string' ? branch.business_hours : JSON.stringify(branch.business_hours)}
 
-SERVICIOS:
+SERVICIOS DISPONIBLES (Precios base):
 ${servicesContext}
 
 INSTRUCCIONES ADICIONALES:
 - Responde siempre en español de México.
 - Máximo 2 párrafos cortos.
-- Usa emojis (🧵, ✅).`;
+- Usa emojis (🧵, ✅, 📍).
+- Si el cliente solo saluda, responde el saludo y pregunta en qué puedes ayudar.`;
 
-            const result = await generateText({
-                model: googleProvider('gemini-1.5-flash-latest') as any,
-                system: systemPrompt,
-                messages: [
-                    ...history,
-                    { role: 'user', content }
-                ] as any,
-                maxSteps: 2,
-                tools: {
-                    find_tickets: {
-                        description: 'Consulta el estatus de las notas/prendas y saldos pendientes (solo si no tienes la info arriba).',
-                        parameters: z.object({
-                            noteNumber: z.string().optional().describe('Número de nota opcional'),
-                        }),
-                        execute: async ({ noteNumber }: { noteNumber: any }) => {
-                            try {
-                                const { data: tickets, error: rpcError } = await supabase.rpc('get_tickets_by_phone_ai', {
-                                    p_phone: noteNumber || cleanPhone,
-                                    p_branch_id: branch.id
-                                });
+            let aiText = '';
+            let aiError = null;
 
-                                if (rpcError) throw rpcError;
-                                return JSON.stringify({ success: true, tickets: tickets || [] });
-                            } catch (e: any) {
-                                return JSON.stringify({ success: false, error: e.message });
+            try {
+                const result = await generateText({
+                    model: googleProvider('gemini-1.5-flash') as any,
+                    system: systemPrompt,
+                    messages: [
+                        ...history,
+                        { role: 'user', content }
+                    ] as any,
+                    maxSteps: 2,
+                    tools: {
+                        find_tickets: {
+                            description: 'Consulta el estatus de las notas/prendas y saldos pendientes (solo si no tienes la info arriba).',
+                            parameters: z.object({
+                                noteNumber: z.string().optional().describe('Número de nota o ticket opcional'),
+                            }),
+                            execute: async ({ noteNumber }: { noteNumber: any }) => {
+                                try {
+                                    const { data: tickets, error: rpcError } = await supabase.rpc('get_tickets_by_phone_ai', {
+                                        p_phone: noteNumber || cleanPhone,
+                                        p_branch_id: branch.id
+                                    });
+
+                                    if (rpcError) throw rpcError;
+                                    return JSON.stringify({ success: true, tickets: tickets || [] });
+                                } catch (e: any) {
+                                    return JSON.stringify({ success: false, error: e.message });
+                                }
                             }
                         }
                     }
-                }
-            } as any);
+                } as any);
 
-            let { text } = result;
-
-            // VALIDACIÓN CRÍTICA: Si Gemini dice que no hay prendas pero nosotros TENEMOS pre-fetched tickets,
-            // forzamos la respuesta de Safe Mode para evitar información errónea.
-            const textLower = text?.toLowerCase() || '';
-            const impliesNoTickets = textLower.includes('no encontr') || textLower.includes('no hay') || textLower.includes('encargado') || textLower.includes('humano');
-            
-            if (preFetchedTickets && preFetchedTickets.length > 0 && impliesNoTickets) {
-                console.log('[AI_CORRECTION] Gemini suggested no tickets but we found some. Using Safe Mode response.');
-                text = this.formatSafeResponse(preFetchedTickets, client?.full_name);
+                aiText = result.text;
+            } catch (err: any) {
+                aiError = err.message || String(err);
+                console.error('[AI_GENERATE_ERROR]', err);
             }
 
-            if (!text || text.trim() === '') {
-                // Fallback robusto si la IA no generó texto
+            // Log de la interacción
+            try {
+                await supabase.from('ai_logs').insert({
+                    branch_id: branch.id,
+                    client_phone: phone,
+                    user_query: content,
+                    system_prompt: systemPrompt.substring(0, 1000), // Evitar prompts gigantes
+                    ai_response: aiText,
+                    ai_error: aiError,
+                    metadata: { whatsapp_id: whatsappId, model: 'gemini-1.5-flash' }
+                });
+            } catch (e) {
+                console.error('[AI_LOG_ERROR]', e);
+            }
+
+            if (aiError) {
+                // Si hubo un error de cuota o similar, intentamos Safe Mode solo si es relevante a tickets
+                const isTicketQueryRelevant = isTicketQuery || content.length < 10; // Saludos cortos también pueden recibir status
+                if (isTicketQueryRelevant && preFetchedTickets && preFetchedTickets.length > 0) {
+                    const safeResponse = this.formatSafeResponse(preFetchedTickets, client?.full_name);
+                    return await this.sendAndLog(phone, safeResponse, client?.id || '', branch);
+                }
+                throw new Error(aiError);
+            }
+
+            // VALIDACIÓN DE CALIDAD: Si el texto está vacío o parece un error no capturado
+            if (!aiText || aiText.trim() === '') {
                 if (preFetchedTickets && preFetchedTickets.length > 0) {
                     const safeResponse = this.formatSafeResponse(preFetchedTickets, client?.full_name);
                     return await this.sendAndLog(phone, safeResponse, client?.id || '', branch);
@@ -220,24 +244,20 @@ INSTRUCCIONES ADICIONALES:
                 return await this.handleHandoff(phone, branch, content, client?.id, client?.full_name);
             }
 
-            return await this.sendAndLog(phone, text, client?.id || '', branch);
-
-        } catch (error: any) {
-            console.error('[AI_ASSISTANT] Error:', error);
+            // VALIDACIÓN DE CONTENIDO: Si Gemini dice que no hay prendas pero nosotros TENEMOS pre-fetched tickets
+            // Y el usuario claramente preguntó por sus prendas.
+            const textLower = aiText.toLowerCase();
+            const impliesNoTickets = textLower.includes('no encontr') || textLower.includes('no hay') || textLower.includes('ningún registro');
             
-            const errorMsg = error instanceof Error ? error.message : String(error);
-            const isQuotaError = errorMsg.toLowerCase().includes('quota') || 
-                               errorMsg.toLowerCase().includes('rate limit') ||
-                               errorMsg.toLowerCase().includes('429');
-
-            // Intento de Safe Mode ante CUALQUIER error crítico
-            if (branch?.id) {
-                const safeModeResponse = await this.getSafeModeResponse(phone, branch.id, client?.full_name);
-                if (safeModeResponse) {
-                    return await this.sendAndLog(phone, safeModeResponse, client?.id || '', branch);
-                }
+            if (isTicketQuery && preFetchedTickets && preFetchedTickets.length > 0 && impliesNoTickets) {
+                console.log('[AI_CORRECTION] Gemini suggested no tickets but we found some. Using Safe Mode response.');
+                aiText = this.formatSafeResponse(preFetchedTickets, client?.full_name);
             }
 
+            return await this.sendAndLog(phone, aiText, client?.id || '', branch);
+
+        } catch (error: any) {
+            console.error('[AI_ASSISTANT] Critical Error:', error);
             return await this.handleHandoff(phone, branch, content, client?.id, client?.full_name);
         }
     },

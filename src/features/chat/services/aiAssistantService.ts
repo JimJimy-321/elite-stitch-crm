@@ -92,7 +92,7 @@ export const aiAssistantService = {
             const aiEnabled = agentConfig?.is_active ?? (branch.metadata?.ai_enabled !== false); 
             if (!aiEnabled) return null;
 
-            // 1. Pre-fetch de Tickets (Ahorra pasos de IA y mejora confiabilidad)
+            // 1. Pre-fetch de Tickets
             const ticketKeywords = ['prenda', 'ropa', 'estatus', 'nota', 'saldo', 'listo', 'terminado', 'cuanto', 'pago', 'debo', 'ticket', 'pedido'];
             const isTicketQuery = ticketKeywords.some(k => content.toLowerCase().includes(k));
             let preFetchedTickets = null;
@@ -116,7 +116,7 @@ export const aiAssistantService = {
             client = clients?.[0];
             const history = client ? await this.getConversationHistory(client.id, branch.id) : [];
 
-            // 2. Fast Path: Detección de Emojis y Cierre (Ahorra cuota de AI)
+            // 2. Fast Path: Emojis y Cierre
             const closureKeywords = ['gracias', 'muchas gracias', 'ok', 'enterado', 'perfecto', 'excelente', 'buen día', 'bye', 'adiós'];
             const isEmojiOnly = /^[\p{Emoji}\s]+$/u.test(content);
             const isShortClosure = content.length < 15 && closureKeywords.some(k => content.toLowerCase().includes(k));
@@ -133,24 +133,18 @@ export const aiAssistantService = {
 
             const servicesContext = services?.map(s => `- ${s.name}: $${s.price}`).join('\n') || 'Info no disponible.';
 
-            // 3. Selección de Proveedor y Modelo (Solo Google Gemini para estabilidad)
+            // 3. Selección de Motor
             const modelName = agentConfig?.ai_model || 'gemini-1.5-flash';
-            let aiModel: any;
-
             const apiKey = (agentConfig?.google_api_key || process.env.GOOGLE_GENERATIVE_AI_API_KEY || '').trim();
             if (!apiKey) throw new Error('Missing Gemini API Key');
             
-            const googleProvider = createGoogleGenerativeAI({ 
-                apiKey,
-                apiVersion: 'v1'
-            });
-            aiModel = googleProvider(modelName);
+            const google = createGoogleGenerativeAI({ apiKey });
+            const aiModel = google(modelName);
 
             const currentDate = new Date().toLocaleDateString('es-MX', { 
                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
             });
 
-            // Formatear Horarios para que la IA los entienda mejor
             let formattedHours = 'Consultar en sucursal';
             try {
                 if (branch.business_hours) {
@@ -165,7 +159,6 @@ export const aiAssistantService = {
                 formattedHours = String(branch.business_hours);
             }
 
-            // Contexto de tickets pre-cargados
             const ticketContext = preFetchedTickets && preFetchedTickets.length > 0 ? 
                 `ESTATUS ACTUAL DEL CLIENTE: \n${JSON.stringify(preFetchedTickets.map((t: any) => ({
                     articulo: t.item_name || t.service_name,
@@ -190,13 +183,7 @@ DATOS DE LA SUCURSAL:
 REGLAS CRÍTICAS DE RESPUESTA:
 1. PRIVACIDAD: NUNCA menciones montos de dinero, saldos pendientes o cantidades a cobrar. Solo indica si la prenda está lista o en proceso.
 2. NATURALIDAD: NUNCA uses términos en inglés como "received" o "ready". 
-   - Usa "Recibido" para prendas que acaban de llegar.
-   - Usa "En proceso" para prendas que se están trabajando.
-   - Usa "Listo para que pase por él" para prendas terminadas.
-3. CIERRE DE CONVERSACIÓN (ESTRICTO):
-   - Si el cliente dice "Gracias", "Ok", "Enterado", "Perfecto", "Muchas gracias" o envía un EMOJI de confirmación (👍, 🙏, 😊):
-     - RESPONDE ÚNICAMENTE con una despedida amable como "¡De nada! Que tenga un excelente día. 😊" o un emoji cordial.
-     - NO vuelvas a preguntar "¿Hay algo más en lo que pueda ayudarte?".
+3. CIERRE DE CONVERSACIÓN (ESTRICTO): Si el cliente agradece o confirma, despídete y no preguntes más.
 4. BREVEDAD: Responde en máximo 1 o 2 párrafos cortos. Usa emojis como 🧵, ✅, 📍.
 
 ${ticketContext}
@@ -204,28 +191,16 @@ ${ticketContext}
 SERVICIOS DISPONIBLES:
 ${servicesContext}`;
 
-            const { GoogleGenerativeAI } = await import('@google/generative-ai');
-            const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: modelName, systemInstruction: systemPrompt });
-
             let aiText = '';
             let aiError = null;
 
             try {
-                // Generación directa con el SDK oficial para evitar conflictos de versión v1/v1beta del AI SDK
-                const chat = model.startChat({
-                    history: history.map(h => ({
-                        role: h.role === 'user' ? 'user' : 'model',
-                        parts: [{ text: h.content }]
-                    })),
-                    generationConfig: {
-                        maxOutputTokens: 500,
-                    }
+                const result = await generateText({
+                    model: aiModel,
+                    system: systemPrompt,
+                    messages: history.concat([{ role: 'user', content }]) as any,
                 });
-
-                const result = await chat.sendMessage(content);
-                const response = await result.response;
-                aiText = response.text();
+                aiText = result.text;
             } catch (err: any) {
                 aiError = err.message || String(err);
                 console.error('[AI_GENERATE_ERROR]', err);
@@ -247,8 +222,7 @@ ${servicesContext}`;
             }
 
             if (aiError) {
-                // Si hubo un error de cuota o similar, intentamos Safe Mode solo si es relevante a tickets
-                const isTicketQueryRelevant = isTicketQuery || content.length < 10; // Saludos cortos también pueden recibir status
+                const isTicketQueryRelevant = isTicketQuery || content.length < 10;
                 if (isTicketQueryRelevant && preFetchedTickets && preFetchedTickets.length > 0) {
                     const safeResponse = this.formatSafeResponse(preFetchedTickets, client?.full_name);
                     return await this.sendAndLog(phone, safeResponse, client?.id || '', branch);
@@ -256,23 +230,12 @@ ${servicesContext}`;
                 throw new Error(aiError);
             }
 
-            // VALIDACIÓN DE CALIDAD: Si el texto está vacío o parece un error no capturado
             if (!aiText || aiText.trim() === '') {
                 if (preFetchedTickets && preFetchedTickets.length > 0) {
                     const safeResponse = this.formatSafeResponse(preFetchedTickets, client?.full_name);
                     return await this.sendAndLog(phone, safeResponse, client?.id || '', branch);
                 }
                 return await this.handleHandoff(phone, branch, content, client?.id, client?.full_name);
-            }
-
-            // VALIDACIÓN DE CONTENIDO: Si Gemini dice que no hay prendas pero nosotros TENEMOS pre-fetched tickets
-            // Y el usuario claramente preguntó por sus prendas.
-            const textLower = aiText.toLowerCase();
-            const impliesNoTickets = textLower.includes('no encontr') || textLower.includes('no hay') || textLower.includes('ningún registro');
-            
-            if (isTicketQuery && preFetchedTickets && preFetchedTickets.length > 0 && impliesNoTickets) {
-                console.log('[AI_CORRECTION] Gemini suggested no tickets but we found some. Using Safe Mode response.');
-                aiText = this.formatSafeResponse(preFetchedTickets, client?.full_name);
             }
 
             return await this.sendAndLog(phone, aiText, client?.id || '', branch);
@@ -283,29 +246,6 @@ ${servicesContext}`;
         }
     },
 
-    /**
-     * Helper para generar una respuesta basada en datos sin usar la IA (Safe Mode)
-     */
-    async getSafeModeResponse(phone: string, branchId: string, clientName?: string) {
-        try {
-            const cleanPhone = phone.replace(/\D/g, '');
-            const { data: tickets } = await supabase.rpc('get_tickets_by_phone_ai', {
-                p_phone: cleanPhone,
-                p_branch_id: branchId
-            });
-
-            if (!tickets || tickets.length === 0) return null;
-
-            return this.formatSafeResponse(tickets, clientName);
-        } catch (e) {
-            console.error('[AI_ASSISTANT] Error in Safe Mode Response:', e);
-            return null;
-        }
-    },
-
-    /**
-     * Formatea un listado de tickets en un mensaje legible
-     */
     formatSafeResponse(tickets: any[], clientName?: string) {
         const readyCount = tickets.filter((t: any) => t.status === 'ready').length;
         const processingCount = tickets.filter((t: any) => t.status === 'processing' || t.status === 'received' || t.status === 'in_progress').length;

@@ -204,43 +204,28 @@ ${ticketContext}
 SERVICIOS DISPONIBLES:
 ${servicesContext}`;
 
+            const { GoogleGenerativeAI } = await import('@google/generative-ai');
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: modelName, systemInstruction: systemPrompt });
 
             let aiText = '';
             let aiError = null;
 
             try {
-                const result = await generateText({
-                    model: aiModel,
-                    system: systemPrompt,
-                    messages: [
-                        ...history,
-                        { role: 'user', content }
-                    ] as any,
-                    maxSteps: 2,
-                    tools: {
-                        find_tickets: {
-                            description: 'Consulta el estatus de las notas/prendas.',
-                            parameters: z.object({
-                                noteNumber: z.string().optional().describe('Número de nota'),
-                            }),
-                            execute: async ({ noteNumber }: { noteNumber: any }) => {
-                                try {
-                                    const { data: tickets, error: rpcError } = await supabase.rpc('get_tickets_by_phone_ai', {
-                                        p_phone: noteNumber || cleanPhone,
-                                        p_branch_id: branch.id
-                                    });
-
-                                    if (rpcError) throw rpcError;
-                                    return JSON.stringify({ success: true, tickets: tickets || [] });
-                                } catch (e: any) {
-                                    return JSON.stringify({ success: false, error: e.message });
-                                }
-                            }
-                        }
+                // Generación directa con el SDK oficial para evitar conflictos de versión v1/v1beta del AI SDK
+                const chat = model.startChat({
+                    history: history.map(h => ({
+                        role: h.role === 'user' ? 'user' : 'model',
+                        parts: [{ text: h.content }]
+                    })),
+                    generationConfig: {
+                        maxOutputTokens: 500,
                     }
-                } as any);
+                });
 
-                aiText = result.text;
+                const result = await chat.sendMessage(content);
+                const response = await result.response;
+                aiText = response.text();
             } catch (err: any) {
                 aiError = err.message || String(err);
                 console.error('[AI_GENERATE_ERROR]', err);

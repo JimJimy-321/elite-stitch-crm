@@ -487,14 +487,14 @@ export default function ChatPage() {
     // --- RENDER ---
 
     const SidebarContent = (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full bg-white dark:bg-[#111b21]">
             {/* Header Sidebar */}
-            <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+            <div className="p-4 bg-gray-50 dark:bg-[#202c33] border-b border-gray-200 dark:border-[#2a3942] flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-200 border border-orange-500 transition-transform hover:scale-105 active:scale-95 cursor-pointer">
+                    <div className="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-200 dark:shadow-none border border-orange-500 transition-transform hover:scale-105 active:scale-95 cursor-pointer">
                         <Scissors className="text-white w-5 h-5" />
                     </div>
-                    <h2 className="font-bold text-gray-700">Chats</h2>
+                    <h2 className="font-bold text-gray-700 dark:text-gray-200">Chats</h2>
                 </div>
                 <button
                     onClick={() => setShowNewChatModal(true)}
@@ -506,7 +506,7 @@ export default function ChatPage() {
             </div>
 
             {/* Search */}
-            <div className="p-2 border-b border-gray-100">
+            <div className="p-2 border-b border-gray-100 dark:border-[#2a3942]">
                 <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Search className="h-4 w-4 text-gray-400" />
@@ -516,7 +516,7 @@ export default function ChatPage() {
                         placeholder="Buscar por nombre o teléfono"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg leading-5 bg-gray-50 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500 sm:text-sm"
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-[#2a3942] rounded-lg leading-5 bg-gray-50 dark:bg-[#2a3942] text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-orange-500 sm:text-sm"
                     />
                 </div>
             </div>
@@ -739,11 +739,11 @@ export default function ChatPage() {
     );
 
     const InfoPanelContent = activeChat ? (
-        <div className="flex flex-col h-full bg-white">
+        <div className="flex flex-col h-full bg-white dark:bg-[#111b21]">
             {/* Header Mini */}
-            <div className="p-8 pb-4 text-center border-b border-gray-50">
+            <div className="p-8 pb-4 text-center border-b border-gray-50 dark:border-[#2a3942]">
                 {activeChat?.client_avatar && !activeChat.client_avatar.includes('avatar-placeholder') ? (
-                    <div className="w-24 h-24 rounded-3xl mx-auto mb-4 overflow-hidden shadow-sm border border-white">
+                    <div className="w-24 h-24 rounded-3xl mx-auto mb-4 overflow-hidden shadow-sm border border-white dark:border-[#2a3942]">
                         <img
                             src={activeChat.client_avatar}
                             alt={activeChat.client_name}
@@ -751,7 +751,7 @@ export default function ChatPage() {
                         />
                     </div>
                 ) : (
-                    <div className="w-24 h-24 bg-gradient-to-br from-orange-100 to-orange-50 rounded-3xl mx-auto mb-4 flex items-center justify-center text-3xl font-bold text-orange-600 shadow-sm border border-white">
+                    <div className="w-24 h-24 bg-gradient-to-br from-orange-100 to-orange-50 dark:from-orange-900/40 dark:to-orange-800/20 rounded-3xl mx-auto mb-4 flex items-center justify-center text-3xl font-bold text-orange-600 dark:text-orange-400 shadow-sm border border-white dark:border-orange-500/20">
                         {activeChat?.client_name?.[0]?.toUpperCase() || '?'}
                     </div>
                 )}
@@ -764,7 +764,7 @@ export default function ChatPage() {
                                 value={editedName}
                                 onChange={(e) => setEditedName(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleUpdateName()}
-                                className="w-full text-center text-lg font-bold border-2 border-orange-200 rounded-xl px-3 py-1 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"
+                                className="w-full text-center text-lg font-bold border-2 border-orange-200 dark:border-[#2a3942] bg-transparent text-slate-900 dark:text-gray-100 rounded-xl px-3 py-1 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"
                                 placeholder="Nombre del cliente"
                             />
                             <div className="flex gap-2">
@@ -778,7 +778,7 @@ export default function ChatPage() {
                                 <button
                                     disabled={isUpdatingName}
                                     onClick={() => setIsEditingName(false)}
-                                    className="p-1.5 bg-slate-100 text-slate-400 rounded-lg hover:bg-slate-200 transition-colors"
+                                    className="p-1.5 bg-slate-100 dark:bg-[#2a3942] text-slate-400 rounded-lg hover:bg-slate-200 dark:hover:bg-gray-600 transition-colors"
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
@@ -786,7 +786,7 @@ export default function ChatPage() {
                         </div>
                     ) : (
                         <div className="flex items-center justify-center gap-2 group">
-                            <h3 className="text-xl font-bold text-slate-900 mb-1 uppercase tracking-tight">{activeChat.client_name}</h3>
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-gray-100 mb-1 uppercase tracking-tight">{activeChat.client_name}</h3>
                             <button
                                 onClick={() => {
                                     setEditedName(activeChat.client_name);
@@ -798,7 +798,7 @@ export default function ChatPage() {
                             </button>
                         </div>
                     )}
-                    <div className="flex items-center justify-center gap-2 text-gray-500 text-sm font-medium">
+                    <div className="flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400 text-sm font-medium">
                         <Phone className="w-3.5 h-3.5" />
                         {activeChat.client_phone}
                     </div>
@@ -810,23 +810,23 @@ export default function ChatPage() {
                 <div className="space-y-4">
                     <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Detalles del Cliente</h4>
 
-                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100/50">
-                        <div className="p-2 bg-white rounded-xl shadow-sm">
+                    <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-[#202c33] rounded-2xl border border-gray-100/50 dark:border-[#2a3942]/50">
+                        <div className="p-2 bg-white dark:bg-[#2a3942] rounded-xl shadow-sm">
                             <Info className="w-4 h-4 text-purple-500" />
                         </div>
                         <div>
                             <p className="text-[10px] text-gray-400 font-bold uppercase">Estado</p>
-                            <p className="text-sm font-bold text-gray-700 capitalize">{activeChat.status || 'Nuevo'}</p>
+                            <p className="text-sm font-bold text-gray-700 dark:text-gray-200 capitalize">{activeChat.status || 'Nuevo'}</p>
                         </div>
                     </div>
 
-                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100/50">
-                        <div className="p-2 bg-white rounded-xl shadow-sm">
+                    <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-[#202c33] rounded-2xl border border-gray-100/50 dark:border-[#2a3942]/50">
+                        <div className="p-2 bg-white dark:bg-[#2a3942] rounded-xl shadow-sm">
                             <Calendar className="w-4 h-4 text-purple-500" />
                         </div>
                         <div>
                             <p className="text-[10px] text-gray-400 font-bold uppercase">Última Actividad</p>
-                            <p className="text-sm font-bold text-gray-700">
+                            <p className="text-sm font-bold text-gray-700 dark:text-gray-200">
                                 {formatDistanceToNow(new Date(activeChat.last_message_at), { addSuffix: true, locale: es })}
                             </p>
                         </div>
@@ -836,8 +836,8 @@ export default function ChatPage() {
                 {/* Sentiment Section */}
                 <div>
                     <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4">Análisis de Perfil</h4>
-                    <div className="p-4 bg-purple-50/50 rounded-3xl border border-purple-100">
-                        <p className="text-xs text-purple-700/70 font-bold uppercase mb-2">Sentimiento Predominante</p>
+                    <div className="p-4 bg-purple-50/50 dark:bg-purple-900/10 rounded-3xl border border-purple-100 dark:border-purple-500/20">
+                        <p className="text-xs text-purple-700/70 dark:text-purple-400/70 font-bold uppercase mb-2">Sentimiento Predominante</p>
                         <div className="flex items-center gap-2">
                             <SentimentBadge sentiment={activeChat.sentiment_score} showLabel />
                         </div>
@@ -846,7 +846,7 @@ export default function ChatPage() {
             </div>
 
             {/* Sticky bottom indicator */}
-            <div className="mt-auto p-4 bg-gray-50/50 border-t border-gray-50 flex items-center justify-center gap-2 text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+            <div className="mt-auto p-4 bg-gray-50/50 dark:bg-[#202c33]/50 border-t border-gray-50 dark:border-[#2a3942] flex items-center justify-center gap-2 text-[10px] text-gray-400 font-bold uppercase tracking-widest">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                 Sincronizado con CRM
             </div>

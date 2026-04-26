@@ -254,6 +254,11 @@ Liquid Glass, Gradient Mesh, Neumorphism, Bento Grid, Neobrutalism
 - **Fix**: Se eliminó la llamada a `.toUpperCase()` que se le estaba aplicando directamente al contenido del payload en el Webhook de WhatsApp (`src/app/api/webhooks/whatsapp/route.ts`) antes de pasarlo al RPC `process_incoming_whatsapp`. 
 - **Aplicar en**: Al registrar mensajes de chat o inputs directos del usuario final, NUNCA forzar normalización a mayúsculas. Reservar `.toUpperCase()` estrictamente para identificadores de base de datos o corrección de nombres.
 
+### 2026-04-26: Transición a Modelos Gemini 2.5/3 (Depreciación de 1.5)
+- **Error**: El bot deja de responder y envía el mensaje de handoff ("le enviaré su solicitud al encargado") debido a que `gemini-1.5-flash` ya no está disponible en la API (error "Not Found").
+- **Fix**: Cambiar el modelo estándar a `gemini-2.5-flash` y actualizar fallbacks a `gemini-3-flash-preview`. Implementar lógica de fallback en el código para detectar strings obsoletos.
+- **Aplicar en**: Todos los proyectos activos en 2026. Evitar el uso de la familia 1.5 a menos que se confirme disponibilidad por región.
+
 ---
 
 *V4: Agent-First. El usuario habla, tú construyes.*

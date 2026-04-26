@@ -13,12 +13,12 @@ import { Button } from '@/shared/components/ui/Button';
 import { formatCurrency, cn } from '@/shared/lib/utils';
 
 const cashCutSchema = z.object({
-    initialCash: z.coerce.number().min(0, "M\u00EDnimo 0"),
-    withdrawnCash: z.coerce.number().min(0, "M\u00EDnimo 0"),
+    initialCash: z.coerce.number().min(0, "Mínimo 0"),
+    withdrawnCash: z.coerce.number().min(0, "Mínimo 0"),
     notes: z.string().optional(),
-    countedCash: z.coerce.number().min(0, "M\u00EDnimo 0"),
-    countedCard: z.coerce.number().min(0, "M\u00EDnimo 0"),
-    countedTransfer: z.coerce.number().min(0, "M\u00EDnimo 0"),
+    countedCash: z.coerce.number().min(0, "Mínimo 0"),
+    countedCard: z.coerce.number().min(0, "Mínimo 0"),
+    countedTransfer: z.coerce.number().min(0, "Mínimo 0"),
 });
 
 type CashCutFormValues = z.infer<typeof cashCutSchema>;
@@ -102,15 +102,15 @@ export function CashCutForm({ branchId, userId }: CashCutFormProps) {
         if (!state) return;
         // Obligar a que el campo de efectivo físico sea capturado si hay diferencia
         if (watchedCountedCash === undefined) {
-             toast.error('Debes capturar el EFECTIVO F\u00CDSICO en caja.');
+             toast.error('Debes capturar el EFECTIVO FÍSICO en caja.');
              return;
         }
         if (efectivoRetirado > efectivoReal) {
-             toast.error('La cantidad a RETIRAR no puede ser mayor al EFECTIVO F\u00CDSICO real.');
+             toast.error('La cantidad a RETIRAR no puede ser mayor al EFECTIVO FÍSICO real.');
              return;
         }
         if (diferencia !== 0 && (!data.notes || data.notes.trim() === '')) {
-            toast.error('Hay una diferencia de efectivo. Debes capturar una OBSERVACI\u00D3N.');
+            toast.error('Hay una diferencia de efectivo. Debes capturar una OBSERVACIÓN.');
             return;
         }
         setShowConfirm(true);
@@ -149,7 +149,7 @@ export function CashCutForm({ branchId, userId }: CashCutFormProps) {
         return <div className="p-8 flex items-center justify-center h-full"><Loader2 className="animate-spin text-orange-500 w-12 h-12" /></div>;
     }
 
-    if (!state) return <div className="text-red-500 p-8 text-center font-bold">No se pudo cargar la informaci\u00F3n de la caja.</div>;
+    if (!state) return <div className="text-red-500 p-8 text-center font-bold">No se pudo cargar la información de la caja.</div>;
 
     return (
         <div className="w-full bg-black rounded-3xl shadow-2xl relative border-4 border-black">
@@ -165,7 +165,7 @@ export function CashCutForm({ branchId, userId }: CashCutFormProps) {
 
                     {/* Bloque 1 */}
                     <div className="flex flex-col gap-[1.5px] mb-1.5 lg:mb-2">
-                        <TableRow label="Venta del D\u00EDa" value={formatCurrency(totals.grossSales)} bgClass="bg-[#ea580c]" />
+                        <TableRow label="Venta del Día" value={formatCurrency(totals.grossSales)} bgClass="bg-[#ea580c]" />
                         <TableRow label="A Cuenta" value={formatCurrency(totals.anticipos)} bgClass="bg-black" />
                         <TableRow label="Ventas Registradas" value={formatCurrency(totals.grossSales + totals.anticipos)} bgClass="bg-[#ea580c]" />
                     </div>
@@ -198,7 +198,7 @@ export function CashCutForm({ branchId, userId }: CashCutFormProps) {
                     <div className="flex flex-col gap-[1.5px]">
                         <div className="flex gap-[1.5px]">
                             <div className="px-2 py-0.5 flex-[5] border-[1.5px] border-white bg-[#93400a] flex items-center">
-                                <span className="font-bold uppercase tracking-wide text-[10px] lg:text-[12px] text-white leading-none pt-[1px]">EFECTIVO F\u00CDSICO REAL</span>
+                                <span className="font-bold uppercase tracking-wide text-[10px] lg:text-[12px] text-white leading-none pt-[1px]">EFECTIVO FÍSICO REAL</span>
                             </div>
                             <div className="px-2 py-0 flex-[4] border-[1.5px] border-white bg-[#93400a] flex items-center justify-end relative h-7 lg:h-8">
                                 <span className="text-sm lg:text-[15px] font-normal text-white absolute left-2 leading-none pt-[1px]">$</span>
@@ -229,7 +229,7 @@ export function CashCutForm({ branchId, userId }: CashCutFormProps) {
                         {/* Campo Retirado */}
                         <div className="flex gap-[1.5px] mt-[1.5px]">
                             <div className="px-2 py-0.5 flex-[5] border-[1.5px] border-white bg-black flex items-center">
-                                <span className="font-bold uppercase tracking-wide text-[10px] lg:text-[12px] text-white leading-none pt-[1px]">EFECTIVO a RETIRAR (DEP\u00D3SITO)</span>
+                                <span className="font-bold uppercase tracking-wide text-[10px] lg:text-[12px] text-white leading-none pt-[1px]">EFECTIVO a RETIRAR (DEPÓSITO)</span>
                             </div>
                             <div className="px-2 py-0 flex-[4] border-[1.5px] border-white bg-black flex items-center justify-end relative h-7 lg:h-8">
                                 <span className="text-sm lg:text-[15px] font-normal text-white absolute left-2 leading-none pt-[1px]">$</span>
@@ -330,9 +330,9 @@ export function CashCutForm({ branchId, userId }: CashCutFormProps) {
                             <div className="w-12 h-12 bg-orange-500/10 rounded-full flex items-center justify-center mb-3">
                                 <AlertTriangle size={24} className="text-orange-500" />
                             </div>
-                            <h3 className="text-lg font-black text-slate-900 mb-1 uppercase tracking-tighter">\u00BFCONFIRMAR CORTE?</h3>
+                            <h3 className="text-lg font-black text-slate-900 mb-1 uppercase tracking-tighter">¿CONFIRMAR CORTE?</h3>
                             <p className="text-xs font-medium text-slate-500 mb-2 uppercase">
-                                EFECTIVO F\u00CDSICO TOTAL APORTADO: <b className="text-slate-900">{formatCurrency(efectivoReal)}</b>
+                                EFECTIVO FÍSICO TOTAL APORTADO: <b className="text-slate-900">{formatCurrency(efectivoReal)}</b>
                             </p>
                               {diferencia !== 0 && (
                                 <div className={cn("px-3 py-1.5 rounded-lg text-xs font-bold uppercase", diferencia < 0 ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700")}>
@@ -357,7 +357,7 @@ export function CashCutForm({ branchId, userId }: CashCutFormProps) {
                                     disabled={isPending}
                                 >
                                     {isPending ? <Loader2 size={14} className="animate-spin mr-2" /> : <CheckCircle2 size={14} className="mr-2" />}
-                                    S\u00CD, CERRAR CAJA
+                                    SÍ, CERRAR CAJA
                                 </Button>
                             </div>
                         </div>

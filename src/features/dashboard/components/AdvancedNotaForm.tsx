@@ -110,10 +110,10 @@ export function AdvancedNotaForm({ onClose, onSuccess, forceBranchId }: Advanced
             if (disc) {
                 setAppliedDiscount(disc);
             } else {
-                setDiscountError("C\u00F3digo no v\u00E1lido o expirado");
+                setDiscountError("Código no válido o expirado");
             }
         } catch (err) {
-            setDiscountError("Error validando c\u00F3digo");
+            setDiscountError("Error validando código");
         }
     };
 
@@ -151,7 +151,7 @@ export function AdvancedNotaForm({ onClose, onSuccess, forceBranchId }: Advanced
         try {
             const exists = await checkNotaExists(val, targetBranchId);
             if (exists) {
-                setNotaNumberError("EL N\u00DAMERO DE NOTA YA EXISTE EN ESTA SUCURSAL");
+                setNotaNumberError("EL NÚMERO DE NOTA YA EXISTE EN ESTA SUCURSAL");
             }
         } catch (err) {
             console.error(err);
@@ -175,7 +175,7 @@ export function AdvancedNotaForm({ onClose, onSuccess, forceBranchId }: Advanced
         setSubmittingError(null);
 
         if (!notaNumber || notaNumber.length > 6) {
-            setSubmittingError("Ingresa un n\u00FAmero de nota v\u00E1lido (1-6 d\u00EDgitos)");
+            setSubmittingError("Ingresa un número de nota válido (1-6 dígitos)");
             return;
         }
 
@@ -185,7 +185,7 @@ export function AdvancedNotaForm({ onClose, onSuccess, forceBranchId }: Advanced
         }
 
         if (dateError) {
-            setSubmittingError("Selecciona una fecha en la que la sucursal est\u00E9 abierta");
+            setSubmittingError("Selecciona una fecha en la que la sucursal esté abierta");
             return;
         }
 
@@ -243,7 +243,7 @@ export function AdvancedNotaForm({ onClose, onSuccess, forceBranchId }: Advanced
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 bg-slate-50/50 rounded-[2.5rem] border border-slate-100">
                 {/* 1. NOTA */}
                 <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-orange-500 ml-2">N\u00FAmero de Nota</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-orange-500 ml-2">Número de Nota</label>
                     <div className="relative group">
                         <input
                             id="field-nota-number"
@@ -410,7 +410,7 @@ export function AdvancedNotaForm({ onClose, onSuccess, forceBranchId }: Advanced
                                     if (selectedBranch?.business_hours) {
                                         const isClosed = selectedBranch.business_hours[dayName]?.closed;
                                         if (isClosed) {
-                                            setDateError(`LA SUCURSAL EST\u00C1 CERRADA LOS ${dateNamesMap[dayName].toUpperCase()}`);
+                                            setDateError(`LA SUCURSAL ESTÁ CERRADA LOS ${dateNamesMap[dayName].toUpperCase()}`);
                                         }
                                     }
                                 }
@@ -432,7 +432,7 @@ export function AdvancedNotaForm({ onClose, onSuccess, forceBranchId }: Advanced
                         onClick={addItem}
                         className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg active:scale-95"
                     >
-                        <Plus size={14} /> A\u00F1adir Prenda
+                        <Plus size={14} /> Añadir Prenda
                     </button>
                 </div>
 
@@ -473,7 +473,7 @@ export function AdvancedNotaForm({ onClose, onSuccess, forceBranchId }: Advanced
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <input
                                     id={`item-desc-${item.id}`}
-                                    placeholder="DESCRIPCI\u00D3N R\u00C1PIDA..."
+                                    placeholder="DESCRIPCIÓN RÁPIDA..."
                                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 h-11 text-[11px] font-bold outline-none focus:border-orange-500 transition-all uppercase"
                                     value={item.description}
                                     onChange={(e) => updateItem(item.id, 'description', e.target.value)}
@@ -522,7 +522,7 @@ export function AdvancedNotaForm({ onClose, onSuccess, forceBranchId }: Advanced
                     </div>
 
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">C\u00F3digo de Descuento</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Código de Descuento</label>
                         <div className="flex gap-2">
                             <input
                                 type="text"
@@ -540,7 +540,7 @@ export function AdvancedNotaForm({ onClose, onSuccess, forceBranchId }: Advanced
                                         handleApplyDiscount();
                                     }
                                 }}
-                                placeholder="C\u00D3DIGO"
+                                placeholder="CÓDIGO"
                             />
                             <button
                                 type="button"
@@ -576,7 +576,7 @@ export function AdvancedNotaForm({ onClose, onSuccess, forceBranchId }: Advanced
                     </div>
 
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">M\u00E9todo de Pago</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Método de Pago</label>
                         <select
                             className="w-full bg-white/10 border border-white/20 rounded-2xl px-5 h-12 outline-none focus:ring-2 focus:ring-orange-500 transition-all font-black text-xs text-white [&>option]:bg-slate-900 [&>option]:text-white"
                             value={payment.method}

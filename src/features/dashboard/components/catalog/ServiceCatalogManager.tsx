@@ -37,7 +37,7 @@ export function ServiceCatalogManager() {
             setServices(data || []);
         } catch (error: any) {
             console.error("Error cargando catálogo", error);
-            toast.error("No se pudo cargar el cat\u00E1logo de servicios.");
+            toast.error("No se pudo cargar el catálogo de servicios.");
         } finally {
             setLoading(false);
         }
@@ -57,7 +57,7 @@ export function ServiceCatalogManager() {
                 });
 
             if (error) {
-                if (error.code === '23505') throw new Error("Este servicio ya existe en el cat\u00E1logo.");
+                if (error.code === '23505') throw new Error("Este servicio ya existe en el catálogo.");
                 throw error;
             }
 
@@ -73,7 +73,7 @@ export function ServiceCatalogManager() {
     };
 
     const handleDeleteService = async (id: string, name: string) => {
-        if (!confirm(`\u00BFEst\u00E1s seguro de eliminar "${name}"?\nSi el servicio ya tiene \u00F3rdenes hist\u00F3ricas asociadas, no podr\u00E1 ser eliminado para mantener la integridad de los datos.`)) return;
+        if (!confirm(`¿Estás seguro de eliminar "${name}"?\nSi el servicio ya tiene órdenes históricas asociadas, no podrá ser eliminado para mantener la integridad de los datos.`)) return;
 
         try {
             const { error } = await supabase
@@ -83,7 +83,7 @@ export function ServiceCatalogManager() {
 
             if (error) {
                 if (error.code === '23503') {
-                    throw new Error("No se puede eliminar porque existen \u00F3rdenes hist\u00F3ricas con este servicio.");
+                    throw new Error("No se puede eliminar porque existen órdenes históricas con este servicio.");
                 }
                 throw error;
             }
@@ -98,9 +98,9 @@ export function ServiceCatalogManager() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase">CAT\u00C1LOGO DE SERVICIOS</h2>
+                    <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase">CATÁLOGO DE SERVICIOS</h2>
                     <p className="text-[10px] font-bold text-slate-400 uppercase leading-tight mt-1 max-w-xl">
-                        DEFINE LOS TIPOS DE ARREGLOS GLOBALES PARA TODAS TUS SUCURSALES. LOS PRECIOS SE DEFINIR\u00C1N AL MOMENTO DE CREAR LA NOTA.
+                        DEFINE LOS TIPOS DE ARREGLOS GLOBALES PARA TODAS TUS SUCURSALES. LOS PRECIOS SE DEFINIRÁN AL MOMENTO DE CREAR LA NOTA.
                     </p>
                 </div>
                 <button
@@ -139,8 +139,8 @@ export function ServiceCatalogManager() {
                 ) : (
                     <div className="text-center py-20 flex flex-col items-center">
                         <AlertCircle className="text-slate-200 mb-4" size={48} />
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">NO HAY SERVICIOS EN EL CAT\u00C1LOGO</p>
-                        <p className="text-[10px] font-bold text-slate-300 mt-2 uppercase">AGREGA EL PRIMER TIPO DE ARREGLO PARA QUE EST\u00C9 DISPONIBLE EN LAS SUCURSALES.</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">NO HAY SERVICIOS EN EL CATÁLOGO</p>
+                        <p className="text-[10px] font-bold text-slate-300 mt-2 uppercase">AGREGA EL PRIMER TIPO DE ARREGLO PARA QUE ESTÉ DISPONIBLE EN LAS SUCURSALES.</p>
                     </div>
                 )}
             </div>
@@ -161,7 +161,7 @@ export function ServiceCatalogManager() {
                             value={newServiceName}
                             onChange={(e) => setNewServiceName(e.target.value.toUpperCase())}
                         />
-                        <p className="text-[10px] font-bold text-orange-500 ml-2 mt-2 uppercase leading-tight">NO INCLUYAS PRECIOS, ESTO SE DEFINIR\u00C1 AL MOMENTO DE AGENDAR EL ARREGLO.</p>
+                        <p className="text-[10px] font-bold text-orange-500 ml-2 mt-2 uppercase leading-tight">NO INCLUYAS PRECIOS, ESTO SE DEFINIRÁ AL MOMENTO DE AGENDAR EL ARREGLO.</p>
                     </div>
 
                     <button

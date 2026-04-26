@@ -190,10 +190,14 @@ export function AiAgentSettings({ organizationId }: AiAgentSettingsProps) {
                                 <input 
                                     type="text"
                                     className="w-full bg-secondary/30 border border-border rounded-2xl p-4 text-xs font-mono focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                                    placeholder='gemini-1.5-flash'
+                                    placeholder='gemini-2.5-flash'
                                     value={formData?.ai_model || ''}
                                     onChange={(e) => handleLocalUpdate({ ai_model: e.target.value })}
                                 />
+                                <p className="text-[9px] font-bold text-muted-foreground/60 px-2 flex items-center gap-2">
+                                    <Info size={12} className="text-primary/40" />
+                                    Modelos recomendados: <span className="text-primary/70">gemini-2.5-flash</span> (Rápido), <span className="text-primary/70">gemini-3-flash-preview</span> (Avanzado)
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -236,7 +240,7 @@ export function AiAgentSettings({ organizationId }: AiAgentSettingsProps) {
                         <div>
                             <h5 className="font-black text-sm tracking-tight text-foreground">Asistente Inteligente</h5>
                             <p className="text-[10px] text-muted-foreground mt-1 font-medium leading-relaxed">
-                                Soporte optimizado para Google Gemini 1.5 Flash.
+                                Soporte optimizado para Google Gemini 2.5 y 3.
                             </p>
                         </div>
                     </div>

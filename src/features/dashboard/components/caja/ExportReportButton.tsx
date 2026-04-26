@@ -108,7 +108,7 @@ export function ExportReportButton({ date, branchName, preparedBy, cashState, su
         doc.setFontSize(14);
         doc.setTextColor(colors.secondary[0], colors.secondary[1], colors.secondary[2]);
         doc.setFont('helvetica', 'bold');
-        doc.text('RESULTADO DEL D\u00EDA', 15, yPos);
+        doc.text('RESULTADO DEL DÍA', 15, yPos);
 
         // Summary data mapped exactly to UI blocks
         const summaryData = [
@@ -291,7 +291,7 @@ export function ExportReportButton({ date, branchName, preparedBy, cashState, su
         const actualExpenses = data.expenses.filter((e: any) => e.type === 'expense' || !e.type);
         if (actualExpenses.length > 0) {
             doc.setFontSize(10);
-            doc.text('DETALLE DE GASTOS DEL D\u00EDA', 15, yPos);
+            doc.text('DETALLE DE GASTOS DEL DÍA', 15, yPos);
             
             const expenseRows = [
                 ...actualExpenses.map((e: any) => [
@@ -330,7 +330,7 @@ export function ExportReportButton({ date, branchName, preparedBy, cashState, su
             }
             doc.setFontSize(10);
             doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
-            doc.text('PRODUCCI\u00D3N DIARIA (DETALLE DE PRENDAS)', 15, yPos);
+            doc.text('PRODUCCIÓN DIARIA (DETALLE DE PRENDAS)', 15, yPos);
 
             yPos += 4;
             autoTable(doc, {
@@ -345,7 +345,7 @@ export function ExportReportButton({ date, branchName, preparedBy, cashState, su
                         item.status === 'finished' ? 'LISTO' : 'PENDIENTE'
                     ]),
                     [
-                        { content: 'TOTAL PRODUCCI\u00D3N', colSpan: 3, styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
+                        { content: 'TOTAL PRODUCCIÓN', colSpan: 3, styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
                         { content: formatCurrency((data.items || []).reduce((sum: number, i: any) => sum + Number(i.price || 0), 0)), styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
                         { content: '', styles: { fillColor: [245, 245, 245] } }
                     ]
@@ -373,12 +373,12 @@ export function ExportReportButton({ date, branchName, preparedBy, cashState, su
             doc.setFontSize(8);
             doc.setTextColor(colors.muted[0], colors.muted[1], colors.muted[2]);
             doc.text(
-                `SastrePro Elite v3.0 - Automatizaci\u00F3n de Talleres de Costura`,
+                `SastrePro Elite v3.0 - Automatización de Talleres de Costura`,
                 105,
                 285,
                 { align: 'center' }
             );
-            doc.text(`P\u00E1gina ${i} de ${pageCount}`, 195, 285, { align: 'right' });
+            doc.text(`Página ${i} de ${pageCount}`, 195, 285, { align: 'right' });
         }
 
         doc.save(`Reporte_SastrePro_${new Date().getTime()}.pdf`);

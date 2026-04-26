@@ -94,7 +94,8 @@ export default function MarketingPage() {
             await marketingService.createPromotion({
                 ...newPromo,
                 organization_id: user!.organization_id,
-                target_branch_id: newPromo.target_branch_id || null
+                target_branch_id: newPromo.target_branch_id || null,
+                ends_at: newPromo.ends_at || null
             });
             toast.success("Promoción creada con éxito");
             setIsCreating(false);
@@ -281,7 +282,7 @@ export default function MarketingPage() {
                                     className="w-full bg-orange-600 text-white py-5 rounded-3xl font-black uppercase tracking-widest text-xs hover:bg-orange-500 hover:scale-[1.02] transform transition-all active:scale-95 flex items-center justify-center gap-2 mt-4 shadow-lg shadow-orange-900/40"
                                 >
                                     {isCreating ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} />}
-                                    Activar Promoci\u00F3n
+                                    Activar Promoción
                                 </button>
                             </div>
                         </div>
@@ -638,7 +639,7 @@ export default function MarketingPage() {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Categor\u00EDa</label>
+                                        <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Categoría</label>
                                         <select 
                                             id="tpl-category"
                                             className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-orange-500/20 transition-all appearance-none"
@@ -646,7 +647,7 @@ export default function MarketingPage() {
                                         >
                                             <option value="MARKETING">Marketing</option>
                                             <option value="UTILITY">Utilidad / Servicio</option>
-                                            <option value="AUTHENTICATION">Autenticaci\u00F3n</option>
+                                            <option value="AUTHENTICATION">Autenticación</option>
                                         </select>
                                     </div>
                                     <div className="space-y-1.5">
@@ -700,7 +701,7 @@ export default function MarketingPage() {
                                 }}
                                 className="w-full bg-slate-900 text-white py-5 rounded-3xl font-black uppercase tracking-widest text-xs hover:bg-orange-600 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3"
                             >
-                                <Check size={18} /> Guardar Configuraci\u00F3n
+                                <Check size={18} /> Guardar Configuración
                             </button>
                         </div>
                     </div>

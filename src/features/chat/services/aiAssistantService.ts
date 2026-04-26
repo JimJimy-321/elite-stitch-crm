@@ -133,8 +133,13 @@ export const aiAssistantService = {
 
             const servicesContext = services?.map(s => `- ${s.name}: $${s.price}`).join('\n') || 'Info no disponible.';
 
-            // 3. Selección de Motor
-            const modelName = agentConfig?.ai_model || 'gemini-1.5-flash';
+            // 3. Selección de Motor con Fallback Preventivo (Migración v1.5 -> v2.5/3)
+            let modelName = agentConfig?.ai_model || 'gemini-2.5-flash';
+            
+            // Si el modelo configurado es 1.5 (deprecado) o está vacío, forzar versión estable
+            if (!modelName || modelName.includes('1.5')) {
+                modelName = 'gemini-2.5-flash';
+            }
             const apiKey = (agentConfig?.google_api_key || process.env.GOOGLE_GENERATIVE_AI_API_KEY || '').trim();
             if (!apiKey) throw new Error('Missing Gemini API Key');
             
@@ -209,8 +214,8 @@ ${servicesContext}`;
                 
                 // FALLBACK 1: Si falla el 1.5, intentamos el 1.5-flash-8b (más disponible)
                 try {
-                    console.log('[AI_FALLBACK] Probando gemini-1.5-flash-8b...');
-                    finalModel = 'gemini-1.5-flash-8b';
+                    console.log('[AI_FALLBACK] Probando gemini-3-flash-preview...');
+                    finalModel = 'gemini-3-flash-preview';
                     const fallbackModel = google(finalModel);
                     const result2 = await generateText({
                         model: fallbackModel,

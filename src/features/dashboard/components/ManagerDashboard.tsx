@@ -106,7 +106,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                             <h2 className="text-lg font-black tracking-tight flex items-center gap-2">
                                 MODO MONITOR: <span className="text-orange-200 uppercase">{monitoredBranch?.name || 'Sucursal Seleccionada'}</span>
                             </h2>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-orange-100 opacity-80">Est\u00E1s visualizando las operaciones en tiempo real de esta sede</p>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-orange-100 opacity-80">Estás visualizando las operaciones en tiempo real de esta sede</p>
                         </div>
                     </div>
                     <button 
@@ -128,7 +128,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                                 <h2 className="text-lg font-black tracking-tight flex items-center gap-2">
                                     SEDE ACTUAL: <span className="text-orange-500 uppercase">{branches.find(b => b.id === currentUser?.assigned_branch_id)?.name || 'Cargando...'}</span>
                                 </h2>
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 opacity-80">Panel de control exclusivo para la gesti\u00F3n de esta sucursal</p>
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 opacity-80">Panel de control exclusivo para la gestión de esta sucursal</p>
                             </div>
                         </div>
                         <div className="px-4 py-2 bg-white/5 rounded-xl border border-white/10 hidden md:block">
@@ -166,7 +166,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                         <button
                             onClick={() => setIsInfoModalOpen(true)}
                             className="bg-white text-slate-400 p-4 rounded-2xl shadow-xl shadow-slate-200/20 hover:text-orange-500 hover:bg-orange-50 transition-all border border-slate-100"
-                            title="Informaci\u00F3n de Sucursal"
+                            title="Información de Sucursal"
                         >
                             <Info size={24} />
                         </button>
@@ -203,7 +203,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                         <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 flex items-center gap-3">
                             <Activity size={16} className="text-orange-500" /> COLA DE TRABAJO ACTIVA
                         </h2>
-                        <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-3 py-1 rounded-full uppercase">{activeQueue.length} \u00D3RDENES</span>
+                        <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-3 py-1 rounded-full uppercase">{activeQueue.length} ÓRDENES</span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
@@ -346,7 +346,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
             <Modal
                 isOpen={isInfoModalOpen}
                 onClose={() => setIsInfoModalOpen(false)}
-                title="Configuraci\u00F3n de Sede"
+                title="Configuración de Sede"
                 className="max-w-2xl"
             >
                 <div className="p-8 space-y-8">
@@ -361,7 +361,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Direcci\u00F3n F\u00EDsica</label>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Dirección Física</label>
                             <textarea 
                                 defaultValue={monitoredBranch?.address || branches.find(b => b.id === currentUser?.assigned_branch_id)?.address}
                                 className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-bold text-slate-900 focus:border-orange-500 outline-none transition-all uppercase resize-none h-32"
@@ -370,7 +370,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Tel\u00E9fono de Contacto</label>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Teléfono de Contacto</label>
                                 <input 
                                     type="text"
                                     defaultValue={monitoredBranch?.phone || branches.find(b => b.id === currentUser?.assigned_branch_id)?.phone}
@@ -410,7 +410,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                                         name, address, phone
                                     });
                                     
-                                    toast.success('SUCURSAL ACTUALIZADA CON \u00C9XITO');
+                                    toast.success('SUCURSAL ACTUALIZADA CON ÉXITO');
                                     setIsInfoModalOpen(false);
                                     window.location.reload(); // Refresh to update all references
                                 } catch (e) {
@@ -431,14 +431,14 @@ export function ManagerDashboard({ user: initialUser }: Props) {
             <Modal
                 isOpen={isSettingsModalOpen}
                 onClose={() => setIsSettingsModalOpen(false)}
-                title="Ajustes de Operaci\u00F3n"
+                title="Ajustes de Operación"
                 className="max-w-2xl"
             >
                 <div className="p-8 space-y-10">
                     <div className="space-y-8">
                         <div className="flex items-center justify-between p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
                             <div className="space-y-1">
-                                <h4 className="font-black text-slate-900 text-sm uppercase tracking-tight">Notificaciones Autom\u00E1ticas</h4>
+                                <h4 className="font-black text-slate-900 text-sm uppercase tracking-tight">Notificaciones Automáticas</h4>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase">Enviar WhatsApp al terminar una prenda</p>
                             </div>
                             <div className="w-14 h-8 bg-orange-500 rounded-full relative p-1 cursor-pointer">
@@ -461,12 +461,12 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                                 <div className="p-3 bg-orange-500 text-white rounded-xl">
                                     <Sliders size={20} />
                                 </div>
-                                <h4 className="font-black text-orange-900 text-sm uppercase tracking-tight">Par\u00E1metros de Tiempo</h4>
+                                <h4 className="font-black text-orange-900 text-sm uppercase tracking-tight">Parámetros de Tiempo</h4>
                             </div>
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-black text-orange-700 uppercase">D\u00EDas promedio entrega</span>
-                                    <span className="font-black text-orange-900">3 D\u00CDAS</span>
+                                    <span className="text-[10px] font-black text-orange-700 uppercase">Días promedio entrega</span>
+                                    <span className="font-black text-orange-900">3 DÍAS</span>
                                 </div>
                                 <div className="w-full h-2 bg-orange-200 rounded-full overflow-hidden">
                                     <div className="w-[60%] h-full bg-orange-500" />
@@ -476,7 +476,7 @@ export function ManagerDashboard({ user: initialUser }: Props) {
                     </div>
 
                     <div className="text-center p-6 border-2 border-dashed border-slate-100 rounded-[2rem]">
-                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">M\u00E1s ajustes pr\u00F3ximamente</p>
+                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Más ajustes próximamente</p>
                     </div>
                 </div>
             </Modal>

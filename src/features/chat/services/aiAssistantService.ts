@@ -137,11 +137,14 @@ export const aiAssistantService = {
             const modelName = agentConfig?.ai_model || 'gemini-1.5-flash';
             let aiModel: any;
 
-            const apiKey = agentConfig?.google_api_key || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+            const apiKey = (agentConfig?.google_api_key || process.env.GOOGLE_GENERATIVE_AI_API_KEY || '').trim();
             if (!apiKey) throw new Error('Missing Gemini API Key');
             
-            const google = createGoogleGenerativeAI({ apiKey });
-            aiModel = google(modelName);
+            const googleProvider = createGoogleGenerativeAI({ 
+                apiKey,
+                apiVersion: 'v1'
+            });
+            aiModel = googleProvider(modelName);
 
             const currentDate = new Date().toLocaleDateString('es-MX', { 
                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 

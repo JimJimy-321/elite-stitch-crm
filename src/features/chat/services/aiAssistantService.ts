@@ -193,8 +193,10 @@ ${servicesContext}`;
 
             let aiText = '';
             let aiError = null;
+            let finalModel = modelName;
 
             try {
+                // Intentar con el modelo configurado
                 const result = await generateText({
                     model: aiModel,
                     system: systemPrompt,
@@ -202,8 +204,25 @@ ${servicesContext}`;
                 });
                 aiText = result.text;
             } catch (err: any) {
-                aiError = err.message || String(err);
-                console.error('[AI_GENERATE_ERROR]', err);
+                const firstError = err.message || String(err);
+                console.error('[AI_GENERATE_ERROR_1]', firstError);
+                
+                // FALLBACK 1: Si falla el 1.5, intentamos el 1.5-flash-8b (más disponible)
+                try {
+                    console.log('[AI_FALLBACK] Probando gemini-1.5-flash-8b...');
+                    finalModel = 'gemini-1.5-flash-8b';
+                    const fallbackModel = google(finalModel);
+                    const result2 = await generateText({
+                        model: fallbackModel,
+                        system: systemPrompt,
+                        messages: history.concat([{ role: 'user', content }]) as any,
+                    });
+                    aiText = result2.text;
+                } catch (err2: any) {
+                    const secondError = err2.message || String(err2);
+                    console.error('[AI_GENERATE_ERROR_2]', secondError);
+                    aiError = `Error principal: ${firstError} | Fallback Error: ${secondError}`;
+                }
             }
 
             // Log de la interacción
@@ -215,7 +234,7 @@ ${servicesContext}`;
                     system_prompt: systemPrompt.substring(0, 1500),
                     ai_response: aiText,
                     ai_error: aiError,
-                    metadata: { whatsapp_id: whatsappId, model: modelName, provider: 'google' }
+                    metadata: { whatsapp_id: whatsappId, model: finalModel, provider: 'google', original_request: modelName }
                 });
             } catch (e) {
                 console.error('[AI_LOG_ERROR]', e);

@@ -120,7 +120,7 @@ function DashboardLayoutContent({
                 pathname === '/dashboard/chat' ? "p-0" : "p-10"
             )}
           >
-            <div className="max-w-[1700px] mx-auto">
+            <div className={cn("mx-auto h-full", pathname === '/dashboard/chat' ? "max-w-none w-full" : "max-w-[1700px]")}>
               {children}
             </div>
           </div>

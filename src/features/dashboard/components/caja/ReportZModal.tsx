@@ -51,7 +51,7 @@ export function ReportZModal({ cutId, isOpen, branchName, preparedBy, onClose }:
                 </div>
             ) : data ? (
                 <div className="space-y-8 animate-in fade-in duration-500">
-                    {/* Header Info para Impresi\u00f3n */}
+                    {/* Header Info para Impresión */}
                     <div className="hidden print:block border-b-2 border-slate-900 pb-4 mb-6">
                         <div className="flex justify-between items-end">
                             <div>

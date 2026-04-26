@@ -2,7 +2,6 @@ import { supabaseWebhookClient as supabase } from '@/lib/supabase/webhook';
 import { whatsappService } from './whatsappService';
 import { generateText } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 /**
@@ -134,29 +133,34 @@ export const aiAssistantService = {
 
             const servicesContext = services?.map(s => `- ${s.name}: $${s.price}`).join('\n') || 'Info no disponible.';
 
-            // 3. Selección de Proveedor y Modelo
-            const provider = agentConfig?.ai_provider || 'google';
-            const modelName = agentConfig?.ai_model || 'gemini-2.5-flash';
+            // 3. Selección de Proveedor y Modelo (Solo Google Gemini para estabilidad)
+            const modelName = agentConfig?.ai_model || 'gemini-1.5-flash';
             let aiModel: any;
 
-            if (provider === 'openrouter') {
-                const apiKey = agentConfig?.openrouter_api_key || process.env.OPENROUTER_API_KEY;
-                if (!apiKey) throw new Error('Missing OpenRouter API Key');
-                const openrouter = createOpenAI({
-                    apiKey,
-                    baseURL: 'https://openrouter.ai/api/v1',
-                });
-                aiModel = openrouter(modelName);
-            } else {
-                const apiKey = agentConfig?.google_api_key || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-                if (!apiKey) throw new Error('Missing Gemini API Key');
-                const google = createGoogleGenerativeAI({ apiKey });
-                aiModel = google(modelName);
-            }
+            const apiKey = agentConfig?.google_api_key || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+            if (!apiKey) throw new Error('Missing Gemini API Key');
+            
+            const google = createGoogleGenerativeAI({ apiKey });
+            aiModel = google(modelName);
 
             const currentDate = new Date().toLocaleDateString('es-MX', { 
                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
             });
+
+            // Formatear Horarios para que la IA los entienda mejor
+            let formattedHours = 'Consultar en sucursal';
+            try {
+                if (branch.business_hours) {
+                    const daysMap: any = { mon: 'Lunes', tue: 'Martes', wed: 'Miércoles', thu: 'Jueves', fri: 'Viernes', sat: 'Sábado', sun: 'Domingo' };
+                    formattedHours = Object.entries(branch.business_hours as any)
+                        .map(([day, info]: [string, any]) => {
+                            if (info.closed) return `${daysMap[day]}: Cerrado`;
+                            return `${daysMap[day]}: ${info.open} a ${info.close}`;
+                        }).join(', ');
+                }
+            } catch (e) {
+                formattedHours = String(branch.business_hours);
+            }
 
             // Contexto de tickets pre-cargados
             const ticketContext = preFetchedTickets && preFetchedTickets.length > 0 ? 
@@ -170,22 +174,27 @@ export const aiAssistantService = {
                 })), null, 2)}` : 
                 'No se encontraron prendas pendientes.';
 
-            const systemPrompt = `Eres el asistente virtual de la sastrería "${branch.name}". Responde SIEMPRE en español de México.
-            
+            const systemPrompt = `Eres el asistente virtual experto de la sastrería "${branch.name}". 
+Responde SIEMPRE en español de México, de forma cordial, breve y profesional.
+
 FECHA ACTUAL: ${currentDate}
 
-DATOS SUCURSAL:
+DATOS DE LA SUCURSAL:
 - Dirección: ${branch.address || 'Consultar en sucursal'}
-- Horarios: ${typeof branch.business_hours === 'string' ? branch.business_hours : JSON.stringify(branch.business_hours)}
-- Formas de Pago: EFECTIVO, TRANSFERENCIA y TARJETA DE CRÉDITO/DÉBITO.
+- Horarios de Atención: ${formattedHours}
+- Formas de Pago Aceptadas: EN EFECTIVO, TRANSFERENCIA o TARJETA DE CRÉDITO/DÉBITO.
 
-REGLAS CRÍTICAS:
-1. PRIVACIDAD: NUNCA menciones montos de dinero, saldos pendientes o costos específicos a menos que el cliente pregunte explícitamente por un precio de catálogo.
-2. TRADUCCIÓN: Usa términos naturales. NUNCA digas "received" o "ready". Di "Recibido", "En proceso" o "Listo para que pases por él".
-3. CIERRE DE CONVERSACIÓN (MUY IMPORTANTE): 
-   - Si el cliente envía mensajes de agradecimiento o confirmación corta (ej: "gracias", "ok", "enterado", "perfecto", "muchas gracias", "👍", "🙏"), RESPONDE ÚNICAMENTE con una despedida cordial (ej: "¡De nada! Que tenga un excelente día").
-   - En estos casos de cierre, NO vuelvas a preguntar "¿Hay algo más en lo que pueda ayudarte?".
-4. FLUJO: Sé breve (máximo 2 párrafos). Usa emojis (🧵, ✅, 📍).
+REGLAS CRÍTICAS DE RESPUESTA:
+1. PRIVACIDAD: NUNCA menciones montos de dinero, saldos pendientes o cantidades a cobrar. Solo indica si la prenda está lista o en proceso.
+2. NATURALIDAD: NUNCA uses términos en inglés como "received" o "ready". 
+   - Usa "Recibido" para prendas que acaban de llegar.
+   - Usa "En proceso" para prendas que se están trabajando.
+   - Usa "Listo para que pase por él" para prendas terminadas.
+3. CIERRE DE CONVERSACIÓN (ESTRICTO):
+   - Si el cliente dice "Gracias", "Ok", "Enterado", "Perfecto", "Muchas gracias" o envía un EMOJI de confirmación (👍, 🙏, 😊):
+     - RESPONDE ÚNICAMENTE con una despedida amable como "¡De nada! Que tenga un excelente día. 😊" o un emoji cordial.
+     - NO vuelvas a preguntar "¿Hay algo más en lo que pueda ayudarte?".
+4. BREVEDAD: Responde en máximo 1 o 2 párrafos cortos. Usa emojis como 🧵, ✅, 📍.
 
 ${ticketContext}
 
@@ -207,9 +216,9 @@ ${servicesContext}`;
                     maxSteps: 2,
                     tools: {
                         find_tickets: {
-                            description: 'Consulta el estatus de las notas/prendas y saldos pendientes (solo si no tienes la info arriba).',
+                            description: 'Consulta el estatus de las notas/prendas.',
                             parameters: z.object({
-                                noteNumber: z.string().optional().describe('Número de nota o ticket opcional'),
+                                noteNumber: z.string().optional().describe('Número de nota'),
                             }),
                             execute: async ({ noteNumber }: { noteNumber: any }) => {
                                 try {
@@ -240,10 +249,10 @@ ${servicesContext}`;
                     branch_id: branch.id,
                     client_phone: phone,
                     user_query: content,
-                    system_prompt: systemPrompt.substring(0, 1000), // Evitar prompts gigantes
+                    system_prompt: systemPrompt.substring(0, 1500),
                     ai_response: aiText,
                     ai_error: aiError,
-                    metadata: { whatsapp_id: whatsappId, model: 'gemini-2.5-flash' }
+                    metadata: { whatsapp_id: whatsappId, model: modelName, provider: 'google' }
                 });
             } catch (e) {
                 console.error('[AI_LOG_ERROR]', e);

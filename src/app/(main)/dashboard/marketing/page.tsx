@@ -309,6 +309,16 @@ export default function MarketingPage() {
                                     </select>
                                 </div>
 
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black uppercase text-slate-500 ml-2">Vigencia (Opcional)</label>
+                                    <input 
+                                        type="date"
+                                        className="w-full bg-slate-800 border-none rounded-2xl px-4 py-4 text-white font-bold focus:ring-2 focus:ring-orange-500 transition-all outline-none appearance-none block"
+                                        value={newPromo.ends_at}
+                                        onChange={e => setNewPromo({...newPromo, ends_at: e.target.value})}
+                                    />
+                                </div>
+
                                 <button 
                                     onClick={handleCreate}
                                     disabled={isCreating}

@@ -297,6 +297,50 @@ ${servicesContext}`;
         return await this.sendAndLog(phone, fallbackMsg, clientId || '', branch);
     },
 
+
+    /**
+     * Genera un resumen breve de una conversación antes de archivarla
+     */
+    async summarizeConversation(conversationId: string): Promise<string | null> {
+        try {
+            // 1. Obtener los últimos 20 mensajes de la conversación
+            const { data: messages } = await supabase
+                .from('chat_messages')
+                .select('sender_role, content')
+                .eq('conversation_id', conversationId)
+                .order('created_at', { ascending: false })
+                .limit(20);
+
+            if (!messages || messages.length === 0) return null;
+
+            const conversationText = messages.reverse().map(m => 
+                `${m.sender_role === 'client' ? 'Cliente' : 'Sastrería'}: ${m.content}`
+            ).join('\n');
+
+            // 2. Obtener configuración de IA (usando una por defecto o la de la organización)
+            // Para simplicidad en el cron, usamos gemini-2.5-flash
+            const apiKey = (process.env.GOOGLE_GENERATIVE_AI_API_KEY || '').trim();
+            if (!apiKey) throw new Error('Missing Gemini API Key in Env');
+            
+            const google = createGoogleGenerativeAI({ apiKey });
+            const aiModel = google('gemini-2.5-flash');
+
+            const prompt = `Resume la siguiente conversación de una sastrería en UNA SOLA frase breve y profesional que capture la esencia de lo tratado (preferencias del cliente, pedidos pendientes o dudas resueltas). 
+            Conversación:
+            ${conversationText}`;
+
+            const { text } = await generateText({
+                model: aiModel,
+                prompt: prompt,
+            });
+
+            return text.trim();
+        } catch (err) {
+            console.error('[AI_SUMMARIZE] Error:', err);
+            return null;
+        }
+    },
+
     async sendAndLog(phone: string, text: string, clientId: string, branch: any) {
         const sendResult = await whatsappService.sendTextMessage(phone, text, { 
             accessToken: branch.wa_access_token, 

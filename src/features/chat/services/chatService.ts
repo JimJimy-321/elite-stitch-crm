@@ -18,7 +18,7 @@ export const chatService = {
     /**
      * Obtiene todas las conversaciones de una sucursal o globales.
      */
-    async getConversations(branchId?: string) {
+    async getConversations(branchId?: string, includeArchived = false) {
         let query = supabase
             .from('chat_conversations')
             .select(`
@@ -30,6 +30,10 @@ export const chatService = {
 
         if (branchId) {
             query = query.eq('branch_id', branchId);
+        }
+
+        if (!includeArchived) {
+            query = query.eq('status', 'active');
         }
 
         const { data, error } = await query;

@@ -56,10 +56,10 @@ export function DeviceLinkingModal({ isOpen, onClose }: DeviceLinkingModalProps)
                 
                 toast.success("¡Dispositivo vinculado con éxito!");
                 
-                // Redirigir al login después de un breve delay
+                // Cierra el modal después de un momento
                 setTimeout(() => {
-                    window.location.href = '/login';
-                }, 1500);
+                    onClose();
+                }, 2000);
             }
         } catch (error: any) {
             toast.error("Error: " + error.message);

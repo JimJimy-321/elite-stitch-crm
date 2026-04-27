@@ -79,6 +79,7 @@ export function CashCutDetailModal({ cut, isOpen, onClose }: CashCutDetailModalP
                             summary={isLoadingData || !fullData ? null : {
                                 totalGross: Number(cut.gross_sales || 0),
                                 totalAnticipos: Number(cut.anticipos || 0),
+                                totalDiscounts: Number(cut.total_discounts || 0),
                                 totalPending: Number(cut.total_pending || 0),
                                 totalCash: Number(cut.cash_sales),
                                 totalIncomes: Number(cut.incomes_cash),
@@ -120,9 +121,10 @@ export function CashCutDetailModal({ cut, isOpen, onClose }: CashCutDetailModalP
                         Resultado del Día
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-3">
-                        <Row label="Venta del D\u00EDa" value={cut.gross_sales || 0} bold />
+                        <Row label="Venta Bruta (Precio Lista)" value={Number(cut.gross_sales || 0) + Number(cut.total_discounts || 0)} bold />
+                        <Row label="(-) Descuentos Aplicados" value={cut.total_discounts || 0} isNegative />
+                        <Row label="Venta Neta" value={cut.gross_sales || 0} bold color="text-indigo-600" />
                         <Row label="A Cuenta (Anticipos)" value={cut.anticipos || 0} />
-                        <Row label="Ventas Registradas" value={cut.gross_sales || 0} bold color="text-indigo-600" />
                         <Row label="Por Cobrar" value={cut.total_pending || 0} isNegative />
                     </div>
                 </div>

@@ -27,6 +27,7 @@ export type CashCutState = {
         totalPending: number;
         anticipos: number;
         liquidaciones: number;
+        totalDiscounts: number;
     };
     transactions: {
         payments: any[];
@@ -81,7 +82,10 @@ export async function getCashCutState(branchId: string): Promise<ActionResponse>
                 *,
                 ticket:tickets(
                     ticket_number,
-                    client:clients(full_name)
+                    discount_amount,
+                    client:clients(full_name),
+                    promotion:promotions(discount_code),
+                    discount:discounts(code)
                 )
             `)
             .eq('branch_id', branchId)
@@ -115,7 +119,7 @@ export async function getCashCutState(branchId: string): Promise<ActionResponse>
         // Notas creadas en el rango (Venta Bruta)
         const { data: newTickets } = await supabase
             .from('tickets')
-            .select('total_amount, balance_due')
+            .select('total_amount, balance_due, discount_amount')
             .eq('branch_id', branchId)
             .gte('created_at', startDate)
             .lte('created_at', endDate);
@@ -155,6 +159,8 @@ export async function getCashCutState(branchId: string): Promise<ActionResponse>
             .filter(p => p.payment_type === 'liquidacion' || p.payment_type === 'parcial' || p.payment_type === 'pago')
             .reduce((sum, p) => sum + Number(p.amount), 0);
 
+        const totalDiscounts = newTickets?.reduce((sum, t) => sum + Number(t.discount_amount || 0), 0) || 0;
+
         // E. Cálculo Final (Solo Efectivo afecta la caja física)
         // Calculated = (Inicial + VentasEfec + IngresosEfec) - GastosEfec
         const calculatedCash = (initialCash + cashSales + incomesCash) - expensesCash;
@@ -178,7 +184,8 @@ export async function getCashCutState(branchId: string): Promise<ActionResponse>
                     grossSales,
                     totalPending,
                     anticipos,
-                    liquidaciones
+                    liquidaciones,
+                    totalDiscounts
                 },
                 transactions: {
                     payments: currentPayments,
@@ -237,6 +244,7 @@ export async function performCashCut(data: {
             gross_sales: totals.grossSales,
             anticipos: totals.anticipos,
             total_pending: totals.totalPending,
+            total_discounts: totals.totalDiscounts,
 
             cash_withdrawn: data.withdrawnCash,
             calculated_cash: totals.calculatedCash,
@@ -398,7 +406,10 @@ export async function getReportZData(cutId: string, _ts?: number): Promise<Actio
                 *,
                 ticket:tickets(
                     ticket_number,
-                    client:clients(full_name)
+                    discount_amount,
+                    client:clients(full_name),
+                    promotion:promotions(discount_code),
+                    discount:discounts(code)
                 )
             `)
             .eq('branch_id', cut.branch_id)

@@ -75,7 +75,7 @@ export function CashCutForm({ branchId, userId }: CashCutFormProps) {
         return () => window.removeEventListener('cash-cut-refresh', handleRefresh);
     }, [branchId]);
 
-    const { totals } = state || { totals: { grossSales: 0, anticipos: 0, totalPending: 0, cardSales: 0, cashSales: 0, expensesCash: 0, initialCash: 0, withdrawnCash: 0, calculatedCash: 0, transferSales: 0, totalSales: 0 }};
+    const { totals } = state || { totals: { grossSales: 0, anticipos: 0, totalPending: 0, cardSales: 0, cashSales: 0, expensesCash: 0, initialCash: 0, withdrawnCash: 0, calculatedCash: 0, transferSales: 0, totalSales: 0, totalDiscounts: 0 }};
     
     // Cálculo de valores esperados
     const efectivoEsperado = totals.calculatedCash;
@@ -166,6 +166,7 @@ export function CashCutForm({ branchId, userId }: CashCutFormProps) {
                     {/* Bloque 1 */}
                     <div className="flex flex-col gap-[1.5px] mb-1.5 lg:mb-2">
                         <TableRow label="Venta del Día" value={formatCurrency(totals.grossSales)} bgClass="bg-[#ea580c]" />
+                        <TableRow label="(-) Descuentos" value={formatCurrency(totals.totalDiscounts)} bgClass="bg-black" />
                         <TableRow label="A Cuenta" value={formatCurrency(totals.anticipos)} bgClass="bg-black" />
                         <TableRow label="Ventas Registradas" value={formatCurrency(totals.grossSales + totals.anticipos)} bgClass="bg-[#ea580c]" />
                     </div>

@@ -3,6 +3,7 @@
 > Eres el **cerebro de una fábrica de software inteligente**.
 > El humano dice QUÉ quiere. Tú decides CÓMO construirlo.
 > El humano NO necesita saber nada técnico. Tú sabes todo.
+> **SIEMPRE CONTESTA EN ESPAÑOL.**
 
 ---
 
@@ -258,6 +259,11 @@ Liquid Glass, Gradient Mesh, Neumorphism, Bento Grid, Neobrutalism
 - **Error**: El bot deja de responder y envía el mensaje de handoff ("le enviaré su solicitud al encargado") debido a que `gemini-1.5-flash` ya no está disponible en la API (error "Not Found").
 - **Fix**: Cambiar el modelo estándar a `gemini-2.5-flash` y actualizar fallbacks a `gemini-3-flash-preview`. Implementar lógica de fallback en el código para detectar strings obsoletos.
 - **Aplicar en**: Todos los proyectos activos en 2026. Evitar el uso de la familia 1.5 a menos que se confirme disponibilidad por región.
+
+### 2026-04-26: Idioma de Comunicación Obligatorio
+- **Regla**: El usuario requiere que todas las respuestas y explicaciones sean en ESPAÑOL.
+- **Fix**: Configurar `GEMINI.md` para priorizar el idioma español en la interacción.
+- **Aplicar en**: Todas las interacciones futuras sin excepción.
 
 ---
 

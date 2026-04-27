@@ -17,8 +17,8 @@ export function createClient() {
   const cookieName = projectRef ? `sb-${projectRef}-auth-token` : 'sb-auth-token';
   
   return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder',
     {
       auth: {
         // Usamos una clave de almacenamiento única por pestaña para evitar la sincronización automática (BroadcastChannel)

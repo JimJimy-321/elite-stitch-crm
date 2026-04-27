@@ -66,9 +66,10 @@ export function ReportZModal({ cutId, isOpen, branchName, preparedBy, onClose }:
                     </div>
 
                     {/* Resumen Superior */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <KPICard title="Venta Total" value={formatCurrency(Number(data.cut.cash_sales) + Number(data.cut.card_sales) + Number(data.cut.transfer_sales))} color="indigo" />
                         <KPICard title="Efectivo Neto" value={formatCurrency(data.cut.counted_cash)} color="emerald" />
+                        <KPICard title="Descuentos" value={formatCurrency(data.cut.total_discounts || 0)} color="rose" />
                         <KPICard title="Servicios Realizados" value={data.items.length.toString()} color="orange" />
                     </div>
 
@@ -82,7 +83,9 @@ export function ReportZModal({ cutId, isOpen, branchName, preparedBy, onClose }:
                                         <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Fecha Ingreso</th>
                                         <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Cliente / Tel.</th>
                                         <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Tipo Arreglo</th>
-                                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Precio</th>
+                                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-400">P. Base</th>
+                                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-orange-500">Desc.</th>
+                                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Total</th>
                                         <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Fecha Salida</th>
                                         <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Costurera</th>
                                     </tr>
@@ -108,8 +111,14 @@ export function ReportZModal({ cutId, isOpen, branchName, preparedBy, onClose }:
                                                     <span className="text-[10px] text-slate-400 uppercase">{item.service_name}</span>
                                                 </div>
                                             </td>
-                                            <td className="p-4 text-xs font-black text-slate-900">
+                                            <td className="p-4 text-xs font-black text-slate-400">
                                                 {formatCurrency(item.price)}
+                                            </td>
+                                            <td className="p-4 text-xs font-black text-orange-600">
+                                                {item.ticket.discount_amount > 0 ? `-${formatCurrency((item.ticket.discount_amount / (item.ticket.total_amount + item.ticket.discount_amount)) * item.price)}` : '-'}
+                                            </td>
+                                            <td className="p-4 text-xs font-black text-slate-900">
+                                                {formatCurrency(item.price - (item.ticket.discount_amount > 0 ? (item.ticket.discount_amount / (item.ticket.total_amount + item.ticket.discount_amount)) * item.price : 0))}
                                             </td>
                                             <td className="p-4 text-xs font-medium text-slate-600">
                                                 {format(new Date(item.ticket.delivery_date), "dd/MM/yy")}
@@ -152,7 +161,8 @@ function KPICard({ title, value, color }: any) {
     const colors: any = {
         indigo: "bg-indigo-50 text-indigo-600 border-indigo-100",
         emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
-        orange: "bg-orange-50 text-orange-600 border-orange-100"
+        orange: "bg-orange-50 text-orange-600 border-orange-100",
+        rose: "bg-rose-50 text-rose-600 border-rose-100"
     };
 
     return (

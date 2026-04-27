@@ -115,28 +115,61 @@ export default function MarketingPage() {
         }
     }
 
-    const downloadQR = (id: string, name: string) => {
-        const svg = document.getElementById(`qr-${id}`);
-        if (!svg) return;
+    const downloadQR = (id: string, name: string, endsAt?: string) => {
+        const svg = document.getElementById(`qr-modal-${id}`) || document.getElementById(`qr-hidden-${id}`);
+        if (!svg) {
+            toast.error("No se pudo generar el archivo QR. Intente de nuevo.");
+            return;
+        }
         const svgData = new XMLSerializer().serializeToString(svg);
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
         const img = new Image();
         img.onload = () => {
-            canvas.width = img.width + 40;
-            canvas.height = img.height + 40;
+            const padding = 60;
+            const textHeight = endsAt ? 120 : 80;
+            canvas.width = 600; // Fixed size for consistency
+            canvas.height = 600 + textHeight + padding;
+            
             if (ctx) {
+                // Fondo Blanco con bordes redondeados (simulados)
                 ctx.fillStyle = "white";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 20, 20);
+                
+                // Dibujar QR (centrado)
+                const qrSize = 480;
+                ctx.drawImage(img, (canvas.width - qrSize) / 2, padding, qrSize, qrSize);
+                
+                // Dibujar Texto
+                ctx.fillStyle = "#0f172a"; // Slate-900
+                ctx.textAlign = "center";
+                
+                // Título
+                ctx.font = "black 32px Helvetica";
+                ctx.fillText(name.toUpperCase(), canvas.width / 2, qrSize + padding + 60);
+                
+                // Vigencia
+                if (endsAt) {
+                    ctx.font = "bold 24px Helvetica";
+                    ctx.fillStyle = "#ea580c"; // Orange-600
+                    const dateStr = new Date(endsAt).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
+                    ctx.fillText(`VÁLIDO HASTA: ${dateStr.toUpperCase()}`, canvas.width / 2, qrSize + padding + 100);
+                }
+                
+                // Branding
+                ctx.font = "bold 18px Helvetica";
+                ctx.fillStyle = "#94a3b8"; // Slate-400
+                ctx.fillText("ESCANEADO CON SASTREPRO.COM", canvas.width / 2, canvas.height - 40);
+
                 const pngFile = canvas.toDataURL("image/png");
                 const downloadLink = document.createElement("a");
-                downloadLink.download = `QR-SASTREPRO-${name.toUpperCase()}.png`;
-                downloadLink.href = `${pngFile}`;
+                downloadLink.download = `QR-SASTREPRO-${name.toUpperCase().replace(/\s+/g, '-')}.png`;
+                downloadLink.href = pngFile;
                 downloadLink.click();
+                toast.success("QR descargado correctamente");
             }
         };
-        img.src = "data:image/svg+xml;base64," + btoa(svgData);
+        img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
     };
 
     if (isLoading) {
@@ -380,17 +413,17 @@ export default function MarketingPage() {
                                             <QrCode size={14} /> Mostrar QR
                                         </button>
                                         <button 
-                                            onClick={() => downloadQR(promo.id, promo.name)}
+                                            onClick={() => downloadQR(promo.id, promo.name, promo.ends_at)}
                                             className="w-12 h-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-orange-50 hover:text-orange-600 transition-all border border-slate-200"
                                         >
                                             <Download size={18} />
                                         </button>
                                     </div>
 
-                                    {/* SVG oculto para descarga */}
+                                    {/* SVG oculto para descarga directa desde la lista */}
                                     <div className="hidden">
                                         <QRCodeSVG 
-                                            id={`qr-${promo.id}`}
+                                            id={`qr-hidden-${promo.id}`}
                                             value={`${typeof window !== 'undefined' ? window.location.origin : ''}/regalo/${promo.id}`}
                                             size={512}
                                             level="H"
@@ -555,7 +588,7 @@ export default function MarketingPage() {
 
             {/* Modal QR mejorado */}
             {showQRModal && selectedPromo && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowQRModal(false)} />
                     <div className="relative bg-white rounded-[3rem] p-10 max-w-sm w-full animate-in zoom-in-95 fade-in duration-300 shadow-2xl overflow-hidden group">
                         <div className="absolute top-0 left-0 w-full h-2 bg-orange-600" />
@@ -563,7 +596,7 @@ export default function MarketingPage() {
                         <div className="flex flex-col items-center gap-8 text-center pt-4">
                             <div className="bg-slate-50 p-6 rounded-[2.5rem] shadow-inner relative group-hover:bg-white transition-all duration-500 border border-slate-100">
                                 <QRCodeSVG 
-                                    id="qr-modal-view"
+                                    id={`qr-modal-${selectedPromo.id}`}
                                     value={`${window.location.origin}/regalo/${selectedPromo.id}`}
                                     size={240}
                                     level="H"
@@ -575,7 +608,12 @@ export default function MarketingPage() {
                             <div className="space-y-4">
                                 <div className="space-y-1">
                                     <h3 className="text-2xl font-black italic uppercase tracking-tight text-slate-900">{selectedPromo.name}</h3>
-                                    <p className="text-slate-400 font-medium text-[10px] uppercase tracking-widest">Código: {selectedPromo.code}</p>
+                                    <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest">Código: {selectedPromo.discount_code}</p>
+                                    {selectedPromo.ends_at && (
+                                        <p className="text-orange-600 font-black text-[10px] uppercase tracking-widest mt-1">
+                                            Vigencia hasta: {new Date(selectedPromo.ends_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="bg-orange-50 text-orange-600 px-4 py-2 rounded-full text-[9px] font-black border border-orange-100 tracking-widest uppercase">
                                     Escanea para reclamar regalo
@@ -584,7 +622,7 @@ export default function MarketingPage() {
                             
                             <div className="w-full pt-4 space-y-3">
                                 <button 
-                                    onClick={() => downloadQR(selectedPromo.id, selectedPromo.name)}
+                                    onClick={() => downloadQR(selectedPromo.id, selectedPromo.name, selectedPromo.ends_at)}
                                     className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-orange-600 transition-all shadow-xl shadow-slate-200"
                                 >
                                     <Download size={16} /> Descargar Imagen QR
@@ -601,12 +639,7 @@ export default function MarketingPage() {
                 </div>
             )}
 
-            {/* Formulario de Nueva Promo */}
-            {showQRModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    {/* ... (Existing QR Modal content is actually already in the file) ... */}
-                </div>
-            )}
+
 
             {/* Template Modal */}
             {isTemplateModalOpen && (

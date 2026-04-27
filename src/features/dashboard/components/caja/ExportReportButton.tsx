@@ -79,6 +79,7 @@ export function ExportReportButton({ date, branchName, preparedBy, cashState, su
             grossSales: cashState.totals.grossSales,
             totalPending: cashState.totals.totalPending || 0,
             anticipos: cashState.totals.anticipos || 0,
+            totalDiscounts: cashState.totals.totalDiscounts || 0,
             payments: cashState.transactions.payments,
             expenses: cashState.transactions.expenses,
             items: cashState.transactions.items || []
@@ -94,6 +95,7 @@ export function ExportReportButton({ date, branchName, preparedBy, cashState, su
             grossSales: summary?.totalGross || ((summary?.totalCash || 0) + (summary?.totalCard || 0) + (summary?.totalTransfer || 0)),
             totalPending: summary?.totalPending || 0,
             anticipos: summary?.totalAnticipos || 0,
+            totalDiscounts: summary?.totalDiscounts || 0,
             payments: summary?.payments || movements?.incomes || [],
             expenses: summary?.expenses || movements?.expenses || [],
             items: summary?.items || movements?.items || []
@@ -112,21 +114,25 @@ export function ExportReportButton({ date, branchName, preparedBy, cashState, su
 
         // Summary data mapped exactly to UI blocks
         const summaryData = [
-            ['VENTA DEL DIA (NOTAS NUEVAS)', formatCurrency(data.grossSales || 0)],
+            ['VENTA TOTAL (PRECIO LISTA)', formatCurrency((data.grossSales || 0) + (data.totalDiscounts || 0))],
+            ['(-) DESCUENTOS APLICADOS', formatCurrency(data.totalDiscounts || 0)],
+            ['VENTA NETA (NOTAS NUEVAS)', formatCurrency(data.grossSales || 0)],
+            ['', ''], // Space
             ['A CUENTA (ANTICIPOS/ABONOS)', formatCurrency(data.anticipos || 0)],
-            ['VENTAS REGISTRADAS (TOTAL)', formatCurrency((data.grossSales || 0) + (data.anticipos || 0))],
+            ['TOTAL INGRESOS REGISTRADOS', formatCurrency((data.grossSales || 0) + (data.anticipos || 0))],
             ['', ''], // Space
-            ['POR COBRAR', formatCurrency(data.totalPending || 0)],
+            ['PENDIENTE DE COBRO', formatCurrency(data.totalPending || 0)],
             ['', ''], // Space
-            ['EFECTIVO', formatCurrency(efectivoBruto)],
+            ['EFECTIVO EN VENTAS', formatCurrency(data.cashIncome || 0)],
             ['TARJETAS', formatCurrency(data.cardIncome || 0)],
             ['TRANSFERENCIAS', formatCurrency(data.transferIncome || 0)],
-            ['TOTAL VENTAS', formatCurrency(totalVentasPagos)],
+            ['TOTAL INGRESOS DEL DÍA', formatCurrency(totalVentasPagos - data.initialCash)],
             ['', ''], // Space
-            ['EFECTIVO', formatCurrency(efectivoBruto)],
+            ['EFECTIVO INICIAL', formatCurrency(data.initialCash)],
+            ['(+) EFECTIVO VENTAS/INGRESOS', formatCurrency(data.cashIncome + data.extraIncome)],
             ['(-) GASTOS EN EFECTIVO', formatCurrency(data.totalExpenses || 0)],
             ['', ''], // Space
-            ['TOTAL EN CAJA', formatCurrency(data.cashBalance || 0)]
+            ['TOTAL FINAL EN CAJA', formatCurrency(data.cashBalance || 0)]
         ];
 
         autoTable(doc, {
@@ -147,12 +153,12 @@ export function ExportReportButton({ date, branchName, preparedBy, cashState, su
                 
                 // Highlight rows that are "Headers" or "Totals" in the UI
                 const highlightRows = [
-                    'VENTA DEL DIA (NOTAS NUEVAS)', 
-                    'A CUENTA (ANTICIPOS/ABONOS)',
-                    'VENTAS REGISTRADAS (TOTAL)', 
-                    'EFECTIVO', 
-                    'TOTAL VENTAS', 
-                    'TOTAL EN CAJA'
+                    'VENTA TOTAL (PRECIO LISTA)', 
+                    '(-) DESCUENTOS APLICADOS',
+                    'VENTA NETA (NOTAS NUEVAS)',
+                    'TOTAL INGRESOS REGISTRADOS', 
+                    'TOTAL INGRESOS DEL DÍA', 
+                    'TOTAL FINAL EN CAJA'
                 ];
 
                 if (highlightRows.includes(label)) {
@@ -179,7 +185,7 @@ export function ExportReportButton({ date, branchName, preparedBy, cashState, su
             const cashRows = [
                 ...cashPayments.map((p: any) => [
                     p.ticket?.ticket_number || 'S/F',
-                    p.ticket?.client?.full_name || 'PARTICULAR',
+                    `${p.ticket?.client?.full_name || 'PARTICULAR'}${p.ticket?.discount_amount > 0 ? `\n(DCTO: ${formatCurrency(p.ticket.discount_amount)} - ${p.ticket.promotion?.discount_code || p.ticket.discount?.code || 'PROMO'})` : ''}`,
                     p.payment_type?.toUpperCase() || 'PAGO',
                     formatCurrency(p.amount)
                 ]),
@@ -222,7 +228,7 @@ export function ExportReportButton({ date, branchName, preparedBy, cashState, su
             const cardRows = [
                 ...cardPayments.map((p: any) => [
                     p.ticket?.ticket_number || 'S/F',
-                    p.ticket?.client?.full_name || 'MOSTRADOR',
+                    `${p.ticket?.client?.full_name || 'MOSTRADOR'}${p.ticket?.discount_amount > 0 ? `\n(DCTO: ${formatCurrency(p.ticket.discount_amount)} - ${p.ticket.promotion?.discount_code || p.ticket.discount?.code || 'PROMO'})` : ''}`,
                     p.payment_type?.toUpperCase() || 'PAGO',
                     formatCurrency(p.amount)
                 ]),
@@ -259,7 +265,7 @@ export function ExportReportButton({ date, branchName, preparedBy, cashState, su
             const transRows = [
                 ...transferPayments.map((p: any) => [
                     p.ticket?.ticket_number || 'S/F',
-                    p.ticket?.client?.full_name || 'MOSTRADOR',
+                    `${p.ticket?.client?.full_name || 'MOSTRADOR'}${p.ticket?.discount_amount > 0 ? `\n(DCTO: ${formatCurrency(p.ticket.discount_amount)} - ${p.ticket.promotion?.discount_code || p.ticket.discount?.code || 'PROMO'})` : ''}`,
                     p.payment_type?.toUpperCase() || 'PAGO',
                     formatCurrency(p.amount)
                 ]),

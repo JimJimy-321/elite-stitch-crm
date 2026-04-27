@@ -29,6 +29,15 @@ export async function POST(req: Request) {
         // para que el RLS y el middleware funcionen correctamente.
         const supabase = await createClient();
         
+        // Obtenemos el usuario actual para ver si necesitamos cerrar sesión
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+        // Solo cerramos sesión si el usuario actual es diferente al que va a entrar
+        // para evitar delays innecesarios en reconexiones rápidas.
+        if (currentUser && currentUser.email !== result.profile?.email) {
+            await supabase.auth.signOut();
+        }
+        
         if (result.profile?.email) {
             console.log(`[AUTH_PIN] Attempting sign-in for ${result.profile.email}`);
             const { error: authError } = await supabase.auth.signInWithPassword({

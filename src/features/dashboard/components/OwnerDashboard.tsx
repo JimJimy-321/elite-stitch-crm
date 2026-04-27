@@ -49,7 +49,7 @@ export function OwnerDashboard({ user }: Props) {
     const { financials, loading: finLoading } = useDailyFinancials(undefined);
     const loading = statsLoading || finLoading;
 
-    const firstName = user?.full_name?.split(' ')[0] || 'Due\u00f1o';
+    const firstName = user?.full_name?.split(' ')[0] || 'Dueño';
 
     const chartData = stats?.weeklySales?.length > 0 ? stats.weeklySales : salesData;
     const branchData = stats?.branchPerformance?.length > 0 ? stats.branchPerformance : performanceData;
@@ -208,7 +208,7 @@ export function OwnerDashboard({ user }: Props) {
                         <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-2">INSIGHT IA</p>
                         <p className="text-xs text-muted-foreground leading-relaxed font-medium uppercase tracking-tighter">
                             {strongestBranch ? (
-                                <>TU SEDE M\u00C1S FUERTE HOY ES <span className="text-foreground font-black italic">"{strongestBranch.name?.toUpperCase()}"</span>, CON UNA VENTA BRUTA DE <span className="text-orange-600 font-black">{formatCurrency(strongestBranch.grossSales)}</span>.</>
+                                <>TU SEDE MÁS FUERTE HOY ES <span className="text-foreground font-black italic">"{strongestBranch.name?.toUpperCase()}"</span>, CON UNA VENTA BRUTA DE <span className="text-orange-600 font-black">{formatCurrency(strongestBranch.grossSales)}</span>.</>
                             ) : (
                                 "INICIA OPERACIONES EN TUS SEDES PARA RECIBIR INSIGHTS HOY."
                             )}

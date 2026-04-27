@@ -58,12 +58,14 @@ export const marketingService = {
     async getPromotionPublic(promoId: string) {
         const { data, error } = await supabase
             .from('promotions')
-            .select('*')
+            .select('*, branch:branches(id, name, address)')
             .eq('id', promoId)
-            .eq('is_active', true)
             .single();
 
-        if (error) return null;
+        if (error) {
+            console.error('[MARKETING_SERVICE] Error fetching public promo:', error);
+            return null;
+        }
         return data;
     },
 

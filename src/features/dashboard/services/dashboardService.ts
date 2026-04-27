@@ -34,7 +34,9 @@ export const dashboardService = {
                 *,
                 client:clients(full_name, phone),
                 branch:branches(name),
-                items:ticket_items(*)
+                items:ticket_items(*),
+                promotion:promotions(name, discount_code),
+                discount:discounts(code, description)
             `);
 
         if (branchId) {

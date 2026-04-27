@@ -116,8 +116,24 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
                 </div>
 
                 <div className="flex items-center gap-4">
+                    {(nota.discount_amount > 0) && (
+                        <div className="text-right border-r border-slate-200 pr-4 animate-in fade-in duration-500">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-orange-600 block">DESCUENTO APLICADO</span>
+                            <span className="text-sm font-black text-slate-400 line-through block leading-none opacity-60">
+                                {formatCurrency(nota.total_amount + nota.discount_amount)}
+                            </span>
+                            <div className="flex items-center gap-1.5 justify-end mt-0.5">
+                                <span className="text-[11px] font-black text-orange-600 block">
+                                    -{formatCurrency(nota.discount_amount)} 
+                                    <span className="ml-1 text-slate-400 font-bold">
+                                        ({nota.promotion?.discount_code || nota.discount?.code || 'PROMO'})
+                                    </span>
+                                </span>
+                            </div>
+                        </div>
+                    )}
                     <div className="text-right">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Total</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Total a Pagar</span>
                         <span className="text-2xl font-black text-slate-900">{formatCurrency(nota.total_amount)}</span>
                     </div>
                     {nota.balance_due > 0 ? (
@@ -131,6 +147,45 @@ export function NotaDetailView({ nota, onUpdate }: Props) {
                             <span className="text-xs font-black text-emerald-600 uppercase">Pagado</span>
                         </div>
                     )}
+                </div>
+            </div>
+
+            {/* Resumen de Cobro Detallado */}
+            <div className="bg-white border-[3px] border-slate-100 rounded-[2.5rem] p-8 shadow-sm">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div className="space-y-1">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Resumen de Cuenta</h3>
+                        <p className="text-xs font-bold text-slate-500 uppercase">Verifica el desglose de los montos aplicados</p>
+                    </div>
+                    
+                    <div className="flex flex-wrap items-center gap-8 bg-slate-50 px-8 py-5 rounded-3xl border border-slate-100">
+                        <div className="text-center">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">Subtotal</span>
+                            <span className="text-base font-black text-slate-600">{formatCurrency((nota.total_amount || 0) + (nota.discount_amount || 0))}</span>
+                        </div>
+                        
+                        {(nota.discount_amount > 0) && (
+                            <div className="text-center">
+                                <span className="text-[9px] font-black uppercase tracking-widest text-orange-500 block mb-1">Descuento ({nota.promotion?.discount_code || nota.discount?.code || 'PROMO'})</span>
+                                <span className="text-base font-black text-orange-600">-{formatCurrency(nota.discount_amount)}</span>
+                            </div>
+                        )}
+                        
+                        <div className="text-center border-l border-slate-200 pl-8">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-900 block mb-1">Total Neto</span>
+                            <span className="text-xl font-black text-slate-900">{formatCurrency(nota.total_amount)}</span>
+                        </div>
+                        
+                        <div className="text-center border-l border-slate-200 pl-8">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-amber-500 block mb-1">Saldo Pendiente</span>
+                            <span className={cn(
+                                "text-xl font-black",
+                                nota.balance_due > 0 ? "text-amber-600" : "text-emerald-600"
+                            )}>
+                                {formatCurrency(nota.balance_due)}
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

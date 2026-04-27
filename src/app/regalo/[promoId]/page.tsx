@@ -12,7 +12,8 @@ import {
     MapPin,
     Copy,
     Share2,
-    Ticket
+    Ticket,
+    Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/shared/lib/utils';
@@ -95,6 +96,17 @@ export default function GiftPage({ params }: GiftPageProps) {
         );
     }
 
+    const isExpired = promo?.ends_at && (() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const expiryDate = new Date(promo.ends_at);
+        // If the date string doesn't have time, it usually points to 00:00:00. 
+        // We want it to be valid until the end of that day.
+        expiryDate.setHours(23, 59, 59, 999);
+        return today > expiryDate;
+    })();
+    const isInactive = promo && (!promo.is_active || isExpired);
+
     if (!promo) {
         return (
             <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-center gap-6">
@@ -102,13 +114,43 @@ export default function GiftPage({ params }: GiftPageProps) {
                     <Gift size={48} />
                 </div>
                 <div className="space-y-2">
-                    <h1 className="text-2xl font-black text-white italic">PROMOCIÓN NO DISPONIBLE</h1>
-                    <p className="text-slate-400 max-w-xs">Parece que este enlace ha expirado o la promoción ya no está vigente.</p>
+                    <h1 className="text-2xl font-black text-white italic">PROMOCIÓN NO ENCONTRADA</h1>
+                    <p className="text-slate-400 max-w-xs">Parece que el enlace es incorrecto o la promoción ha sido eliminada.</p>
+                </div>
+                <button 
+                    onClick={() => window.location.href = '/'}
+                    className="bg-orange-600 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs tracking-widest"
+                >Ir al Inicio</button>
+            </div>
+        );
+    }
+
+    if (isInactive) {
+        return (
+            <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-8 text-center gap-8 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-full bg-orange-600/5 blur-3xl rounded-full" />
+                <div className="w-24 h-24 bg-slate-900 border-2 border-orange-500/20 rounded-[2rem] flex items-center justify-center text-orange-500 shadow-2xl relative z-10">
+                    <Clock size={48} />
+                </div>
+                <div className="space-y-4 relative z-10">
+                    <h1 className="text-4xl font-black italic tracking-tighter uppercase leading-none">
+                        PROMOCIÓN <br />
+                        <span className="text-orange-500">FINALIZADA</span>
+                    </h1>
+                    <p className="text-slate-400 max-w-xs font-medium">
+                        {isExpired 
+                            ? "Lo sentimos, esta promoción terminó el " + new Date(promo.ends_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'long' }) + "."
+                            : "Esta promoción se encuentra pausada temporalmente por el administrador."}
+                    </p>
+                </div>
+                <div className="bg-white/5 p-6 rounded-[2rem] border border-white/10 max-w-xs relative z-10">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Sede</p>
+                    <p className="text-sm font-bold">{promo.branch?.name || "Todas las sucursales"}</p>
                 </div>
                 <button 
                     onClick={() => window.location.reload()}
-                    className="bg-orange-600 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs tracking-widest"
-                >Reintentar</button>
+                    className="relative z-10 bg-slate-900 border border-white/10 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-800 transition-all"
+                >Verificar de nuevo</button>
             </div>
         );
     }
@@ -148,8 +190,16 @@ export default function GiftPage({ params }: GiftPageProps) {
                                 ESPERANDO!
                             </h1>
                             <p className="text-slate-400 text-sm font-medium leading-relaxed px-4">
-                                Gracias por tu preferencia. Regístrate en segundos para obtener tu recompensa especial y usarla en tu próxima visita.
+                                {promo.description || `¡Te regalamos un ${promo.discount_type === 'percentage' ? `${promo.discount_value}%` : `$${promo.discount_value}`} de descuento en tu próximo servicio de costura o sastrería!`}
                             </p>
+                            
+                            {promo.ends_at && (
+                                <div className="inline-block mt-4 px-4 py-2 bg-white/5 rounded-xl border border-white/10">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500">
+                                        Válido hasta: {new Date(promo.ends_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         {/* Reward Preview Card */}

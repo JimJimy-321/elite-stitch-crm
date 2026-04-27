@@ -33,12 +33,12 @@ export const marketingService = {
             // 2. Tickets (Ventas reales donde se aplicó el código)
             const { data: tickets } = await supabase
                 .from('tickets')
-                .select('id, total_amount, items(id)')
-                .eq('discount_code', promo.discount_code);
+                .select('id, total_amount, ticket_items(id)')
+                .eq('promotion_id', promo.id);
 
             const redemptionCount = tickets?.length || 0;
             const revenueGenerated = tickets?.reduce((acc, t: any) => acc + (t.total_amount || 0), 0) || 0;
-            const garmentCount = tickets?.reduce((acc, t: any) => acc + (t.items?.length || 0), 0) || 0;
+            const garmentCount = tickets?.reduce((acc, t: any) => acc + (t.ticket_items?.length || 0), 0) || 0;
 
             return {
                 ...promo,
@@ -73,52 +73,17 @@ export const marketingService = {
      * Registrar un nuevo cliente o actualizar uno existente y reclamar recompensa
      */
     async claimReward(promoId: string, clientData: { full_name: string, phone: string, branch_id?: string }) {
-        const promo = await this.getPromotionPublic(promoId);
-        if (!promo) throw new Error("Promoción no válida");
+        const { data, error } = await supabase.rpc('claim_promotion_reward', {
+            p_promo_id: promoId,
+            p_full_name: clientData.full_name,
+            p_phone: clientData.phone,
+            p_branch_id: clientData.branch_id
+        });
 
-        // Normalizar nombre
-        const cleanName = clientData.full_name.trim().toUpperCase();
+        if (error) throw error;
+        if (!data.success) throw new Error(data.error);
 
-        // 1. Asegurar que el cliente existe
-        let clientId;
-        const { data: existingClient } = await supabase
-            .from('clients')
-            .select('id')
-            .eq('phone', clientData.phone)
-            .maybeSingle();
-
-        if (existingClient) {
-            clientId = existingClient.id;
-        } else {
-            const { data: newClient, error: clientErr } = await supabase
-                .from('clients')
-                .insert({
-                    full_name: cleanName,
-                    phone: clientData.phone,
-                    organization_id: promo.organization_id
-                })
-                .select('id')
-                .single();
-            
-            if (clientErr) throw clientErr;
-            clientId = newClient.id;
-        }
-
-        // 2. Registrar la redención
-        const { error: redemptionErr } = await supabase
-            .from('reward_redemptions')
-            .insert({
-                promotion_id: promoId,
-                client_id: clientId,
-                branch_id: clientData.branch_id || promo.branch_id,
-                discount_code: promo.discount_code,
-                organization_id: promo.organization_id
-            });
-
-        if (redemptionErr) throw redemptionErr;
-
-        // 3. Incrementar contador de la promo (opcional si usamos agregados en getPromotions)
-        return { success: true, clientId };
+        return { success: true, clientId: data.client_id };
     },
 
     /**
